@@ -1,4 +1,4 @@
-﻿import type { APIRoute } from 'astro';
+import type { APIRoute } from 'astro';
 import { eq } from 'drizzle-orm';
 import { createDb } from '../../../db';
 import { berkasCagens } from '../../../db/schema';
@@ -34,7 +34,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     // 2. Baca payload request
-    const body = await request.json().catch(() => null);
+    const body = (await request.json().catch(() => null)) as Record<string, any> | null;
     if (!body || !body.finalFileName || !body.category) {
       return new Response(
         JSON.stringify({
@@ -70,19 +70,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     // 5. Inisialisasi DB client
-    const runtimeEnv = (locals.runtime?.env ?? {}) as Record<string, string | undefined>;
-    const tursoUrl =
-      runtimeEnv.TURSO_DATABASE_URL ||
-      (typeof import.meta !== 'undefined' && import.meta.env?.TURSO_DATABASE_URL) ||
-      (typeof process !== 'undefined' && process.env?.TURSO_DATABASE_URL) ||
-      '';
-    const tursoToken =
-      runtimeEnv.TURSO_AUTH_TOKEN ||
-      (typeof import.meta !== 'undefined' && import.meta.env?.TURSO_AUTH_TOKEN) ||
-      (typeof process !== 'undefined' && process.env?.TURSO_AUTH_TOKEN) ||
-      '';
-
-    if (!tursoUrl) {
+    let db;
+    try {
+      db = createDb();
+    } catch {
       return new Response(
         JSON.stringify({
           success: false,
@@ -91,11 +82,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
-
-    const db = createDb({
-      TURSO_DATABASE_URL: tursoUrl,
-      TURSO_AUTH_TOKEN: tursoToken,
-    });
 
     // 6. Cek apakah entri berkas_cagens sudah ada untuk user ini
     const [existingRecord] = await db

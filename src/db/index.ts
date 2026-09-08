@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/libsql';
 import { createClient } from '@libsql/client/http';
 import * as schema from './schema';
+import { getEnvVar } from '../lib/env';
 
 export interface DbEnvConfig {
   TURSO_DATABASE_URL?: string;
@@ -9,21 +10,12 @@ export interface DbEnvConfig {
 }
 
 /**
- * Resolves Turso credentials from provided runtime env object (e.g. locals.runtime?.env),
- * import.meta.env (Vite/Astro), or process.env (Node.js).
+ * Resolves Turso credentials from provided override object,
+ * 'cloudflare:workers' env, import.meta.env, or process.env.
  */
-export function resolveDbCredentials(env?: DbEnvConfig): { url: string; authToken: string } {
-  const url =
-    (env?.TURSO_DATABASE_URL && String(env.TURSO_DATABASE_URL).trim()) ||
-    (typeof import.meta !== 'undefined' && import.meta.env?.TURSO_DATABASE_URL && String(import.meta.env.TURSO_DATABASE_URL).trim()) ||
-    (typeof process !== 'undefined' && process.env?.TURSO_DATABASE_URL && String(process.env.TURSO_DATABASE_URL).trim()) ||
-    '';
-
-  const authToken =
-    (env?.TURSO_AUTH_TOKEN && String(env.TURSO_AUTH_TOKEN).trim()) ||
-    (typeof import.meta !== 'undefined' && import.meta.env?.TURSO_AUTH_TOKEN && String(import.meta.env.TURSO_AUTH_TOKEN).trim()) ||
-    (typeof process !== 'undefined' && process.env?.TURSO_AUTH_TOKEN && String(process.env.TURSO_AUTH_TOKEN).trim()) ||
-    '';
+export function resolveDbCredentials(override?: DbEnvConfig): { url: string; authToken: string } {
+  const url = getEnvVar('TURSO_DATABASE_URL', override);
+  const authToken = getEnvVar('TURSO_AUTH_TOKEN', override);
 
   return { url, authToken };
 }
@@ -35,7 +27,7 @@ export function resolveDbCredentials(env?: DbEnvConfig): { url: string; authToke
  * karena Cloudflare Workers tidak mendukung native TCP connections.
  * HTTP transport adalah satu-satunya cara untuk terkoneksi ke Turso dari edge.
  *
- * @param env - Opsional. Runtime environment variables dari Cloudflare locals.runtime.env / Astro
+ * @param env - Opsional. Override environment variables jika ada
  */
 export function createDb(env?: DbEnvConfig) {
   const { url, authToken } = resolveDbCredentials(env);

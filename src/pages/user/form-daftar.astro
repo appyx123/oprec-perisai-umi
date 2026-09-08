@@ -1,4 +1,4 @@
-﻿---
+---
 import MainLayout from '../../layouts/MainLayout.astro';
 import type { AuthUser } from '../../lib/auth';
 
@@ -155,7 +155,7 @@ if (!user || user.role !== 'user') {
             }),
           });
 
-          const presignData = await presignRes.json();
+          const presignData = (await presignRes.json()) as any;
 
           if (!presignRes.ok || !presignData.success) {
             throw new Error(presignData.message || 'Gagal memperoleh izin unggah S3.');
@@ -193,7 +193,7 @@ if (!user || user.role !== 'user') {
             }),
           });
 
-          const confirmData = await confirmRes.json();
+          const confirmData = (await confirmRes.json()) as any;
 
           if (!confirmRes.ok || !confirmData.success) {
             throw new Error(confirmData.message || 'File berhasil diunggah ke S3 tetapi gagal disimpan ke database.');

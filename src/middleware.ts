@@ -1,4 +1,4 @@
-﻿import { defineMiddleware } from 'astro:middleware';
+import { defineMiddleware } from 'astro:middleware';
 import { verifyJwt, getAuthToken } from './lib/auth';
 
 export const onRequest = defineMiddleware(async (context, next) => {
@@ -7,14 +7,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   // 1. Ambil JWT dari cookie dan verifikasi menggunakan jose
   const token = getAuthToken(cookies);
-  const runtimeEnv = (locals.runtime?.env ?? {}) as Record<string, string | undefined>;
-  const jwtSecret =
-    runtimeEnv.JWT_SECRET ||
-    (typeof import.meta !== 'undefined' && import.meta.env?.JWT_SECRET) ||
-    (typeof process !== 'undefined' && process.env?.JWT_SECRET);
 
   if (token) {
-    const user = await verifyJwt(token, jwtSecret);
+    const user = await verifyJwt(token);
     locals.user = user;
   } else {
     locals.user = null;

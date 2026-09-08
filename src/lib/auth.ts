@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
 import type { AstroCookies } from 'astro';
+import { getEnvVar } from './env';
 
 export const AUTH_COOKIE_NAME = 'auth_token';
 
@@ -20,8 +21,8 @@ export type JwtSecretOrEnv = string | { JWT_SECRET?: string; [key: string]: any 
 const DEFAULT_DEV_SECRET = 'orec_perisai_umi_super_secret_jwt_key_edge_compatible_2026_default';
 
 /**
- * Resolves the JWT secret string from a direct string, an env object (e.g. locals.runtime?.env),
- * import.meta.env, process.env, or a development fallback.
+ * Resolves the JWT secret string from a direct string, an override object,
+ * Cloudflare Workers runtime env, import.meta.env, process.env, or development fallback.
  */
 export function resolveJwtSecret(secretOrEnv?: JwtSecretOrEnv): string {
   if (typeof secretOrEnv === 'string' && secretOrEnv.trim() !== '') {
@@ -34,14 +35,9 @@ export function resolveJwtSecret(secretOrEnv?: JwtSecretOrEnv): string {
     }
   }
 
-  const fromMeta = typeof import.meta !== 'undefined' && import.meta.env?.JWT_SECRET;
-  if (typeof fromMeta === 'string' && fromMeta.trim() !== '') {
-    return fromMeta.trim();
-  }
-
-  const fromProcess = typeof process !== 'undefined' && process.env?.JWT_SECRET;
-  if (typeof fromProcess === 'string' && fromProcess.trim() !== '') {
-    return fromProcess.trim();
+  const resolved = getEnvVar('JWT_SECRET');
+  if (resolved) {
+    return resolved;
   }
 
   return DEFAULT_DEV_SECRET;

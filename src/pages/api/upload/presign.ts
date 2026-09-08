@@ -1,7 +1,7 @@
-﻿import type { APIRoute } from 'astro';
+import type { APIRoute } from 'astro';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { getS3Client, getS3BucketName, type S3EnvConfig } from '../../../lib/s3';
+import { getS3Client, getS3BucketName } from '../../../lib/s3';
 
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
@@ -18,7 +18,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     // 2. Baca payload request
-    const body = await request.json().catch(() => null);
+    const body = (await request.json().catch(() => null)) as Record<string, any> | null;
     if (!body || !body.filename || !body.contentType) {
       return new Response(
         JSON.stringify({
@@ -47,10 +47,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const randomHex = Math.random().toString(36).substring(2, 8);
     const finalFileName = `user_${user.id}_${sanitizedCategory}_${timestamp}_${randomHex}${safeExt}`;
 
-    // 4. Resolusi environment variables untuk S3
-    const runtimeEnv = (locals.runtime?.env ?? {}) as S3EnvConfig;
-    const s3 = getS3Client(runtimeEnv);
-    const bucketName = getS3BucketName(runtimeEnv);
+    // 4. Inisialisasi S3 Client
+    const s3 = getS3Client();
+    const bucketName = getS3BucketName();
 
     // 5. Generate Pre-signed PUT URL (berlaku 15 menit = 900 detik)
     const command = new PutObjectCommand({

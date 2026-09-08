@@ -1,7 +1,7 @@
-﻿import type { APIRoute } from 'astro';
+import type { APIRoute } from 'astro';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { getS3Client, getS3BucketName, type S3EnvConfig } from '../../../lib/s3';
+import { getS3Client, getS3BucketName } from '../../../lib/s3';
 
 export const GET: APIRoute = async ({ url, locals, redirect }) => {
   try {
@@ -46,9 +46,8 @@ export const GET: APIRoute = async ({ url, locals, redirect }) => {
     }
 
     // 4. Konfigurasi S3 Client
-    const runtimeEnv = (locals.runtime?.env ?? {}) as S3EnvConfig;
-    const s3 = getS3Client(runtimeEnv);
-    const bucketName = getS3BucketName(runtimeEnv);
+    const s3 = getS3Client();
+    const bucketName = getS3BucketName();
 
     // 5. Buat presigned GET URL dengan masa berlaku 15 menit (900 detik)
     const command = new GetObjectCommand({

@@ -1,11 +1,11 @@
-﻿import type { APIRoute } from 'astro';
+import type { APIRoute } from 'astro';
 import bcrypt from 'bcryptjs';
 import { eq, or } from 'drizzle-orm';
 import { createDb } from '../../../db';
 import { admins, cagens } from '../../../db/schema';
 import { signJwt, setAuthCookie, type AuthUser } from '../../../lib/auth';
 
-export const POST: APIRoute = async ({ request, cookies, locals }) => {
+export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     let identifier = '';
     let password = '';
@@ -13,7 +13,7 @@ export const POST: APIRoute = async ({ request, cookies, locals }) => {
     const contentType = request.headers.get('content-type') || '';
     if (contentType.includes('application/json')) {
       try {
-        const body = await request.json();
+        const body = (await request.json()) as Record<string, any>;
         identifier = String(body.identifier || body.email || body.username || '').trim();
         password = String(body.password || '').trim();
       } catch {
@@ -45,24 +45,10 @@ export const POST: APIRoute = async ({ request, cookies, locals }) => {
       );
     }
 
-    // Resolusi Environment Variables untuk Cloudflare Edge Runtime / Vite Dev
-    const runtimeEnv = (locals.runtime?.env ?? {}) as Record<string, string | undefined>;
-    const tursoUrl =
-      runtimeEnv.TURSO_DATABASE_URL ||
-      (typeof import.meta !== 'undefined' && import.meta.env?.TURSO_DATABASE_URL) ||
-      (typeof process !== 'undefined' && process.env?.TURSO_DATABASE_URL) ||
-      '';
-    const tursoToken =
-      runtimeEnv.TURSO_AUTH_TOKEN ||
-      (typeof import.meta !== 'undefined' && import.meta.env?.TURSO_AUTH_TOKEN) ||
-      (typeof process !== 'undefined' && process.env?.TURSO_AUTH_TOKEN) ||
-      '';
-    const jwtSecret =
-      runtimeEnv.JWT_SECRET ||
-      (typeof import.meta !== 'undefined' && import.meta.env?.JWT_SECRET) ||
-      (typeof process !== 'undefined' && process.env?.JWT_SECRET);
-
-    if (!tursoUrl) {
+    let db;
+    try {
+      db = createDb();
+    } catch {
       return new Response(
         JSON.stringify({
           success: false,
@@ -71,11 +57,6 @@ export const POST: APIRoute = async ({ request, cookies, locals }) => {
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
-
-    const db = createDb({
-      TURSO_DATABASE_URL: tursoUrl,
-      TURSO_AUTH_TOKEN: tursoToken,
-    });
 
     // 1. Cek tabel admins terlebih dahulu
     const [admin] = await db
@@ -94,7 +75,7 @@ export const POST: APIRoute = async ({ request, cookies, locals }) => {
           username: admin.username,
         };
 
-        const token = await signJwt(authUser, jwtSecret);
+        const token = await signJwt(authUser);
         setAuthCookie(cookies, token);
 
         return new Response(
@@ -127,7 +108,7 @@ export const POST: APIRoute = async ({ request, cookies, locals }) => {
           nim: cagen.nim,
         };
 
-        const token = await signJwt(authUser, jwtSecret);
+        const token = await signJwt(authUser);
         setAuthCookie(cookies, token);
 
         return new Response(
