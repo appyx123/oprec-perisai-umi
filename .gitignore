@@ -1,0 +1,21 @@
+# Environment variables - JANGAN di-commit!
+.env
+.env.local
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.output/
+.astro/
+
+# Wrangler
+.wrangler/
+
+# Drizzle generated (opsional - bisa di-commit untuk tim)
+# drizzle/
+
+# OS
+.DS_Store
+Thumbs.db

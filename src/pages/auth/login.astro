@@ -1,0 +1,178 @@
+﻿---
+import MainLayout from '../../layouts/MainLayout.astro';
+
+const user = Astro.locals.user;
+if (user) {
+  return Astro.redirect(user.role === 'admin' ? '/admin/dashboard' : '/user/dashboard');
+}
+---
+
+<MainLayout title="Masuk - Open Recruitment PERISAI UMI">
+  <div class="min-h-[80vh] flex items-center justify-center px-4 py-12">
+    <div class="w-full max-w-md">
+      
+      <!-- Card Container -->
+      <div class="bg-[#131317]/90 backdrop-blur-xl border border-amber-400/20 rounded-2xl p-8 shadow-2xl shadow-black/80 relative overflow-hidden">
+        
+        <!-- Decorative Header Glow -->
+        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent"></div>
+
+        <!-- Logo & Title -->
+        <div class="text-center mb-8">
+          <img
+            src="/assets/img/logoperisai.png"
+            alt="Logo PERISAI"
+            class="h-14 w-auto mx-auto mb-4 drop-shadow-[0_0_15px_rgba(245,158,11,0.3)]"
+          />
+          <h1 class="text-2xl font-black text-white tracking-tight">Selamat Datang</h1>
+          <p class="text-xs text-gray-400 mt-1">
+            Masuk ke portal seleksi & administrasi OREC PERISAI UMI
+          </p>
+        </div>
+
+        <!-- Dynamic Error Alert -->
+        <div
+          id="error-alert"
+          class="hidden mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-start gap-3"
+          role="alert"
+        >
+          <svg class="w-5 h-5 flex-shrink-0 text-rose-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span id="error-message">Terjadi kesalahan. Silakan coba lagi.</span>
+        </div>
+
+        <!-- Login Form -->
+        <form id="login-form" class="space-y-5">
+          <div>
+            <label for="identifier" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+              Email atau Username
+            </label>
+            <input
+              type="text"
+              id="identifier"
+              name="identifier"
+              required
+              autocomplete="username"
+              placeholder="nama@email.com / username"
+              class="w-full px-4 py-3 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-colors text-sm"
+            />
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label for="password" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                Kata Sandi
+              </label>
+            </div>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              required
+              autocomplete="current-password"
+              placeholder="••••••••"
+              class="w-full px-4 py-3 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-colors text-sm"
+            />
+          </div>
+
+          <button
+            type="submit"
+            id="submit-btn"
+            class="w-full py-3.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-sm shadow-lg shadow-amber-500/20 hover:shadow-amber-500/35 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <span id="btn-text">Masuk</span>
+            <svg id="btn-spinner" class="hidden w-4 h-4 animate-spin text-black" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </button>
+        </form>
+
+        <div class="mt-6 text-center text-xs text-gray-500">
+          Peserta / Calon Anggota & Panitia menggunakan pintu masuk yang sama.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Client-side Login Handler Script -->
+  <script>
+    const form = document.getElementById('login-form') as HTMLFormElement | null;
+    const identifierInput = document.getElementById('identifier') as HTMLInputElement | null;
+    const passwordInput = document.getElementById('password') as HTMLInputElement | null;
+    const errorAlert = document.getElementById('error-alert') as HTMLDivElement | null;
+    const errorMessage = document.getElementById('error-message') as HTMLSpanElement | null;
+    const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement | null;
+    const btnText = document.getElementById('btn-text') as HTMLSpanElement | null;
+    const btnSpinner = document.getElementById('btn-spinner') as SVGElement | null;
+
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        // Sembunyikan alert error sebelumnya
+        if (errorAlert) errorAlert.classList.add('hidden');
+
+        const identifier = identifierInput?.value.trim() || '';
+        const password = passwordInput?.value.trim() || '';
+
+        if (!identifier || !password) {
+          showError('Email/Username dan kata sandi wajib diisi!');
+          return;
+        }
+
+        // Set status tombol loading
+        setLoading(true);
+
+        try {
+          const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({ identifier, password }),
+          });
+
+          const data = await res.json();
+
+          if (res.ok && data.success) {
+            // Redirect sesuai peran (admin atau user)
+            window.location.href = data.redirectUrl || '/';
+          } else {
+            showError(data.message || 'Kredensial tidak valid atau kata sandi salah!');
+            setLoading(false);
+          }
+        } catch (err) {
+          console.error('Fetch error:', err);
+          showError('Terjadi kendala jaringan saat menghubungi server.');
+          setLoading(false);
+        }
+      });
+    }
+
+    function showError(msg: string) {
+      if (errorAlert && errorMessage) {
+        errorMessage.textContent = msg;
+        errorAlert.classList.remove('hidden');
+      } else {
+        alert(msg);
+      }
+    }
+
+    function setLoading(isLoading: boolean) {
+      if (submitBtn && btnText && btnSpinner) {
+        submitBtn.disabled = isLoading;
+        if (isLoading) {
+          btnText.textContent = 'Memverifikasi...';
+          btnSpinner.classList.remove('hidden');
+        } else {
+          btnText.textContent = 'Masuk';
+          btnSpinner.classList.add('hidden');
+        }
+      }
+    }
+  </script>
+</MainLayout>
+
