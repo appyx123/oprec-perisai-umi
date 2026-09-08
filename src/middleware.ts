@@ -15,24 +15,26 @@ export const onRequest = defineMiddleware(async (context, next) => {
     locals.user = null;
   }
 
-  // 2. Proteksi rute Admin (/admin/*)
-  if (pathname.startsWith('/admin')) {
+  // 2. Proteksi rute Admin (/admin/* dan /api/admin/*)
+  if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
     if (!locals.user) {
-      return redirect('/', 302);
+      return redirect('/auth/login', 302);
     }
-    // Cegah akses tidak berwenang (misal: role 'user' mencoba akses area admin)
-    if (locals.user.role !== 'admin') {
-      return redirect(locals.user.role === 'user' ? '/user/dashboard' : '/', 302);
+    // Verifikasi role admin secara komprehensif (role === 'admin' atau flag isAdmin === true)
+    const isAdmin = locals.user.role === 'admin' || locals.user.isAdmin === true || String(locals.user.role).toLowerCase() === 'admin';
+    if (!isAdmin) {
+      return redirect(locals.user.role === 'user' ? '/user/dashboard' : '/auth/login', 302);
     }
   }
 
-  // 3. Proteksi rute User / Cagen (/user/*)
-  if (pathname.startsWith('/user')) {
+  // 3. Proteksi rute User / Cagen (/user/* dan /api/user/*)
+  if (pathname.startsWith('/user') || pathname.startsWith('/api/user')) {
     if (!locals.user) {
-      return redirect('/', 302);
+      return redirect('/auth/login', 302);
     }
-    // Jika admin mengakses /user/*, arahkan ke dashboard admin
-    if (locals.user.role !== 'user') {
+    const isUser = locals.user.role === 'user' && !locals.user.isAdmin;
+    // Jika panitia/admin mengakses area user, arahkan langsung ke dashboard admin
+    if (!isUser) {
       return redirect('/admin/dashboard', 302);
     }
   }

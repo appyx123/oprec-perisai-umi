@@ -1,10 +1,79 @@
-﻿---
+---
 import MainLayout from '../../layouts/MainLayout.astro';
 import type { AuthUser } from '../../lib/auth';
+import { createDb } from '../../db';
+import { cagens, berkasCagens } from '../../db/schema';
+import { count, eq, desc } from 'drizzle-orm';
 
 const user = Astro.locals.user as AuthUser | null | undefined;
-if (!user || user.role !== 'admin') {
+const isAdmin = user?.role === 'admin' || user?.isAdmin === true || String(user?.role).toLowerCase() === 'admin';
+
+if (!user || !isAdmin) {
   return Astro.redirect('/auth/login');
+}
+
+// Inisialisasi statistik default
+let stats = {
+  totalPendaftar: 0,
+  reviewBerkas: 0,
+  berkasDiterima: 0,
+  lulusFinal: 0,
+};
+
+let applicantList: Array<{
+  id: number;
+  namaLengkap: string;
+  nim: string;
+  fakultas: string;
+  jurusan: string;
+  statusPendaftaran: string;
+  hasBerkas: boolean;
+}> = [];
+
+let dbError: string | null = null;
+
+try {
+  const db = createDb();
+
+  // 1. Hitung metrik pendaftar secara langsung dari database Turso
+  const [totalResult] = await db.select({ value: count() }).from(cagens);
+  const [reviewResult] = await db.select({ value: count() }).from(cagens).where(eq(cagens.statusPendaftaran, 'Review Berkas'));
+  const [diterimaResult] = await db.select({ value: count() }).from(cagens).where(eq(cagens.statusPendaftaran, 'Berkas Diterima'));
+  const [lulusResult] = await db.select({ value: count() }).from(cagens).where(eq(cagens.statusPendaftaran, 'Lulus'));
+
+  stats.totalPendaftar = totalResult?.value ?? 0;
+  stats.reviewBerkas = reviewResult?.value ?? 0;
+  stats.berkasDiterima = diterimaResult?.value ?? 0;
+  stats.lulusFinal = lulusResult?.value ?? 0;
+
+  // 2. Ambil data pendaftar terbaru
+  const rows = await db
+    .select({
+      id: cagens.id,
+      namaLengkap: cagens.namaLengkap,
+      nim: cagens.nim,
+      fakultas: cagens.fakultas,
+      jurusan: cagens.jurusan,
+      statusPendaftaran: cagens.statusPendaftaran,
+      berkasId: berkasCagens.id,
+    })
+    .from(cagens)
+    .leftJoin(berkasCagens, eq(cagens.id, berkasCagens.cagenId))
+    .orderBy(desc(cagens.createdAt))
+    .limit(25);
+
+  applicantList = rows.map((r) => ({
+    id: r.id,
+    namaLengkap: r.namaLengkap,
+    nim: r.nim,
+    fakultas: r.fakultas,
+    jurusan: r.jurusan,
+    statusPendaftaran: r.statusPendaftaran,
+    hasBerkas: Boolean(r.berkasId),
+  }));
+} catch (err) {
+  console.error('Error loading admin dashboard stats:', err);
+  dbError = 'Gagal terhubung ke database saat mengambil data statistik.';
 }
 ---
 
@@ -41,60 +110,120 @@ if (!user || user.role !== 'admin') {
       </div>
     </div>
 
-    <!-- Quick Stats Cards (Shell) -->
+    {dbError && (
+      <div class="mb-8 p-4 rounded-2xl bg-rose-950/50 border border-rose-800/50 text-rose-300 text-sm flex items-center gap-3">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>{dbError}</span>
+      </div>
+    )}
+
+    <!-- Quick Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div class="bg-[#121217] border border-white/10 rounded-2xl p-6">
+      <div class="bg-[#121217] border border-white/10 rounded-2xl p-6 hover:border-amber-400/40 transition-colors">
         <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold block mb-1">Total Pendaftar</span>
-        <p class="text-3xl font-extrabold text-white">--</p>
+        <p class="text-3xl font-extrabold text-white">{stats.totalPendaftar}</p>
         <span class="text-[11px] text-gray-500 mt-1 block">Calon Anggota Terdaftar</span>
       </div>
 
-      <div class="bg-[#121217] border border-white/10 rounded-2xl p-6">
+      <div class="bg-[#121217] border border-white/10 rounded-2xl p-6 hover:border-amber-400/40 transition-colors">
         <span class="text-xs uppercase tracking-wider text-amber-400/80 font-semibold block mb-1">Review Berkas</span>
-        <p class="text-3xl font-extrabold text-amber-400">--</p>
+        <p class="text-3xl font-extrabold text-amber-400">{stats.reviewBerkas}</p>
         <span class="text-[11px] text-gray-500 mt-1 block">Menunggu Verifikasi</span>
       </div>
 
-      <div class="bg-[#121217] border border-white/10 rounded-2xl p-6">
+      <div class="bg-[#121217] border border-white/10 rounded-2xl p-6 hover:border-emerald-400/40 transition-colors">
         <span class="text-xs uppercase tracking-wider text-emerald-400/80 font-semibold block mb-1">Berkas Diterima</span>
-        <p class="text-3xl font-extrabold text-emerald-400">--</p>
+        <p class="text-3xl font-extrabold text-emerald-400">{stats.berkasDiterima}</p>
         <span class="text-[11px] text-gray-500 mt-1 block">Lolos Seleksi Berkas</span>
       </div>
 
-      <div class="bg-[#121217] border border-white/10 rounded-2xl p-6">
+      <div class="bg-[#121217] border border-white/10 rounded-2xl p-6 hover:border-blue-400/40 transition-colors">
         <span class="text-xs uppercase tracking-wider text-blue-400/80 font-semibold block mb-1">Lulus Final</span>
-        <p class="text-3xl font-extrabold text-blue-400">--</p>
+        <p class="text-3xl font-extrabold text-blue-400">{stats.lulusFinal}</p>
         <span class="text-[11px] text-gray-500 mt-1 block">Calon Anggota Lulus</span>
       </div>
     </div>
 
-    <!-- Administrative Action Panels Shell -->
-    <div class="bg-[#121217] border border-white/10 rounded-2xl p-8">
-      <h2 class="text-lg font-bold text-white mb-2">Manajemen Seleksi & Berkas</h2>
-      <p class="text-sm text-gray-400 mb-6">
-        Rute proteksi middleware Astro (`src/middleware.ts`) aktif dan membatasi akses halaman ini khusus untuk pengguna dengan hak akses Administrator.
-      </p>
-
-      <div class="flex flex-wrap gap-4">
-        <button
-          type="button"
-          class="px-5 py-2.5 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-400 text-sm font-semibold hover:bg-amber-400/20 transition-colors"
-        >
-          Data Peserta
-        </button>
-        <button
-          type="button"
-          class="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-sm font-semibold hover:bg-white/10 transition-colors"
-        >
-          Verifikasi Berkas
-        </button>
-        <button
-          type="button"
-          class="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-sm font-semibold hover:bg-white/10 transition-colors"
-        >
-          Kelola Admin
-        </button>
+    <!-- Data Peserta Table Panel -->
+    <div class="bg-[#121217] border border-white/10 rounded-2xl p-6 sm:p-8 shadow-xl mb-8">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-white/10">
+        <div>
+          <h2 class="text-xl font-bold text-white tracking-tight">Daftar Calon Anggota (Cagen)</h2>
+          <p class="text-xs sm:text-sm text-gray-400 mt-1">
+            Data peserta seleksi OREC PERISAI UMI yang tercatat di database Turso.
+          </p>
+        </div>
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-300 text-xs font-mono">
+          Total: <span class="text-amber-400 font-bold">{applicantList.length}</span> Peserta Ditampilkan
+        </div>
       </div>
+
+      {applicantList.length === 0 ? (
+        <div class="text-center py-12 text-gray-500 text-sm">
+          Belum ada calon anggota yang mendaftar di sistem.
+        </div>
+      ) : (
+        <div class="overflow-x-auto mt-6">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="border-b border-white/10 text-gray-400 text-xs uppercase tracking-wider">
+                <th class="py-3.5 px-4">No / ID</th>
+                <th class="py-3.5 px-4">Nama Lengkap</th>
+                <th class="py-3.5 px-4">NIM</th>
+                <th class="py-3.5 px-4">Fakultas & Jurusan</th>
+                <th class="py-3.5 px-4">Status Seleksi</th>
+                <th class="py-3.5 px-4">Berkas</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+              {applicantList.map((cagen) => {
+                let badgeColor = 'bg-gray-800 text-gray-300 border-gray-700';
+                if (cagen.statusPendaftaran === 'Review Berkas') {
+                  badgeColor = 'bg-amber-500/15 text-amber-300 border-amber-500/30';
+                } else if (cagen.statusPendaftaran === 'Berkas Diterima') {
+                  badgeColor = 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
+                } else if (cagen.statusPendaftaran === 'Lulus') {
+                  badgeColor = 'bg-blue-500/15 text-blue-300 border-blue-500/30';
+                } else if (cagen.statusPendaftaran === 'Tidak Lulus') {
+                  badgeColor = 'bg-rose-500/15 text-rose-300 border-rose-500/30';
+                }
+
+                return (
+                  <tr class="hover:bg-white/[0.02] transition-colors">
+                    <td class="py-3.5 px-4 font-mono text-gray-400 text-xs">#{cagen.id}</td>
+                    <td class="py-3.5 px-4 font-bold text-white">{cagen.namaLengkap}</td>
+                    <td class="py-3.5 px-4 font-mono text-amber-400">{cagen.nim}</td>
+                    <td class="py-3.5 px-4 text-gray-300">
+                      <span class="block">{cagen.jurusan}</span>
+                      <span class="text-xs text-gray-500">{cagen.fakultas}</span>
+                    </td>
+                    <td class="py-3.5 px-4">
+                      <span class={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold border ${badgeColor}`}>
+                        {cagen.statusPendaftaran}
+                      </span>
+                    </td>
+                    <td class="py-3.5 px-4">
+                      {cagen.hasBerkas ? (
+                        <span class="inline-flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                          Terunggah
+                        </span>
+                      ) : (
+                        <span class="inline-flex items-center gap-1.5 text-xs text-gray-500">
+                          <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
+                          Belum Lengkap
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
 
   </div>

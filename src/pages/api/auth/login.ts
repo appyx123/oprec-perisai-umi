@@ -71,7 +71,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         const authUser: AuthUser = {
           id: admin.id,
           role: 'admin',
-          name: admin.namaLengkap,
+          isAdmin: true,
+          name: admin.namaLengkap || admin.username || 'Administrator OREC',
           username: admin.username,
         };
 
@@ -103,6 +104,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         const authUser: AuthUser = {
           id: cagen.id,
           role: 'user',
+          isAdmin: false,
           name: cagen.namaLengkap,
           email: cagen.email,
           nim: cagen.nim,

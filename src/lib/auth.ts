@@ -13,6 +13,7 @@ export interface AuthUser {
   email?: string;
   username?: string;
   nim?: string;
+  isAdmin?: boolean;
 }
 
 export type JwtSecretOrEnv = string | { JWT_SECRET?: string; [key: string]: any };
@@ -53,15 +54,19 @@ export function getJwtSecretKey(secretOrEnv?: JwtSecretOrEnv): Uint8Array {
 
 /**
  * Membuat dan menandatangani (sign) JWT payload untuk 'admin' atau 'user'.
+ * Secara eksplisit menyematkan properti `role: 'admin' | 'user'` dan `isAdmin: boolean`.
  * Masa berlaku token di-set selama 7 hari.
  */
 export async function signJwt(user: AuthUser, secretOrEnv?: JwtSecretOrEnv): Promise<string> {
   const secretKey = getJwtSecretKey(secretOrEnv);
+  const normalizedRole: UserRole = String(user.role).toLowerCase() === 'admin' ? 'admin' : 'user';
+  const isAdmin = normalizedRole === 'admin' || user.isAdmin === true;
 
   return new SignJWT({
-    id: user.id,
-    role: user.role,
-    name: user.name,
+    id: Number(user.id),
+    role: normalizedRole,
+    isAdmin,
+    name: user.name || user.username || (isAdmin ? 'Administrator' : 'Peserta'),
     email: user.email,
     username: user.username,
     nim: user.nim,
@@ -75,24 +80,35 @@ export async function signJwt(user: AuthUser, secretOrEnv?: JwtSecretOrEnv): Pro
 /**
  * Memverifikasi integritas JWT token menggunakan jose.
  * Mengembalikan objek AuthUser jika valid, atau null jika token rusak / kedaluwarsa.
+ * Dilengkapi pengecekan fleksibel untuk tipe ID dan properti role/isAdmin.
  */
 export async function verifyJwt(token: string, secretOrEnv?: JwtSecretOrEnv): Promise<AuthUser | null> {
   try {
     const secretKey = getJwtSecretKey(secretOrEnv);
     const { payload } = await jwtVerify(token, secretKey);
 
-    if (
-      typeof payload.id !== 'number' ||
-      (payload.role !== 'admin' && payload.role !== 'user') ||
-      typeof payload.name !== 'string'
-    ) {
+    const rawId = payload.id;
+    const numId = Number(rawId);
+    if (isNaN(numId)) {
       return null;
     }
 
+    const rawRole = String(payload.role || '').toLowerCase();
+    const isAdmin = payload.isAdmin === true || rawRole === 'admin';
+    const role: UserRole = isAdmin ? 'admin' : 'user';
+
+    const name =
+      typeof payload.name === 'string' && payload.name.trim() !== ''
+        ? payload.name
+        : typeof payload.username === 'string' && payload.username.trim() !== ''
+          ? payload.username
+          : isAdmin ? 'Administrator' : 'Peserta';
+
     return {
-      id: payload.id,
-      role: payload.role as UserRole,
-      name: payload.name,
+      id: numId,
+      role,
+      isAdmin,
+      name,
       email: typeof payload.email === 'string' ? payload.email : undefined,
       username: typeof payload.username === 'string' ? payload.username : undefined,
       nim: typeof payload.nim === 'string' ? payload.nim : undefined,
@@ -103,7 +119,8 @@ export async function verifyJwt(token: string, secretOrEnv?: JwtSecretOrEnv): Pr
 }
 
 /**
- * Menyimpan JWT ke dalam HttpOnly, Secure, SameSite=Strict cookie.
+ * Menyimpan JWT ke dalam HttpOnly, Secure, SameSite=Lax cookie.
+ * Menggunakan SameSite=Lax agar cookie tetap terbawa saat browser dialihkan (302 redirect) ke halaman dashboard.
  */
 export function setAuthCookie(cookies: AstroCookies, token: string): void {
   const isProd = typeof import.meta !== 'undefined' && Boolean(import.meta.env?.PROD);
@@ -111,7 +128,7 @@ export function setAuthCookie(cookies: AstroCookies, token: string): void {
   cookies.set(AUTH_COOKIE_NAME, token, {
     httpOnly: true,
     secure: isProd, // True di Cloudflare production HTTPS, false saat dev HTTP di localhost
-    sameSite: 'strict',
+    sameSite: 'lax',
     path: '/',
     maxAge: 60 * 60 * 24 * 7, // 7 hari dalam detik
   });
