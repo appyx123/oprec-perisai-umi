@@ -17,13 +17,13 @@ export const GET: APIRoute = async ({ url, locals, redirect }) => {
       );
     }
 
-    // 2. Ambil parameter nama file dari query string
-    const fileName = url.searchParams.get('name');
+    // 2. Ambil parameter nama file dari query string (mendukung ?name= atau ?fileKey=)
+    const fileName = url.searchParams.get('name') || url.searchParams.get('fileKey');
     if (!fileName) {
       return new Response(
         JSON.stringify({
           success: false,
-          message: 'Parameter nama file (?name=...) wajib disertakan.',
+          message: 'Parameter nama file (?name=... atau ?fileKey=...) wajib disertakan.',
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );

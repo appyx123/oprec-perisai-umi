@@ -1,0 +1,587 @@
+---
+import MainLayout from '../../../layouts/MainLayout.astro';
+import type { AuthUser } from '../../../lib/auth';
+import { createDb } from '../../../db';
+import { cagens, berkasCagens, STATUS_PENDAFTARAN } from '../../../db/schema';
+import { eq } from 'drizzle-orm';
+
+const user = Astro.locals.user as AuthUser | null | undefined;
+const isAdmin = user?.role === 'admin' || user?.isAdmin === true || String(user?.role).toLowerCase() === 'admin';
+
+if (!user || !isAdmin) {
+  return Astro.redirect('/auth/login');
+}
+
+const { id } = Astro.params;
+const applicantId = Number(id);
+
+if (!applicantId || isNaN(applicantId)) {
+  return Astro.redirect('/admin/dashboard');
+}
+
+let cagen: any = null;
+let berkas: any = null;
+let dbError: string | null = null;
+
+try {
+  const db = createDb();
+
+  const [foundCagen] = await db
+    .select()
+    .from(cagens)
+    .where(eq(cagens.id, applicantId))
+    .limit(1);
+
+  if (foundCagen) {
+    cagen = foundCagen;
+
+    const [foundBerkas] = await db
+      .select()
+      .from(berkasCagens)
+      .where(eq(berkasCagens.cagenId, applicantId))
+      .limit(1);
+
+    berkas = foundBerkas ?? null;
+  }
+} catch (err) {
+  console.error(`Error loading applicant #${applicantId}:`, err);
+  dbError = 'Gagal memuat data calon anggota dari database.';
+}
+
+function formatWaUrl(rawPhone: string): string {
+  let clean = (rawPhone || '').replace(/[^0-9]/g, '');
+  if (clean.startsWith('0')) {
+    clean = '62' + clean.slice(1);
+  }
+  return `https://wa.me/${clean}`;
+}
+
+// Konfigurasi 10 Berkas untuk diperiksa
+const documentList = [
+  {
+    key: 'ktm',
+    title: 'Kartu Tanda Mahasiswa (KTM)',
+    description: 'Bukti identitas mahasiswa aktif Universitas Muslim Indonesia.',
+    isMandatory: true,
+    fileName: berkas?.ktm || null,
+  },
+  {
+    key: 'transkripNilai',
+    title: 'Transkrip Nilai Terakhir',
+    description: 'Dokumen bukti capaian akademik IPK terakhir.',
+    isMandatory: true,
+    fileName: berkas?.transkripNilai || null,
+  },
+  {
+    key: 'pasFoto',
+    title: 'Pas Foto Formal',
+    description: 'Foto formal calon anggota ukuran 3x4 atau 4x6.',
+    isMandatory: true,
+    fileName: berkas?.pasFoto || null,
+  },
+  {
+    key: 'cv',
+    title: 'Curriculum Vitae (CV)',
+    description: 'Daftar riwayat hidup, pengalaman, dan keahlian.',
+    isMandatory: true,
+    fileName: berkas?.cv || null,
+  },
+  {
+    key: 'buktiFollow',
+    title: 'Bukti Follow Media Sosial',
+    description: 'Tangkapan layar bukti mengikuti akun media sosial resmi PERISAI.',
+    isMandatory: true,
+    fileName: berkas?.buktiFollow || null,
+  },
+  {
+    key: 'buktiShare',
+    title: 'Bukti Share Info OREC',
+    description: 'Tangkapan layar bukti membagikan poster/info pendaftaran.',
+    isMandatory: true,
+    fileName: berkas?.buktiShare || null,
+  },
+  {
+    key: 'fileKarya',
+    title: 'File Karya Utama',
+    description: 'Karya esai, desain poster, proposal, atau video sesuai peminatan.',
+    isMandatory: true,
+    fileName: berkas?.fileKarya || null,
+  },
+  {
+    key: 'sertifikatPrestasi',
+    title: 'Sertifikat Prestasi / Kejuaraan',
+    description: 'Piagam atau sertifikat perlombaan akademik maupun non-akademik.',
+    isMandatory: false,
+    fileName: berkas?.sertifikatPrestasi || null,
+  },
+  {
+    key: 'sertifikatBahasa',
+    title: 'Sertifikat Kemampuan Bahasa',
+    description: 'Sertifikat TOEFL/IELTS/TOAFL atau tes bahasa lainnya.',
+    isMandatory: false,
+    fileName: berkas?.sertifikatBahasa || null,
+  },
+  {
+    key: 'sertifikatOrganisasi',
+    title: 'Sertifikat Organisasi / Kepanitiaan',
+    description: 'Bukti keaktifan pada kepanitiaan atau organisasi sebelumnya.',
+    isMandatory: false,
+    fileName: berkas?.sertifikatOrganisasi || null,
+  },
+];
+---
+
+<MainLayout title={cagen ? `Detail Peserta: ${cagen.namaLengkap} - PERISAI UMI` : 'Peserta Tidak Ditemukan'}>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    
+    <!-- Breadcrumb & Top Bar -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+      <div class="flex items-center gap-3">
+        <a
+          href="/admin/dashboard"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white text-xs font-semibold transition-colors"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+          </svg>
+          Kembali ke Dashboard
+        </a>
+        <span class="text-gray-600 hidden sm:inline">/</span>
+        <span class="text-xs font-mono text-gray-400 hidden sm:inline">
+          Peserta #{applicantId}
+        </span>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-gray-500 font-mono">
+          Login sebagai: <strong class="text-white">@{user.username || 'admin'}</strong>
+        </span>
+      </div>
+    </div>
+
+    {dbError && (
+      <div class="mb-8 p-4 rounded-2xl bg-rose-950/50 border border-rose-800/50 text-rose-300 text-sm flex items-center gap-3">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>{dbError}</span>
+      </div>
+    )}
+
+    {!cagen ? (
+      <div class="bg-[#121217] border border-white/10 rounded-3xl p-12 text-center shadow-xl">
+        <div class="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+          </svg>
+        </div>
+        <h2 class="text-2xl font-bold text-white mb-2">Calon Anggota Tidak Ditemukan</h2>
+        <p class="text-sm text-gray-400 max-w-md mx-auto mb-6">
+          Pendaftar dengan nomor identitas #{applicantId} tidak tercatat dalam database sistem OREC PERISAI UMI.
+        </p>
+        <a
+          href="/admin/dashboard"
+          class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-sm shadow-lg shadow-amber-500/20 transition-colors"
+        >
+          Buka Tabel Pendaftar
+        </a>
+      </div>
+    ) : (
+      <div>
+        <!-- Main Applicant Header Card -->
+        <div class="bg-gradient-to-r from-[#171720] via-[#1a1a24] to-[#121217] border border-amber-400/20 rounded-3xl p-8 sm:p-10 shadow-xl relative overflow-hidden mb-8">
+          <div class="absolute -right-16 -top-16 w-64 h-64 bg-amber-500/10 rounded-full blur-[90px] pointer-events-none"></div>
+
+          <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
+            <div>
+              <div class="flex flex-wrap items-center gap-3 mb-3">
+                <span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-gray-300 text-xs font-mono">
+                  ID Peserta: #{cagen.id}
+                </span>
+                <span id="current-status-badge" class="px-3 py-1 rounded-full text-xs font-semibold border bg-amber-500/15 text-amber-300 border-amber-500/30">
+                  {cagen.statusPendaftaran}
+                </span>
+                {berkas?.peminatan && (
+                  <span class="px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-300 text-xs font-semibold">
+                    Divisi: {berkas.peminatan}
+                  </span>
+                )}
+              </div>
+              <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">
+                {cagen.namaLengkap}
+              </h1>
+              <p class="text-sm sm:text-base text-gray-400 mt-1">
+                NIM: <span class="text-amber-400 font-mono font-bold">{cagen.nim}</span> &bull; {cagen.jurusan}, {cagen.fakultas} (Angkatan {cagen.angkatan})
+              </p>
+            </div>
+
+            <!-- WhatsApp Quick Connect Button -->
+            <div class="flex flex-wrap items-center gap-3">
+              <a
+                href={formatWaUrl(cagen.noWa)}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 transition-colors cursor-pointer"
+              >
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                </svg>
+                Hubungi via WhatsApp
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alert Notification Box for Async Updates -->
+        <div id="status-toast" class="hidden mb-8 p-4 rounded-2xl text-sm" role="alert">
+          <div class="flex items-center gap-3">
+            <div id="toast-icon" class="flex-shrink-0"></div>
+            <p id="toast-message" class="font-medium"></p>
+          </div>
+        </div>
+
+        <!-- 2 Column Layout: Left (Biodata) & Right (Status Control) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          
+          <!-- Left: Profil Calon Anggota (2 cols) -->
+          <div class="lg:col-span-2 bg-[#121217] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
+            <div class="border-b border-white/10 pb-4">
+              <h2 class="text-xl font-bold text-white tracking-tight">Biodata Lengkap Pendaftar</h2>
+              <p class="text-xs text-gray-400 mt-1">Informasi identitas pendaftar yang tersimpan pada sistem.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
+              <div class="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold block mb-1">Nama Lengkap</span>
+                <span class="font-bold text-white text-base">{cagen.namaLengkap}</span>
+              </div>
+
+              <div class="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold block mb-1">Nama Panggilan</span>
+                <span class="font-bold text-white text-base">{cagen.namaPanggilan || '-'}</span>
+              </div>
+
+              <div class="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold block mb-1">Nomor Induk Mahasiswa (NIM)</span>
+                <span class="font-bold font-mono text-amber-400 text-base">{cagen.nim}</span>
+              </div>
+
+              <div class="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold block mb-1">Angkatan Kuliah</span>
+                <span class="font-bold text-white text-base">{cagen.angkatan}</span>
+              </div>
+
+              <div class="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold block mb-1">Fakultas</span>
+                <span class="font-bold text-white text-base">{cagen.fakultas}</span>
+              </div>
+
+              <div class="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold block mb-1">Program Studi / Jurusan</span>
+                <span class="font-bold text-white text-base">{cagen.jurusan}</span>
+              </div>
+
+              <div class="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold block mb-1">Alamat Email</span>
+                <span class="font-medium text-white truncate block">{cagen.email}</span>
+              </div>
+
+              <div class="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold block mb-1">Nomor WhatsApp</span>
+                <a
+                  href={formatWaUrl(cagen.noWa)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="font-bold font-mono text-emerald-400 hover:text-emerald-300 transition-colors inline-flex items-center gap-1.5"
+                >
+                  {cagen.noWa}
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                  </svg>
+                </a>
+              </div>
+            </div>
+
+            <div class="pt-2 text-xs text-gray-500 font-mono">
+              Terdaftar pada sistem sejak: {cagen.createdAt ? new Date(cagen.createdAt).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' }) : '-'}
+            </div>
+          </div>
+
+          <!-- Right: Kelola Status Seleksi (1 col) -->
+          <div class="bg-[#121217] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col justify-between space-y-6">
+            <div>
+              <div class="border-b border-white/10 pb-4 mb-5">
+                <h2 class="text-xl font-bold text-white tracking-tight">Keputusan Status</h2>
+                <p class="text-xs text-gray-400 mt-1">Ubah status seleksi peserta secara langsung.</p>
+              </div>
+
+              <div class="space-y-4">
+                <div>
+                  <label for="status-selector" class="block text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2">
+                    Pilih Status Baru:
+                  </label>
+                  <select
+                    id="status-selector"
+                    class="w-full px-4 py-3 rounded-xl bg-[#1a1a22] border border-white/20 text-white text-sm font-semibold focus:outline-none focus:border-amber-400 transition-colors cursor-pointer"
+                  >
+                    {STATUS_PENDAFTARAN.map((s) => (
+                      <option value={s} selected={cagen.statusPendaftaran === s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  id="update-status-btn"
+                  class="w-full py-3 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <span id="update-btn-text">Simpan Perubahan Status</span>
+                  <svg id="update-btn-spinner" class="hidden w-4 h-4 animate-spin text-black" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Quick Decision Action Buttons -->
+              <div class="pt-6 border-t border-white/10 mt-6">
+                <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold block mb-3">
+                  Tindakan Cepat (One-Click Action):
+                </span>
+                <div class="grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    class="quick-action-btn py-2 px-3 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-semibold transition-colors cursor-pointer text-center"
+                    data-status="Review Berkas"
+                  >
+                    Review Berkas
+                  </button>
+                  <button
+                    type="button"
+                    class="quick-action-btn py-2 px-3 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-semibold transition-colors cursor-pointer text-center"
+                    data-status="Berkas Diterima"
+                  >
+                    Terima Berkas
+                  </button>
+                  <button
+                    type="button"
+                    class="quick-action-btn py-2 px-3 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 text-xs font-semibold transition-colors cursor-pointer text-center"
+                    data-status="Lulus"
+                  >
+                    Lulus Final
+                  </button>
+                  <button
+                    type="button"
+                    class="quick-action-btn py-2 px-3 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-semibold transition-colors cursor-pointer text-center"
+                    data-status="Tidak Lulus"
+                  >
+                    Gugurkan
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Status Info Box -->
+            <div class="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-xs text-gray-400">
+              Perubahan status seleksi akan tersimpan langsung ke database Turso dan dapat dipantau oleh pendaftar melalui portal akun masing-masing.
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Document Inspection Section (Daftar & Verifikasi Berkas) -->
+        <div class="bg-[#121217] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-xl">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-white/10 mb-6">
+            <div>
+              <h2 class="text-xl font-bold text-white tracking-tight">Daftar & Verifikasi Berkas Persyaratan</h2>
+              <p class="text-xs text-gray-400 mt-1">
+                Klik tombol "Lihat Berkas" untuk membuka dan memvalidasi dokumen asli secara aman dari bucket S3.
+              </p>
+            </div>
+            
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-gray-300 font-mono">
+              Status Unggahan: {berkas ? (
+                <span class="text-emerald-400 font-bold">Berkas Terdata</span>
+              ) : (
+                <span class="text-rose-400 font-bold">Belum Ada Berkas</span>
+              )}
+            </div>
+          </div>
+
+          <!-- Document Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {documentList.map((doc, idx) => {
+              const hasFile = Boolean(doc.fileName && doc.fileName.trim() !== '');
+              return (
+                <div class="p-5 rounded-2xl bg-[#16161d] border border-white/5 hover:border-amber-400/30 transition-colors flex flex-col justify-between gap-4">
+                  <div>
+                    <div class="flex items-start justify-between gap-3 mb-2">
+                      <div class="flex items-center gap-2.5">
+                        <span class="w-6 h-6 rounded-lg bg-white/5 text-gray-400 text-xs font-mono font-bold flex items-center justify-center">
+                          {idx + 1}
+                        </span>
+                        <h3 class="font-bold text-white text-sm">
+                          {doc.title}
+                        </h3>
+                      </div>
+                      <span class={`px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider ${doc.isMandatory ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30' : 'bg-gray-800 text-gray-400 border border-gray-700'}`}>
+                        {doc.isMandatory ? 'Wajib' : 'Opsional'}
+                      </span>
+                    </div>
+                    <p class="text-xs text-gray-400 leading-relaxed mb-3">
+                      {doc.description}
+                    </p>
+                  </div>
+
+                  <div class="pt-3 border-t border-white/5 flex items-center justify-between gap-3">
+                    {hasFile ? (
+                      <div class="flex items-center gap-2 min-w-0">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></span>
+                        <span class="text-xs text-gray-300 font-mono truncate" title={doc.fileName}>
+                          {doc.fileName}
+                        </span>
+                      </div>
+                    ) : (
+                      <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-gray-600 flex-shrink-0"></span>
+                        <span class="text-xs text-gray-500 italic">
+                          Belum diunggah
+                        </span>
+                      </div>
+                    )}
+
+                    {hasFile ? (
+                      <a
+                        href={`/api/file/view?fileKey=${encodeURIComponent(doc.fileName)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-bold shadow-md transition-colors"
+                      >
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                        Lihat Berkas
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled
+                        class="flex-shrink-0 px-3 py-1.5 rounded-xl bg-white/5 text-gray-500 text-xs font-medium cursor-not-allowed"
+                      >
+                        Tidak Tersedia
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+      </div>
+    )}
+
+  </div>
+</MainLayout>
+
+<!-- Client Script to Handle Status Update Requests -->
+<script is:inline define:vars={{ applicantId }}>
+  const updateBtn = document.getElementById('update-status-btn');
+  const btnText = document.getElementById('update-btn-text');
+  const btnSpinner = document.getElementById('update-btn-spinner');
+  const statusSelector = document.getElementById('status-selector');
+  const currentBadge = document.getElementById('current-status-badge');
+  const toastBox = document.getElementById('status-toast');
+  const toastMessage = document.getElementById('toast-message');
+  const toastIcon = document.getElementById('toast-icon');
+  const quickBtns = document.querySelectorAll('.quick-action-btn');
+
+  function showToast(isSuccess, message) {
+    if (!toastBox || !toastMessage || !toastIcon) return;
+
+    toastBox.classList.remove('hidden', 'bg-emerald-950/60', 'border-emerald-800/60', 'text-emerald-300', 'bg-rose-950/60', 'border-rose-800/60', 'text-rose-300');
+    
+    if (isSuccess) {
+      toastBox.classList.add('bg-emerald-950/60', 'border', 'border-emerald-800/60', 'text-emerald-300');
+      toastIcon.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+    } else {
+      toastBox.classList.add('bg-rose-950/60', 'border', 'border-rose-800/60', 'text-rose-300');
+      toastIcon.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
+    }
+
+    toastMessage.textContent = message;
+  }
+
+  function updateBadgeColor(newStatus) {
+    if (!currentBadge) return;
+    currentBadge.textContent = newStatus;
+    currentBadge.className = 'px-3 py-1 rounded-full text-xs font-semibold border';
+
+    if (newStatus === 'Review Berkas') {
+      currentBadge.classList.add('bg-amber-500/15', 'text-amber-300', 'border-amber-500/30');
+    } else if (newStatus === 'Berkas Diterima') {
+      currentBadge.classList.add('bg-emerald-500/15', 'text-emerald-300', 'border-emerald-500/30');
+    } else if (newStatus === 'Lulus') {
+      currentBadge.classList.add('bg-blue-500/15', 'text-blue-300', 'border-blue-500/30');
+    } else if (newStatus === 'Tidak Lulus') {
+      currentBadge.classList.add('bg-rose-500/15', 'text-rose-300', 'border-rose-500/30');
+    } else {
+      currentBadge.classList.add('bg-gray-800', 'text-gray-300', 'border-gray-700');
+    }
+  }
+
+  async function submitStatusChange(targetStatus) {
+    if (!applicantId) return;
+
+    if (updateBtn) updateBtn.disabled = true;
+    if (btnText) btnText.textContent = 'Menyimpan...';
+    if (btnSpinner) btnSpinner.classList.remove('hidden');
+
+    try {
+      const response = await fetch('/api/admin/status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          id: applicantId,
+          statusPendaftaran: targetStatus,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Gagal memperbarui status seleksi.');
+      }
+
+      showToast(true, data.message || 'Status seleksi berhasil diperbarui!');
+      updateBadgeColor(targetStatus);
+      if (statusSelector) statusSelector.value = targetStatus;
+    } catch (err) {
+      showToast(false, err instanceof Error ? err.message : 'Terjadi kesalahan sistem.');
+    } finally {
+      if (updateBtn) updateBtn.disabled = false;
+      if (btnText) btnText.textContent = 'Simpan Perubahan Status';
+      if (btnSpinner) btnSpinner.classList.add('hidden');
+    }
+  }
+
+  if (updateBtn && statusSelector) {
+    updateBtn.addEventListener('click', () => {
+      const selected = statusSelector.value;
+      submitStatusChange(selected);
+    });
+  }
+
+  quickBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const target = btn.getAttribute('data-status');
+      if (target) {
+        submitStatusChange(target);
+      }
+    });
+  });
+</script>
