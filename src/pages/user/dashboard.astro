@@ -1,4 +1,4 @@
-﻿---
+---
 import MainLayout from '../../layouts/MainLayout.astro';
 import type { AuthUser } from '../../lib/auth';
 
@@ -19,7 +19,7 @@ if (!user || user.role !== 'user') {
         <div>
           <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold mb-3">
             <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-            Status Sesi: Terotentikasi (Peserta)
+            Portal Calon Anggota
           </div>
           <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">
             Selamat Datang, <span class="text-amber-400">{user.name}</span>!
@@ -36,7 +36,7 @@ if (!user || user.role !== 'user') {
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
           </svg>
-          Keluar (Logout)
+          Keluar
         </a>
       </div>
     </div>
@@ -63,16 +63,16 @@ if (!user || user.role !== 'user') {
     <div class="bg-[#121217] border border-white/10 rounded-2xl p-8">
       <h2 class="text-lg font-bold text-white mb-2">Status Pendaftaran & Verifikasi</h2>
       <p class="text-sm text-gray-400 mb-6">
-        Middleware otentikasi JWT edge berhasil memverifikasi akun Anda. Form pengunggahan berkas dan tracking status seleksi akan dimuat pada fase selanjutnya.
+        Akun pendaftaran Anda telah aktif. Silakan lengkapi berkas administrasi dan dokumen persyaratan untuk melanjutkan proses seleksi calon anggota.
       </p>
-      <div class="flex flex-wrap items-center gap-4">
+      <div class="flex flex-wrap items-center justify-between gap-4">
         <a href="/user/form-daftar" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-sm shadow-md transition-colors">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-          Unggah Berkas Pendaftaran
+          Unggah Berkas
         </a>
-        <div class="inline-flex items-center gap-3 px-4 py-2.5 rounded-xl bg-amber-400/10 border border-amber-400/20 text-amber-300 text-sm">
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-gray-400 text-xs font-mono">
+          <span class="text-gray-300">Status:</span> <span class="text-emerald-400 font-semibold">Calon Anggota</span> &bull; <span class="text-gray-300">No. Pendaftaran:</span> #{user.id}
         </div>
-        <span class="font-bold">Role:</span> {user.role.toUpperCase()} &bull; <span class="font-bold">User ID:</span> #{user.id}
       </div>
     </div>
 

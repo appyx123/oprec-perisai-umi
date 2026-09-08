@@ -77,7 +77,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return new Response(
         JSON.stringify({
           success: false,
-          message: 'Koneksi database belum disiapkan (TURSO_DATABASE_URL tidak ditemukan).',
+          message: 'Layanan penyimpanan data sedang tidak dapat diakses.',
         }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
@@ -121,7 +121,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Berkas berhasil dikaitkan dan tersimpan di database.',
+        message: 'Berkas berhasil disimpan.',
         data: {
           cagenId: user.id,
           category,
@@ -135,7 +135,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return new Response(
       JSON.stringify({
         success: false,
-        message: 'Gagal memperbarui catatan berkas pada database.',
+        message: 'Gagal memperbarui catatan berkas pendaftaran.',
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );

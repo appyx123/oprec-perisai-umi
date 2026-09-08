@@ -64,7 +64,7 @@ export const GET: APIRoute = async ({ url, locals, redirect }) => {
     return new Response(
       JSON.stringify({
         success: false,
-        message: 'Gagal memuat URL berkas dari penyimpanan aman.',
+        message: 'Gagal memuat dokumen yang diminta.',
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );

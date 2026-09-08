@@ -1,4 +1,4 @@
-﻿---
+---
 import MainLayout from '../layouts/MainLayout.astro';
 import type { AuthUser } from '../lib/auth';
 
@@ -40,7 +40,7 @@ const dashboardUrl = user?.role === 'admin' ? '/admin/dashboard' : '/user/dashbo
                 href={dashboardUrl}
                 class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-base shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 transition-all duration-200"
               >
-                Masuk ke Dashboard
+                Dashboard
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
                 </svg>
@@ -51,7 +51,7 @@ const dashboardUrl = user?.role === 'admin' ? '/admin/dashboard' : '/user/dashbo
                   href="/auth/login"
                   class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-base shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 transition-all duration-200"
                 >
-                  Masuk Sekarang
+                  Masuk
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
                   </svg>

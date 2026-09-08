@@ -1,4 +1,4 @@
-﻿---
+---
 import '../styles/global.css';
 import type { AuthUser } from '../lib/auth';
 
@@ -13,7 +13,6 @@ const {
 } = Astro.props;
 
 const user = Astro.locals.user as AuthUser | null | undefined;
-const dashboardUrl = user?.role === 'admin' ? '/admin/dashboard' : '/user/dashboard';
 ---
 
 <!DOCTYPE html>
@@ -45,58 +44,39 @@ const dashboardUrl = user?.role === 'admin' ? '/admin/dashboard' : '/user/dashbo
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-20">
           
-          <!-- Logo & Brand -->
-          <a href="/" class="flex items-center gap-3.5 group">
+          <!-- Logo & Brand (Static, Aligned, Utilitarian) -->
+          <div class="flex items-center gap-3.5 select-none">
             <img
               src="/assets/img/logoperisai.png"
               alt="Logo PERISAI UMI"
-              class="h-11 w-auto drop-shadow-[0_0_12px_rgba(245,158,11,0.35)] transition-transform duration-300 group-hover:scale-105"
+              class="h-11 w-auto"
             />
-            <div class="flex flex-col">
-              <span class="font-extrabold text-lg sm:text-xl tracking-tight text-white group-hover:text-amber-400 transition-colors">
+            <div class="flex flex-col justify-center">
+              <span class="font-extrabold text-lg sm:text-xl tracking-tight text-white leading-tight">
                 PERISAI <span class="text-amber-400">UMI</span>
               </span>
-              <span class="text-[10px] tracking-widest uppercase text-gray-400 font-semibold -mt-1">
+              <span class="text-[10px] tracking-widest uppercase text-gray-400 font-semibold">
                 Open Recruitment
               </span>
             </div>
-          </a>
+          </div>
 
-          <!-- Desktop Navigation -->
-          <nav class="hidden md:flex items-center gap-6">
-            <a
-              href="/"
-              class="text-sm font-medium text-gray-300 hover:text-amber-400 transition-colors"
-            >
-              Beranda
-            </a>
-
+          <!-- Desktop Navigation: Profile & Logout Only -->
+          <nav class="hidden md:flex items-center gap-4">
             {user ? (
               <div class="flex items-center gap-4">
-                <a
-                  href={dashboardUrl}
-                  class="text-sm font-medium text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1.5 bg-amber-400/10 px-3.5 py-1.5 rounded-lg border border-amber-400/20"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-                  </svg>
-                  Dashboard
-                </a>
-
-                <div class="flex items-center gap-2 pl-2 border-l border-white/10 text-sm">
-                  <div class="text-right">
-                    <div class="font-semibold text-white leading-tight">{user.name}</div>
-                    <div class="text-[11px] font-mono uppercase tracking-wider text-amber-400/80">
-                      {user.role === 'admin' ? 'Admin' : `Peserta (${user.nim || 'Cagen'})`}
-                    </div>
+                <div class="text-right">
+                  <div class="font-semibold text-white text-sm leading-tight">{user.name}</div>
+                  <div class="text-[11px] font-mono tracking-wider text-amber-400/90">
+                    {user.role === 'admin' ? 'Panitia' : (user.nim ? `NIM: ${user.nim}` : 'Calon Anggota')}
                   </div>
                 </div>
 
                 <a
                   href="/api/auth/logout"
-                  class="text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/40 px-3 py-1.5 rounded-lg transition-colors"
+                  class="text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/40 px-3.5 py-1.5 rounded-lg transition-colors"
                 >
-                  Logout
+                  Keluar
                 </a>
               </div>
             ) : (
@@ -105,7 +85,7 @@ const dashboardUrl = user?.role === 'admin' ? '/admin/dashboard' : '/user/dashbo
                   href="/auth/login"
                   class="text-sm font-semibold text-black bg-amber-400 hover:bg-amber-300 px-5 py-2 rounded-xl shadow-md shadow-amber-500/20 hover:shadow-amber-500/35 transition-all duration-200"
                 >
-                  Masuk / Login
+                  Masuk
                 </a>
               </div>
             )}
@@ -127,29 +107,20 @@ const dashboardUrl = user?.role === 'admin' ? '/admin/dashboard' : '/user/dashbo
         </div>
       </div>
 
-      <!-- Mobile Dropdown Menu -->
+      <!-- Mobile Dropdown Menu: Profile & Logout Only -->
       <div id="mobile-menu" class="hidden md:hidden border-t border-white/10 bg-[#121216] px-4 pt-3 pb-5 space-y-3">
-        <a href="/" class="block text-sm font-medium text-gray-300 hover:text-amber-400 py-2">
-          Beranda
-        </a>
         {user ? (
-          <div class="pt-2 border-t border-white/10 space-y-3">
+          <div class="space-y-3">
             <div class="text-sm">
               <span class="text-gray-400">Masuk sebagai: </span>
               <span class="font-semibold text-white">{user.name}</span>
-              <span class="ml-2 text-xs text-amber-400 font-mono uppercase">[{user.role}]</span>
+              <span class="ml-2 text-xs text-amber-400 font-mono">[{user.role === 'admin' ? 'Panitia' : 'Calon Anggota'}]</span>
             </div>
-            <a
-              href={dashboardUrl}
-              class="block w-full text-center text-sm font-medium text-amber-400 bg-amber-400/10 py-2.5 rounded-lg border border-amber-400/30"
-            >
-              Buka Dashboard
-            </a>
             <a
               href="/api/auth/logout"
               class="block w-full text-center text-sm font-semibold text-rose-300 bg-rose-950/50 py-2 rounded-lg border border-rose-800/40"
             >
-              Logout
+              Keluar
             </a>
           </div>
         ) : (
@@ -157,7 +128,7 @@ const dashboardUrl = user?.role === 'admin' ? '/admin/dashboard' : '/user/dashbo
             href="/auth/login"
             class="block w-full text-center text-sm font-semibold text-black bg-amber-400 py-2.5 rounded-xl"
           >
-            Masuk / Login
+            Masuk
           </a>
         )}
       </div>

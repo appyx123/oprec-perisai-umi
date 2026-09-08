@@ -52,7 +52,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       return new Response(
         JSON.stringify({
           success: false,
-          message: 'Koneksi database belum disiapkan (TURSO_DATABASE_URL belum diisi).',
+          message: 'Layanan masuk sedang tidak dapat diakses. Silakan coba beberapa saat lagi.',
         }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );

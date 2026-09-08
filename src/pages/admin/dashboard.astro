@@ -28,24 +28,13 @@ let applicantList: Array<{
   id: number;
   namaLengkap: string;
   nim: string;
-  email: string;
-  noWa: string;
   fakultas: string;
   jurusan: string;
   statusPendaftaran: string;
-  hasBerkas: boolean;
   peminatan: string | null;
 }> = [];
 
 let dbError: string | null = null;
-
-function formatWaUrl(rawPhone: string): string {
-  let clean = (rawPhone || '').replace(/[^0-9]/g, '');
-  if (clean.startsWith('0')) {
-    clean = '62' + clean.slice(1);
-  }
-  return `https://wa.me/${clean}`;
-}
 
 try {
   const db = createDb();
@@ -84,12 +73,9 @@ try {
       id: cagens.id,
       namaLengkap: cagens.namaLengkap,
       nim: cagens.nim,
-      email: cagens.email,
-      noWa: cagens.noWa,
       fakultas: cagens.fakultas,
       jurusan: cagens.jurusan,
       statusPendaftaran: cagens.statusPendaftaran,
-      berkasId: berkasCagens.id,
       peminatan: berkasCagens.peminatan,
     })
     .from(cagens)
@@ -107,17 +93,14 @@ try {
     id: r.id,
     namaLengkap: r.namaLengkap,
     nim: r.nim,
-    email: r.email,
-    noWa: r.noWa,
     fakultas: r.fakultas,
     jurusan: r.jurusan,
     statusPendaftaran: r.statusPendaftaran,
-    hasBerkas: Boolean(r.berkasId),
     peminatan: r.peminatan || null,
   }));
 } catch (err) {
   console.error('Error loading admin dashboard stats:', err);
-  dbError = 'Gagal terhubung ke database saat mengambil data pendaftar.';
+  dbError = 'Gagal memuat data pendaftar. Silakan segarkan halaman.';
 }
 
 const isFiltered = Boolean(search || (statusFilter && statusFilter !== 'SEMUA'));
@@ -140,7 +123,7 @@ const isFiltered = Boolean(search || (statusFilter && statusFilter !== 'SEMUA'))
             Dashboard Panitia: <span class="text-amber-400">{user.name}</span>
           </h1>
           <p class="text-sm sm:text-base text-gray-400 mt-2 max-w-2xl">
-            Username: <span class="text-white font-mono font-semibold">@{user.username || 'admin'}</span> &bull; ID: #{user.id}. Kelola pendaftaran calon anggota, seleksi berkas, dan pengumuman seleksi di sini.
+            Selamat bertugas, <span class="text-white font-semibold">@{user.username || 'admin'}</span>. Kelola pendaftaran calon anggota dan pengumuman seleksi di sini.
           </p>
         </div>
 
@@ -151,7 +134,7 @@ const isFiltered = Boolean(search || (statusFilter && statusFilter !== 'SEMUA'))
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
           </svg>
-          Logout Admin
+          Keluar
         </a>
       </div>
     </div>
@@ -196,11 +179,11 @@ const isFiltered = Boolean(search || (statusFilter && statusFilter !== 'SEMUA'))
     <div class="bg-[#121217] border border-white/10 rounded-2xl p-6 sm:p-8 shadow-xl mb-8">
       
       <!-- Panel Header with Search and Filter Form -->
-      <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-white/10">
+      <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-6 border-b border-white/10">
         <div>
           <h2 class="text-xl font-bold text-white tracking-tight">Daftar Calon Anggota (Cagen)</h2>
           <p class="text-xs text-gray-400 mt-1">
-            Menampilkan maksimal 50 pendaftar terbaru berdasarkan kriteria pencarian dan filter.
+            Data pendaftar tersaring secara real-time. Buka profil untuk detail lengkap dan verifikasi berkas.
           </p>
         </div>
 
@@ -246,9 +229,6 @@ const isFiltered = Boolean(search || (statusFilter && statusFilter !== 'SEMUA'))
             type="submit"
             class="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs shadow-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-            </svg>
             Filter
           </button>
 
@@ -259,9 +239,6 @@ const isFiltered = Boolean(search || (statusFilter && statusFilter !== 'SEMUA'))
               class="px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white text-xs font-semibold transition-colors flex items-center justify-center gap-1"
               title="Hapus Filter"
             >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
               Reset
             </a>
           )}
@@ -271,7 +248,7 @@ const isFiltered = Boolean(search || (statusFilter && statusFilter !== 'SEMUA'))
       <!-- Result Count Strip -->
       <div class="flex items-center justify-between pt-4 pb-2 text-xs text-gray-400 font-mono">
         <div>
-          Hasil: <span class="text-amber-400 font-bold">{applicantList.length}</span> peserta ditemukan
+          Menampilkan: <span class="text-amber-400 font-bold">{applicantList.length}</span> peserta
           {isFiltered && <span class="text-gray-500 ml-1">(tersaring)</span>}
         </div>
       </div>
@@ -284,7 +261,7 @@ const isFiltered = Boolean(search || (statusFilter && statusFilter !== 'SEMUA'))
             </svg>
           </div>
           {isFiltered ? (
-            <p>Tidak ada calon anggota yang cocok dengan filter atau kata kunci pencarian.</p>
+            <p>Tidak ada calon anggota yang cocok dengan kriteria pencarian.</p>
           ) : (
             <p>Belum ada calon anggota yang mendaftar di sistem.</p>
           )}
@@ -294,14 +271,12 @@ const isFiltered = Boolean(search || (statusFilter && statusFilter !== 'SEMUA'))
           <table class="w-full text-left border-collapse text-sm">
             <thead>
               <tr class="border-b border-white/10 text-gray-400 text-xs uppercase tracking-wider">
-                <th class="py-3.5 px-3">ID</th>
+                <th class="py-3.5 px-4 w-16">ID</th>
                 <th class="py-3.5 px-4">Calon Anggota</th>
-                <th class="py-3.5 px-4">Fakultas & Jurusan</th>
-                <th class="py-3.5 px-3">Peminatan</th>
-                <th class="py-3.5 px-3">Kontak WA</th>
-                <th class="py-3.5 px-3">Status Seleksi</th>
-                <th class="py-3.5 px-3">Berkas</th>
-                <th class="py-3.5 px-4 text-center">Aksi</th>
+                <th class="py-3.5 px-4">Fakultas & Program Studi</th>
+                <th class="py-3.5 px-4">Peminatan</th>
+                <th class="py-3.5 px-4">Status Seleksi</th>
+                <th class="py-3.5 px-4 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-white/5">
@@ -319,69 +294,35 @@ const isFiltered = Boolean(search || (statusFilter && statusFilter !== 'SEMUA'))
 
                 return (
                   <tr class="hover:bg-white/[0.02] transition-colors">
-                    <td class="py-3.5 px-3 font-mono text-gray-400 text-xs">#{cagen.id}</td>
-                    <td class="py-3.5 px-4">
+                    <td class="py-4 px-4 font-mono text-gray-400 text-xs">#{cagen.id}</td>
+                    <td class="py-4 px-4">
                       <div class="font-bold text-white">{cagen.namaLengkap}</div>
-                      <div class="font-mono text-xs text-amber-400">{cagen.nim}</div>
+                      <div class="font-mono text-xs text-amber-400/90 mt-0.5">{cagen.nim}</div>
                     </td>
-                    <td class="py-3.5 px-4 text-gray-300 text-xs">
+                    <td class="py-4 px-4 text-xs text-gray-300">
                       <span class="block font-medium text-gray-200">{cagen.jurusan}</span>
                       <span class="text-gray-500">{cagen.fakultas}</span>
                     </td>
-                    <td class="py-3.5 px-3">
+                    <td class="py-4 px-4">
                       {cagen.peminatan ? (
                         <span class="inline-block px-2.5 py-1 rounded-lg bg-amber-400/10 border border-amber-400/20 text-amber-300 text-xs font-medium">
                           {cagen.peminatan}
                         </span>
                       ) : (
-                        <span class="text-xs text-gray-500 italic">Belum Pilih</span>
+                        <span class="text-xs text-gray-500 italic">Belum Dipilih</span>
                       )}
                     </td>
-                    <td class="py-3.5 px-3">
-                      {cagen.noWa ? (
-                        <a
-                          href={formatWaUrl(cagen.noWa)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:text-emerald-300 text-xs font-mono transition-colors"
-                          title="Hubungi via WhatsApp"
-                        >
-                          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-                          </svg>
-                          <span>{cagen.noWa}</span>
-                        </a>
-                      ) : (
-                        <span class="text-xs text-gray-500 font-mono">-</span>
-                      )}
-                    </td>
-                    <td class="py-3.5 px-3">
+                    <td class="py-4 px-4">
                       <span class={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold border ${badgeColor}`}>
                         {cagen.statusPendaftaran}
                       </span>
                     </td>
-                    <td class="py-3.5 px-3">
-                      {cagen.hasBerkas ? (
-                        <span class="inline-flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
-                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                          Terunggah
-                        </span>
-                      ) : (
-                        <span class="inline-flex items-center gap-1.5 text-xs text-gray-500">
-                          <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
-                          Belum Lengkap
-                        </span>
-                      )}
-                    </td>
-                    <td class="py-3.5 px-4 text-center">
+                    <td class="py-4 px-4 text-right">
                       <a
                         href={`/admin/peserta/${cagen.id}`}
-                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-bold shadow-md shadow-amber-500/10 hover:shadow-amber-500/25 transition-all"
+                        class="inline-flex items-center px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-amber-400 hover:text-black border border-white/10 hover:border-amber-400 text-gray-200 text-xs font-semibold transition-all shadow-sm"
                       >
-                        Detail & Kelola
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                        </svg>
+                        Detail
                       </a>
                     </td>
                   </tr>

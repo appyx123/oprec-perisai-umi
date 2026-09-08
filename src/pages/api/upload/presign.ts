@@ -77,7 +77,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return new Response(
       JSON.stringify({
         success: false,
-        message: 'Gagal membuat URL unggah berkas S3.',
+        message: 'Gagal menyiapkan proses pengunggahan berkas.',
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );

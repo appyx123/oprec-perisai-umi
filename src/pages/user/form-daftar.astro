@@ -8,19 +8,19 @@ if (!user || user.role !== 'user') {
 }
 ---
 
-<MainLayout title="Unggah Berkas - Direct-to-S3 & Database Integration">
+<MainLayout title="Unggah Berkas Pendaftaran - PERISAI UMI">
   <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
     
     <!-- Header -->
     <div class="mb-8">
       <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-400 text-xs font-semibold mb-3">
-        Phase 5: S3 Upload & Database Sync
+        Tahapan Seleksi Berkas
       </div>
       <h1 class="text-3xl font-black text-white tracking-tight">
-        Pengunggahan Berkas & Pencatatan Database
+        Unggah Berkas Pendaftaran
       </h1>
       <p class="text-sm text-gray-400 mt-2">
-        Berkas diunggah secara langsung dari browser ke bucket privat S3/Backblaze B2, lalu dikonfirmasi dan dicatat ke database Turso.
+        Silakan unggah dokumen persyaratan calon anggota baru UKM PERISAI UMI sesuai instruksi di bawah ini.
       </p>
     </div>
 
@@ -35,7 +35,7 @@ if (!user || user.role !== 'user') {
           <span class="text-xs text-amber-400 font-mono ml-2">({user.nim || 'NIM belum terdaftar'})</span>
         </div>
         <div class="text-xs text-gray-500 font-mono">
-          User ID: #{user.id}
+          ID Pendaftar: #{user.id}
         </div>
       </div>
 
@@ -91,7 +91,7 @@ if (!user || user.role !== 'user') {
           id="upload-btn"
           class="w-full py-3.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-sm shadow-lg shadow-amber-500/20 hover:shadow-amber-500/35 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          <span id="btn-text">Unggah & Simpan ke Database</span>
+          <span id="btn-text">Unggah Berkas</span>
           <svg id="btn-spinner" class="hidden w-4 h-4 animate-spin text-black" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -102,7 +102,7 @@ if (!user || user.role !== 'user') {
     </div>
   </div>
 
-  <!-- Client-side Direct-to-S3 Upload & DB Confirm Script -->
+  <!-- Client-side Upload Script -->
   <script>
     const form = document.getElementById('upload-form') as HTMLFormElement | null;
     const fileInput = document.getElementById('ktm-file') as HTMLInputElement | null;
@@ -138,10 +138,10 @@ if (!user || user.role !== 'user') {
 
         const file = fileInput.files[0];
         hideAlert();
-        setLoading(true, 'Meminta Pre-signed URL...');
+        setLoading(true, 'Menyiapkan pengunggahan...');
 
         try {
-          // LANGKAH 1: Minta Pre-signed PUT URL dari Astro API
+          // 1. Minta izin unggah dokumen
           const presignRes = await fetch('/api/upload/presign', {
             method: 'POST',
             headers: {
@@ -158,13 +158,13 @@ if (!user || user.role !== 'user') {
           const presignData = (await presignRes.json()) as any;
 
           if (!presignRes.ok || !presignData.success) {
-            throw new Error(presignData.message || 'Gagal memperoleh izin unggah S3.');
+            throw new Error(presignData.message || 'Gagal menyiapkan pengunggahan berkas.');
           }
 
           const { uploadUrl, finalFileName } = presignData;
 
-          // LANGKAH 2: Unggah langsung ke S3 secara raw binary via HTTP PUT
-          setLoading(true, 'Mengunggah file langsung ke S3...');
+          // 2. Unggah file dokumen
+          setLoading(true, 'Mengunggah berkas...');
 
           const uploadRes = await fetch(uploadUrl, {
             method: 'PUT',
@@ -175,11 +175,11 @@ if (!user || user.role !== 'user') {
           });
 
           if (!uploadRes.ok) {
-            throw new Error(`S3 merespons status ${uploadRes.status} (${uploadRes.statusText}) saat proses transmisi.`);
+            throw new Error('Terjadi kendala saat mengirim berkas. Silakan coba kembali.');
           }
 
-          // LANGKAH 3: Konfirmasi dan catat nama file ke tabel berkas_cagens database
-          setLoading(true, 'Mencatat berkas ke database...');
+          // 3. Konfirmasi kelengkapan berkas
+          setLoading(true, 'Menyimpan data...');
 
           const confirmRes = await fetch('/api/upload/confirm', {
             method: 'POST',
@@ -196,23 +196,23 @@ if (!user || user.role !== 'user') {
           const confirmData = (await confirmRes.json()) as any;
 
           if (!confirmRes.ok || !confirmData.success) {
-            throw new Error(confirmData.message || 'File berhasil diunggah ke S3 tetapi gagal disimpan ke database.');
+            throw new Error(confirmData.message || 'Berkas berhasil dikirim namun belum tercatat. Silakan coba lagi.');
           }
 
-          // LANGKAH 4: Berhasil penuh! Tampilkan feedback sukses + tautan "Lihat File"
+          // 4. Berhasil
           const viewUrl = `/api/file/view?name=${encodeURIComponent(finalFileName)}`;
 
           showAlert(
             'success',
-            'Unggah & Pencatatan Berhasil!',
-            'Berkas berhasil diunggah ke S3 Storage dan tersimpan pada database berkas_cagens.',
+            'Berkas Berhasil Diunggah!',
+            'Dokumen Anda telah berhasil disimpan dan siap diverifikasi oleh panitia seleksi.',
             `<div class="space-y-2">
-              <div><span class="text-gray-400">Nama Berkas S3:</span> <span class="text-white font-semibold">${finalFileName}</span></div>
-              <div><span class="text-gray-400">Status Database:</span> <span class="text-emerald-400 font-semibold">Tersimpan (KTM)</span></div>
+              <div><span class="text-gray-400">Jenis Dokumen:</span> <span class="text-white font-semibold">Kartu Tanda Mahasiswa (KTM)</span></div>
+              <div><span class="text-gray-400">Status Dokumen:</span> <span class="text-emerald-400 font-semibold">Lengkap & Tersimpan</span></div>
               <div class="pt-2">
                 <a href="${viewUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold text-xs border border-emerald-500/40 transition-colors">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                  Lihat Berkas (Secure Viewer) &rarr;
+                  Lihat Dokumen &rarr;
                 </a>
               </div>
             </div>`
@@ -225,11 +225,11 @@ if (!user || user.role !== 'user') {
           console.error('Upload/confirm error:', err);
           showAlert(
             'error',
-            'Proses Unggah Gagal',
-            err.message || 'Terjadi kesalahan saat mengunggah atau menyimpan berkas.'
+            'Pengunggahan Gagal',
+            err.message || 'Terjadi kendala saat mengunggah berkas. Silakan coba beberapa saat lagi.'
           );
         } finally {
-          setLoading(false, 'Unggah & Simpan ke Database');
+          setLoading(false, 'Unggah Berkas');
         }
       });
     }
@@ -252,16 +252,18 @@ if (!user || user.role !== 'user') {
           alertDetails.classList.add('hidden');
         }
       }
+
+      if (alertBox) alertBox.classList.remove('hidden');
     }
 
     function hideAlert() {
       if (alertBox) alertBox.classList.add('hidden');
     }
 
-    function setLoading(isLoading: boolean, text: string) {
-      if (uploadBtn && btnText && btnSpinner) {
-        uploadBtn.disabled = isLoading;
-        btnText.textContent = text;
+    function setLoading(isLoading: boolean, message: string) {
+      if (uploadBtn) uploadBtn.disabled = isLoading;
+      if (btnText) btnText.textContent = message;
+      if (btnSpinner) {
         if (isLoading) {
           btnSpinner.classList.remove('hidden');
         } else {
