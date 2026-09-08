@@ -1,4 +1,4 @@
-﻿import { SignJWT, jwtVerify } from 'jose';
+import { SignJWT, jwtVerify } from 'jose';
 import type { AstroCookies } from 'astro';
 
 export const AUTH_COOKIE_NAME = 'auth_token';
@@ -14,19 +14,44 @@ export interface AuthUser {
   nim?: string;
 }
 
+export type JwtSecretOrEnv = string | { JWT_SECRET?: string; [key: string]: any };
+
 // Default secret key untuk local development
 const DEFAULT_DEV_SECRET = 'orec_perisai_umi_super_secret_jwt_key_edge_compatible_2026_default';
 
 /**
+ * Resolves the JWT secret string from a direct string, an env object (e.g. locals.runtime?.env),
+ * import.meta.env, process.env, or a development fallback.
+ */
+export function resolveJwtSecret(secretOrEnv?: JwtSecretOrEnv): string {
+  if (typeof secretOrEnv === 'string' && secretOrEnv.trim() !== '') {
+    return secretOrEnv.trim();
+  }
+
+  if (typeof secretOrEnv === 'object' && secretOrEnv !== null) {
+    if (typeof secretOrEnv.JWT_SECRET === 'string' && secretOrEnv.JWT_SECRET.trim() !== '') {
+      return secretOrEnv.JWT_SECRET.trim();
+    }
+  }
+
+  const fromMeta = typeof import.meta !== 'undefined' && import.meta.env?.JWT_SECRET;
+  if (typeof fromMeta === 'string' && fromMeta.trim() !== '') {
+    return fromMeta.trim();
+  }
+
+  const fromProcess = typeof process !== 'undefined' && process.env?.JWT_SECRET;
+  if (typeof fromProcess === 'string' && fromProcess.trim() !== '') {
+    return fromProcess.trim();
+  }
+
+  return DEFAULT_DEV_SECRET;
+}
+
+/**
  * Mendapatkan Secret Key dalam bentuk Uint8Array untuk digunakan oleh library jose.
  */
-export function getJwtSecretKey(secret?: string): Uint8Array {
-  const resolved =
-    secret ||
-    (typeof import.meta !== 'undefined' && import.meta.env?.JWT_SECRET) ||
-    (typeof process !== 'undefined' && process.env?.JWT_SECRET) ||
-    DEFAULT_DEV_SECRET;
-
+export function getJwtSecretKey(secretOrEnv?: JwtSecretOrEnv): Uint8Array {
+  const resolved = resolveJwtSecret(secretOrEnv);
   return new TextEncoder().encode(resolved);
 }
 
@@ -34,8 +59,8 @@ export function getJwtSecretKey(secret?: string): Uint8Array {
  * Membuat dan menandatangani (sign) JWT payload untuk 'admin' atau 'user'.
  * Masa berlaku token di-set selama 7 hari.
  */
-export async function signJwt(user: AuthUser, secret?: string): Promise<string> {
-  const secretKey = getJwtSecretKey(secret);
+export async function signJwt(user: AuthUser, secretOrEnv?: JwtSecretOrEnv): Promise<string> {
+  const secretKey = getJwtSecretKey(secretOrEnv);
 
   return new SignJWT({
     id: user.id,
@@ -55,9 +80,9 @@ export async function signJwt(user: AuthUser, secret?: string): Promise<string> 
  * Memverifikasi integritas JWT token menggunakan jose.
  * Mengembalikan objek AuthUser jika valid, atau null jika token rusak / kedaluwarsa.
  */
-export async function verifyJwt(token: string, secret?: string): Promise<AuthUser | null> {
+export async function verifyJwt(token: string, secretOrEnv?: JwtSecretOrEnv): Promise<AuthUser | null> {
   try {
-    const secretKey = getJwtSecretKey(secret);
+    const secretKey = getJwtSecretKey(secretOrEnv);
     const { payload } = await jwtVerify(token, secretKey);
 
     if (

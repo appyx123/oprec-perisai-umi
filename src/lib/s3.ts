@@ -1,4 +1,4 @@
-﻿import { S3Client } from '@aws-sdk/client-s3';
+import { S3Client } from '@aws-sdk/client-s3';
 
 export interface S3EnvConfig {
   S3_ENDPOINT?: string;
@@ -6,39 +6,52 @@ export interface S3EnvConfig {
   S3_BUCKET_NAME?: string;
   AWS_ACCESS_KEY_ID?: string;
   AWS_SECRET_ACCESS_KEY?: string;
+  [key: string]: any;
+}
+
+/**
+ * Helper to resolve individual string env variable from an env object (e.g. locals.runtime?.env),
+ * import.meta.env (Vite/Astro), or process.env (Node.js).
+ */
+function resolveEnvVar(key: string, env?: S3EnvConfig): string | undefined {
+  if (env && typeof env[key] === 'string' && env[key].trim() !== '') {
+    return env[key].trim();
+  }
+
+  if (
+    typeof import.meta !== 'undefined' &&
+    import.meta.env &&
+    typeof import.meta.env[key] === 'string' &&
+    import.meta.env[key].trim() !== ''
+  ) {
+    return import.meta.env[key].trim();
+  }
+
+  if (
+    typeof process !== 'undefined' &&
+    process.env &&
+    typeof process.env[key] === 'string' &&
+    process.env[key].trim() !== ''
+  ) {
+    return process.env[key].trim();
+  }
+
+  return undefined;
 }
 
 /**
  * Membuat instance S3Client dengan konfigurasi eksplisit.
- * Kompatibel dengan Edge Runtime (Cloudflare Pages Functions).
- * Tidak bergantung pada implicit Node.js process.env.
+ * Kompatibel dengan Edge Runtime (Cloudflare Workers / Pages).
+ * Mengutamakan objek runtime env (misal dari locals.runtime?.env),
+ * lalu import.meta.env, dan process.env.
  *
  * @param env - Objek berisi variabel environment Cloudflare runtime / Vite env
  */
 export function getS3Client(env?: S3EnvConfig): S3Client {
-  const endpoint =
-    env?.S3_ENDPOINT ||
-    (typeof import.meta !== 'undefined' && import.meta.env?.S3_ENDPOINT) ||
-    (typeof process !== 'undefined' && process.env?.S3_ENDPOINT) ||
-    undefined;
-
-  const region =
-    env?.S3_REGION ||
-    (typeof import.meta !== 'undefined' && import.meta.env?.S3_REGION) ||
-    (typeof process !== 'undefined' && process.env?.S3_REGION) ||
-    'auto';
-
-  const accessKeyId =
-    env?.AWS_ACCESS_KEY_ID ||
-    (typeof import.meta !== 'undefined' && import.meta.env?.AWS_ACCESS_KEY_ID) ||
-    (typeof process !== 'undefined' && process.env?.AWS_ACCESS_KEY_ID) ||
-    '';
-
-  const secretAccessKey =
-    env?.AWS_SECRET_ACCESS_KEY ||
-    (typeof import.meta !== 'undefined' && import.meta.env?.AWS_SECRET_ACCESS_KEY) ||
-    (typeof process !== 'undefined' && process.env?.AWS_SECRET_ACCESS_KEY) ||
-    '';
+  const endpoint = resolveEnvVar('S3_ENDPOINT', env);
+  const region = resolveEnvVar('S3_REGION', env) || 'auto';
+  const accessKeyId = resolveEnvVar('AWS_ACCESS_KEY_ID', env) || '';
+  const secretAccessKey = resolveEnvVar('AWS_SECRET_ACCESS_KEY', env) || '';
 
   return new S3Client({
     region,
@@ -47,7 +60,7 @@ export function getS3Client(env?: S3EnvConfig): S3Client {
       accessKeyId,
       secretAccessKey,
     },
-    // forcePathStyle: true direkomendasikan untuk S3-compatible storage seperti Backblaze / MinIO
+    // forcePathStyle: true direkomendasikan untuk S3-compatible storage seperti Backblaze / MinIO / R2
     forcePathStyle: true,
   });
 }
@@ -56,10 +69,5 @@ export function getS3Client(env?: S3EnvConfig): S3Client {
  * Mendapatkan nama bucket S3/B2 dari environment.
  */
 export function getS3BucketName(env?: S3EnvConfig): string {
-  return (
-    env?.S3_BUCKET_NAME ||
-    (typeof import.meta !== 'undefined' && import.meta.env?.S3_BUCKET_NAME) ||
-    (typeof process !== 'undefined' && process.env?.S3_BUCKET_NAME) ||
-    'orec-perisai-berkas'
-  );
+  return resolveEnvVar('S3_BUCKET_NAME', env) || 'orec-perisai-berkas';
 }
