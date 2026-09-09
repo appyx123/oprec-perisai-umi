@@ -2,7 +2,8 @@
 	"$schema": "./node_modules/wrangler/config-schema.json",
 	"compatibility_date": "2026-09-07",
 	"compatibility_flags": [
-		"global_fetch_strictly_public"
+		"global_fetch_strictly_public",
+		"nodejs_compat"
 	],
 	"name": "orec-perisai-umi",
 	"main": "@astrojs/cloudflare/entrypoints/server",

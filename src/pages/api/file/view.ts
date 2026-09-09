@@ -1,7 +1,5 @@
 import type { APIRoute } from 'astro';
-import { GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { getS3Client, getS3BucketName } from '../../../lib/s3';
+import { createPresignedGetUrl } from '../../../lib/s3';
 
 export const GET: APIRoute = async ({ url, locals, redirect }) => {
   try {
@@ -45,28 +43,22 @@ export const GET: APIRoute = async ({ url, locals, redirect }) => {
       }
     }
 
-    // 4. Konfigurasi S3 Client
-    const s3 = getS3Client();
-    const bucketName = getS3BucketName();
+    // 4. Buat presigned GET URL menggunakan aws4fetch dengan masa berlaku 15 menit (900 detik)
+    const signedUrl = await createPresignedGetUrl(fileName, locals, 900);
 
-    // 5. Buat presigned GET URL dengan masa berlaku 15 menit (900 detik)
-    const command = new GetObjectCommand({
-      Bucket: bucketName,
-      Key: fileName,
-    });
-
-    const signedUrl = await getSignedUrl(s3, command, { expiresIn: 900 });
-
-    // 6. Alihkan (redirect) langsung ke presigned URL S3
+    // 5. Alihkan (redirect) langsung ke presigned URL S3
     return redirect(signedUrl, 302);
-  } catch (error) {
-    console.error('Error serving private file viewer URL:', error);
+  } catch (error: any) {
+    console.error('Error serving private file viewer URL with aws4fetch:', error);
+    const errorMessage = error?.message || 'Gagal memuat dokumen yang diminta.';
     return new Response(
       JSON.stringify({
         success: false,
-        message: 'Gagal memuat dokumen yang diminta.',
+        message: errorMessage,
+        error: errorMessage,
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 };
+
