@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { eq } from 'drizzle-orm';
 import { createDb } from '../../../db';
 import { berkasCagens, cagens } from '../../../db/schema';
+import { deleteS3Object, extractS3Key } from '../../../lib/s3';
 
 // Whitelist kolom berkas yang valid untuk mencegah modifikasi kolom sembarangan
 const VALID_CATEGORIES = [
@@ -119,14 +120,69 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
 
-    // 6. Cek apakah entri berkas_cagens sudah ada untuk user ini
+    // 6. STEP 1: FETCH EXISTING RECORD
+    // Ambil record berkas_cagens saat ini untuk memeriksa apakah sudah ada file lama pada kategori ini
     const [existingRecord] = await db
       .select()
       .from(berkasCagens)
       .where(eq(berkasCagens.cagenId, user.id))
       .limit(1);
 
+    const deletedFiles: string[] = [];
+
     if (existingRecord) {
+      // Ambil nilai lama pada kolom kategori berkas terkait
+      const existingVal = (existingRecord as Record<string, any>)[category];
+
+      if (existingVal && typeof existingVal === 'string' && existingVal.trim()) {
+        // STEP 2: EXTRACT OLD OBJECT KEY(S)
+        // Mendukung single key maupun multi-key (seperti bukti follow & share yang dipisah koma)
+        const oldKeys = existingVal
+          .split(',')
+          .map((k: string) => k.trim())
+          .filter(Boolean);
+
+        const newKeys = finalFileName
+          .split(',')
+          .map((k: string) => k.trim())
+          .filter(Boolean);
+
+        // Hanya hapus file lama yang tidak ada dalam daftar file baru
+        const keysToDelete = oldKeys.filter((oldKey: string) => !newKeys.includes(oldKey));
+
+        // STEP 3: DELETE OLD FILE FROM S3 / BACKBLAZE B2
+        for (const oldKey of keysToDelete) {
+          try {
+            const cleanOldKey = extractS3Key(oldKey);
+
+            // Verifikasi otorisasi/ownership path demi keamanan
+            const isOwner =
+              cleanOldKey.startsWith(`cagen/${user.nim}/`) ||
+              cleanOldKey.startsWith(`cagen/${user.id}/`) ||
+              cleanOldKey.startsWith(`user_${user.id}_`) ||
+              cleanOldKey.startsWith('cagen/');
+
+            if (isOwner && cleanOldKey) {
+              console.log(
+                `[RE-UPLOAD] Menemukan berkas lama untuk '${category}': ${cleanOldKey}. Menghapus dari S3/B2...`
+              );
+              const delResult = await deleteS3Object(cleanOldKey);
+              if (delResult.success) {
+                deletedFiles.push(cleanOldKey);
+              }
+            } else {
+              console.warn(
+                `[RE-UPLOAD] Melewati penghapusan '${oldKey}' karena tidak lolos validasi kepemilikan user.`
+              );
+            }
+          } catch (deleteError) {
+            // STEP 3: wrapped in try...catch agar tidak menggagalkan proses upload utama
+            console.error(`[RE-UPLOAD] Terjadi kesalahan saat menghapus berkas lama '${oldKey}':`, deleteError);
+          }
+        }
+      }
+
+      // STEP 4: UPDATE DATABASE
       // PARTIAL UPDATE kolom yang sesuai tanpa mengganggu berkas lainnya
       await db
         .update(berkasCagens)
@@ -136,7 +192,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         })
         .where(eq(berkasCagens.id, existingRecord.id));
     } else {
-      // INSERT record baru dengan nilai default sementara
+      // INSERT record baru jika user belum memiliki entri sama sekali di berkas_cagens
       await db.insert(berkasCagens).values({
         cagenId: user.id,
         ktm: category === 'ktm' ? finalFileName : '',
@@ -201,6 +257,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
           fileKey: finalFileName,
           completedMandatoryCount,
           isAllMandatoryCompleted,
+          deletedOldFiles: deletedFiles,
         },
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
