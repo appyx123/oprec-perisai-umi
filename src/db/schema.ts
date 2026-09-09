@@ -1,4 +1,4 @@
-﻿import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core';
 import { sql, relations } from 'drizzle-orm';
 
 // ============================================================
@@ -132,6 +132,22 @@ export const berkasCagens = sqliteTable('berkas_cagens', {
 });
 
 // ============================================================
+// TABLE: system_settings
+// Konfigurasi sistem: jendela waktu pendaftaran & kontrol manual
+// ============================================================
+export const systemSettings = sqliteTable('system_settings', {
+  id: integer('id', { mode: 'number' })
+    .primaryKey()
+    .default(1),
+
+  registrationStart: integer('registration_start', { mode: 'timestamp' }),
+  registrationEnd: integer('registration_end', { mode: 'timestamp' }),
+  isRegistrationOpen: integer('is_registration_open', { mode: 'boolean' })
+    .notNull()
+    .default(false),
+});
+
+// ============================================================
 // RELATIONS — Untuk Drizzle relational query API
 // ============================================================
 
@@ -157,11 +173,13 @@ export const berkasCagensRelations = relations(berkasCagens, ({ one }) => ({
 export type Admin = typeof admins.$inferSelect;
 export type Cagen = typeof cagens.$inferSelect;
 export type BerkasCagen = typeof berkasCagens.$inferSelect;
+export type SystemSetting = typeof systemSettings.$inferSelect;
 
 // Types untuk INSERT (menulis data ke DB)
 export type NewAdmin = typeof admins.$inferInsert;
 export type NewCagen = typeof cagens.$inferInsert;
 export type NewBerkasCagen = typeof berkasCagens.$inferInsert;
+export type NewSystemSetting = typeof systemSettings.$inferInsert;
 
 // Extracted ENUM types untuk digunakan di seluruh aplikasi
 export type StatusPendaftaran = Cagen['statusPendaftaran'];
@@ -183,3 +201,4 @@ export const PEMINATAN_LIST = [
   'Poster',
   'Video Graph',
 ] as const satisfies Peminatan[];
+

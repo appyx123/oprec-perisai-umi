@@ -1,9 +1,37 @@
 ---
 import MainLayout from '../layouts/MainLayout.astro';
 import type { AuthUser } from '../lib/auth';
+import { createDb } from '../db';
+import { systemSettings } from '../db/schema';
+import { eq } from 'drizzle-orm';
 
 const user = Astro.locals.user as AuthUser | null | undefined;
 const dashboardUrl = user?.role === 'admin' ? '/admin/dashboard' : '/user/dashboard';
+
+let registrationConfig = {
+  isOpen: false,
+  start: null as string | null,
+  end: null as string | null,
+};
+
+try {
+  const db = createDb();
+  const [settings] = await db
+    .select()
+    .from(systemSettings)
+    .where(eq(systemSettings.id, 1))
+    .limit(1);
+
+  if (settings) {
+    registrationConfig = {
+      isOpen: Boolean(settings.isRegistrationOpen),
+      start: settings.registrationStart ? new Date(settings.registrationStart).toISOString() : null,
+      end: settings.registrationEnd ? new Date(settings.registrationEnd).toISOString() : null,
+    };
+  }
+} catch (err) {
+  console.error('Error loading registration settings on homepage:', err);
+}
 ---
 
 <MainLayout title="Open Recruitment PERISAI UMI">
@@ -34,6 +62,54 @@ const dashboardUrl = user?.role === 'admin' ? '/admin/dashboard' : '/user/dashbo
             Selamat datang di Portal Open Recruitment UKM PERISAI Universitas Muslim Indonesia. Wadah kolaborasi inovator muda dalam riset, penalaran, dan teknologi untuk mencetak generasi intelektual berprestasi.
           </p>
 
+          <!-- Real-Time Countdown Card -->
+          <div
+            id="registration-countdown-root"
+            data-open={String(registrationConfig.isOpen)}
+            data-start={registrationConfig.start || ''}
+            data-end={registrationConfig.end || ''}
+            class="max-w-xl mx-auto lg:mx-0 p-5 rounded-2xl bg-[#131318]/90 border border-white/10 shadow-xl backdrop-blur-sm"
+          >
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <span id="countdown-status-indicator" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+                <span id="countdown-label" class="text-xs font-bold uppercase tracking-wider text-amber-300">
+                  Memuat Status Pendaftaran...
+                </span>
+              </div>
+              <span class="text-[10px] text-gray-500 uppercase tracking-widest font-mono">Waktu Resmi</span>
+            </div>
+
+            <!-- Timer Digits Grid -->
+            <div id="countdown-timer-grid" class="grid grid-cols-4 gap-2 sm:gap-3">
+              <div class="bg-[#1a1a24] border border-white/5 rounded-xl p-2.5 sm:p-3 text-center">
+                <span id="timer-days" class="block text-2xl sm:text-3xl font-black text-white font-mono leading-none">00</span>
+                <span class="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider font-semibold mt-1 block">Hari</span>
+              </div>
+              <div class="bg-[#1a1a24] border border-white/5 rounded-xl p-2.5 sm:p-3 text-center">
+                <span id="timer-hours" class="block text-2xl sm:text-3xl font-black text-white font-mono leading-none">00</span>
+                <span class="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider font-semibold mt-1 block">Jam</span>
+              </div>
+              <div class="bg-[#1a1a24] border border-white/5 rounded-xl p-2.5 sm:p-3 text-center">
+                <span id="timer-mins" class="block text-2xl sm:text-3xl font-black text-white font-mono leading-none">00</span>
+                <span class="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider font-semibold mt-1 block">Menit</span>
+              </div>
+              <div class="bg-[#1a1a24] border border-white/5 rounded-xl p-2.5 sm:p-3 text-center">
+                <span id="timer-secs" class="block text-2xl sm:text-3xl font-black text-amber-400 font-mono leading-none">00</span>
+                <span class="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider font-semibold mt-1 block">Detik</span>
+              </div>
+            </div>
+
+            <!-- Closed Notice (Displayed when registration is closed) -->
+            <div id="countdown-closed-notice" class="hidden text-center py-4 px-3 rounded-xl bg-rose-950/20 border border-rose-800/30">
+              <p class="text-sm font-semibold text-rose-300">Pendaftaran Telah Ditutup</p>
+              <p class="text-xs text-gray-400 mt-1">
+                Akses pendaftaran calon anggota baru saat ini sedang tidak dibuka.
+              </p>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
           <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
             {user ? (
               <a
@@ -47,20 +123,35 @@ const dashboardUrl = user?.role === 'admin' ? '/admin/dashboard' : '/user/dashbo
               </a>
             ) : (
               <>
+                <!-- Register Button (Dynamically toggled by countdown timer) -->
+                <a
+                  id="register-cta-btn"
+                  href="/auth/register"
+                  class="hidden w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-base shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 transition-all duration-200"
+                >
+                  Daftar Sekarang
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                  </svg>
+                </a>
+
+                <!-- Login Button (Always accessible for existing users) -->
                 <a
                   href="/auth/login"
-                  class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-base shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 transition-all duration-200"
+                  class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-white border border-white/15 font-bold text-base transition-all duration-200"
                 >
                   Masuk
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
                   </svg>
                 </a>
+
+                <!-- Kenali Kami Link -->
                 <a
                   href="https://youtu.be/LUKKRN1EK70"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-200 hover:text-white border border-white/10 text-base font-semibold transition-all duration-200"
+                  class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 text-base font-semibold transition-all duration-200"
                 >
                   <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M10 16.5l6-4.5-6-4.5v9zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
@@ -114,4 +205,135 @@ const dashboardUrl = user?.role === 'admin' ? '/admin/dashboard' : '/user/dashbo
       </div>
     </div>
   </section>
+
+  <!-- Real-time Countdown Client Script -->
+  <script>
+    function initCountdown() {
+      const root = document.getElementById('registration-countdown-root');
+      if (!root) return;
+
+      const isOpen = root.getAttribute('data-open') === 'true';
+      const startStr = root.getAttribute('data-start') || '';
+      const endStr = root.getAttribute('data-end') || '';
+
+      const startDate = startStr ? new Date(startStr) : null;
+      const endDate = endStr ? new Date(endStr) : null;
+
+      const startTime = startDate && !isNaN(startDate.getTime()) ? startDate.getTime() : null;
+      const endTime = endDate && !isNaN(endDate.getTime()) ? endDate.getTime() : null;
+
+      const labelEl = document.getElementById('countdown-label');
+      const indicatorEl = document.getElementById('countdown-status-indicator');
+      const timerGrid = document.getElementById('countdown-timer-grid');
+      const closedNotice = document.getElementById('countdown-closed-notice');
+      const registerBtn = document.getElementById('register-cta-btn');
+
+      const daysEl = document.getElementById('timer-days');
+      const hoursEl = document.getElementById('timer-hours');
+      const minsEl = document.getElementById('timer-mins');
+      const secsEl = document.getElementById('timer-secs');
+
+      function pad(num: number): string {
+        return String(num).padStart(2, '0');
+      }
+
+      function update() {
+        const now = Date.now();
+
+        // Status A: Ditutup secara manual
+        if (!isOpen) {
+          setClosed('Pendaftaran Telah Ditutup');
+          return;
+        }
+
+        // Status B: Belum dimulai (Time < Start)
+        if (startTime && now < startTime) {
+          const diff = startTime - now;
+          setBeforeStart('Pendaftaran dibuka dalam', diff);
+          return;
+        }
+
+        // Status C: Sudah berakhir (Time > End)
+        if (endTime && now > endTime) {
+          setClosed('Pendaftaran Telah Ditutup');
+          return;
+        }
+
+        // Status D: Sedang Berlangsung (Start <= Time <= End AND Open is true)
+        if (endTime) {
+          const diff = endTime - now;
+          setActive('Sisa Waktu Pendaftaran', diff);
+        } else {
+          setActive('Pendaftaran Sedang Dibuka', null);
+        }
+      }
+
+      function setClosed(msg: string) {
+        if (labelEl) labelEl.textContent = msg;
+        if (indicatorEl) {
+          indicatorEl.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
+        }
+        if (timerGrid) timerGrid.classList.add('hidden');
+        if (closedNotice) closedNotice.classList.remove('hidden');
+        if (registerBtn) registerBtn.classList.add('hidden');
+      }
+
+      function setBeforeStart(label: string, diffMs: number) {
+        if (labelEl) labelEl.textContent = label;
+        if (indicatorEl) {
+          indicatorEl.className = 'w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse';
+        }
+        if (closedNotice) closedNotice.classList.add('hidden');
+        if (timerGrid) timerGrid.classList.remove('hidden');
+        if (registerBtn) registerBtn.classList.add('hidden'); // Sembunyikan tombol pendaftaran sebelum buka
+
+        applyDiff(diffMs);
+      }
+
+      function setActive(label: string, diffMs: number | null) {
+        if (labelEl) labelEl.textContent = label;
+        if (indicatorEl) {
+          indicatorEl.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse';
+        }
+        if (closedNotice) closedNotice.classList.add('hidden');
+        if (timerGrid) timerGrid.classList.remove('hidden');
+        if (registerBtn) registerBtn.classList.remove('hidden'); // Tampilkan tombol pendaftaran saat buka
+
+        if (diffMs !== null) {
+          applyDiff(diffMs);
+        } else {
+          if (daysEl) daysEl.textContent = '∞';
+          if (hoursEl) hoursEl.textContent = '∞';
+          if (minsEl) minsEl.textContent = '∞';
+          if (secsEl) secsEl.textContent = '∞';
+        }
+      }
+
+      function applyDiff(diffMs: number) {
+        if (diffMs <= 0) {
+          update();
+          return;
+        }
+
+        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((diffMs / (1000 * 60)) % 60);
+        const seconds = Math.floor((diffMs / 1000) % 60);
+
+        if (daysEl) daysEl.textContent = pad(days);
+        if (hoursEl) hoursEl.textContent = pad(hours);
+        if (minsEl) minsEl.textContent = pad(minutes);
+        if (secsEl) secsEl.textContent = pad(seconds);
+      }
+
+      update();
+      setInterval(update, 1000);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initCountdown);
+    } else {
+      initCountdown();
+    }
+  </script>
 </MainLayout>

@@ -1,0 +1,353 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+import { createDb } from '../../db';
+import { systemSettings } from '../../db/schema';
+import { eq } from 'drizzle-orm';
+
+const user = Astro.locals.user;
+if (user) {
+  return Astro.redirect(user.role === 'admin' ? '/admin/dashboard' : '/user/dashboard');
+}
+
+let isRegistrationAllowed = false;
+let closedMessage = '';
+
+try {
+  const db = createDb();
+  const [settings] = await db
+    .select()
+    .from(systemSettings)
+    .where(eq(systemSettings.id, 1))
+    .limit(1);
+
+  const now = new Date();
+  const isOpen = settings?.isRegistrationOpen ?? false;
+  const start = settings?.registrationStart ? new Date(settings.registrationStart) : null;
+  const end = settings?.registrationEnd ? new Date(settings.registrationEnd) : null;
+
+  const isBeforeStart = start ? now < start : false;
+  const isAfterEnd = end ? now > end : false;
+
+  if (isOpen && !isBeforeStart && !isAfterEnd) {
+    isRegistrationAllowed = true;
+  } else {
+    if (!isOpen) {
+      closedMessage = 'Pendaftaran saat ini sedang dinonaktifkan oleh panitia.';
+    } else if (isBeforeStart && start) {
+      closedMessage = `Pendaftaran baru akan dibuka pada ${start.toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })}.`;
+    } else if (isAfterEnd) {
+      closedMessage = 'Masa pendaftaran calon anggota baru telah resmi berakhir.';
+    } else {
+      closedMessage = 'Pendaftaran saat ini sedang ditutup.';
+    }
+  }
+} catch (err) {
+  console.error('Error checking registration window:', err);
+  closedMessage = 'Layanan pendaftaran sedang dalam pemeliharaan sistem.';
+}
+---
+
+<MainLayout title="Daftar Calon Anggota - PERISAI UMI">
+  <div class="min-h-[85vh] flex items-center justify-center px-4 py-12">
+    <div class="w-full max-w-2xl">
+      
+      <!-- Card Container -->
+      <div class="bg-[#131317]/90 backdrop-blur-xl border border-amber-400/20 rounded-2xl p-8 sm:p-10 shadow-2xl shadow-black/80 relative overflow-hidden">
+        
+        <!-- Decorative Header Glow -->
+        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent"></div>
+
+        <!-- Logo & Title -->
+        <div class="text-center mb-8">
+          <img
+            src="/assets/img/logoperisai.png"
+            alt="Logo PERISAI"
+            class="h-14 w-auto mx-auto mb-4 drop-shadow-[0_0_15px_rgba(245,158,11,0.3)]"
+          />
+          <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">Pendaftaran Calon Anggota</h1>
+          <p class="text-xs sm:text-sm text-gray-400 mt-1">
+            Open Recruitment UKM PERISAI Universitas Muslim Indonesia
+          </p>
+        </div>
+
+        {!isRegistrationAllowed ? (
+          <div class="text-center py-8 space-y-6">
+            <div class="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m12-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+
+            <div>
+              <h2 class="text-xl font-bold text-white mb-2">Pendaftaran Ditutup</h2>
+              <p class="text-sm text-gray-400 max-w-md mx-auto leading-relaxed">
+                {closedMessage}
+              </p>
+            </div>
+
+            <div class="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <a
+                href="/auth/login"
+                class="w-full sm:w-auto px-6 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-sm shadow-md transition-colors"
+              >
+                Masuk ke Akun
+              </a>
+              <a
+                href="/"
+                class="w-full sm:w-auto px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-sm font-semibold border border-white/10 transition-colors"
+              >
+                Kembali ke Beranda
+              </a>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div
+              id="error-alert"
+              class="hidden mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-start gap-3"
+              role="alert"
+            >
+              <svg class="w-5 h-5 flex-shrink-0 text-rose-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <span id="error-message">Terjadi kesalahan. Silakan coba lagi.</span>
+            </div>
+
+            <form id="register-form" class="space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label for="namaLengkap" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Nama Lengkap *
+                  </label>
+                  <input
+                    type="text"
+                    id="namaLengkap"
+                    name="namaLengkap"
+                    required
+                    placeholder="Sesuai KTM / KTP"
+                    class="w-full px-4 py-2.5 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label for="namaPanggilan" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Nama Panggilan *
+                  </label>
+                  <input
+                    type="text"
+                    id="namaPanggilan"
+                    name="namaPanggilan"
+                    required
+                    placeholder="Nama panggilan akrab"
+                    class="w-full px-4 py-2.5 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label for="nim" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    NIM Mahasiswa *
+                  </label>
+                  <input
+                    type="text"
+                    id="nim"
+                    name="nim"
+                    required
+                    placeholder="Contoh: 13020210001"
+                    class="w-full px-4 py-2.5 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 font-mono text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label for="noWa" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Nomor WhatsApp *
+                  </label>
+                  <input
+                    type="tel"
+                    id="noWa"
+                    name="noWa"
+                    required
+                    placeholder="Contoh: 08123456789"
+                    class="w-full px-4 py-2.5 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label for="email" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Alamat Email *
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    required
+                    placeholder="nama@email.com"
+                    class="w-full px-4 py-2.5 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label for="password" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Kata Sandi *
+                  </label>
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    required
+                    minlength="6"
+                    placeholder="Minimal 6 karakter"
+                    class="w-full px-4 py-2.5 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label for="fakultas" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Fakultas *
+                  </label>
+                  <input
+                    type="text"
+                    id="fakultas"
+                    name="fakultas"
+                    required
+                    placeholder="Contoh: FTI / FIK"
+                    class="w-full px-4 py-2.5 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label for="jurusan" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Program Studi *
+                  </label>
+                  <input
+                    type="text"
+                    id="jurusan"
+                    name="jurusan"
+                    required
+                    placeholder="Contoh: Teknik Informatika"
+                    class="w-full px-4 py-2.5 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label for="angkatan" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Angkatan *
+                  </label>
+                  <input
+                    type="text"
+                    id="angkatan"
+                    name="angkatan"
+                    required
+                    placeholder="Contoh: 2024"
+                    class="w-full px-4 py-2.5 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div class="pt-4">
+                <button
+                  type="submit"
+                  id="submit-btn"
+                  class="w-full py-3.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-sm shadow-lg shadow-amber-500/20 hover:shadow-amber-500/35 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <span id="btn-text">Daftar Sekarang</span>
+                  <svg id="btn-spinner" class="hidden w-4 h-4 animate-spin text-black" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </button>
+              </div>
+            </form>
+
+            <div class="mt-6 text-center text-xs text-gray-400">
+              Sudah memiliki akun calon anggota?{' '}
+              <a href="/auth/login" class="text-amber-400 hover:underline font-semibold">
+                Masuk di sini
+              </a>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('register-form') as HTMLFormElement | null;
+    const errorAlert = document.getElementById('error-alert') as HTMLDivElement | null;
+    const errorMessage = document.getElementById('error-message') as HTMLSpanElement | null;
+    const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement | null;
+    const btnText = document.getElementById('btn-text') as HTMLSpanElement | null;
+    const btnSpinner = document.getElementById('btn-spinner') as SVGElement | null;
+
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        hideError();
+
+        const formData = new FormData(form);
+        const payload: Record<string, any> = {};
+        formData.forEach((value, key) => {
+          payload[key] = value;
+        });
+
+        setLoading(true);
+
+        try {
+          const res = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify(payload),
+          });
+
+          const data = (await res.json()) as any;
+
+          if (res.ok && data.success) {
+            window.location.href = data.redirectUrl || '/user/dashboard';
+          } else {
+            showError(data.message || 'Pendaftaran gagal. Silakan periksa kembali data Anda.');
+            setLoading(false);
+          }
+        } catch (err) {
+          console.error('Register error:', err);
+          showError('Terjadi kendala jaringan saat menghubungi server.');
+          setLoading(false);
+        }
+      });
+    }
+
+    function showError(msg: string) {
+      if (errorAlert && errorMessage) {
+        errorMessage.textContent = msg;
+        errorAlert.classList.remove('hidden');
+      } else {
+        alert(msg);
+      }
+    }
+
+    function hideError() {
+      if (errorAlert) errorAlert.classList.add('hidden');
+    }
+
+    function setLoading(isLoading: boolean) {
+      if (submitBtn && btnText && btnSpinner) {
+        submitBtn.disabled = isLoading;
+        if (isLoading) {
+          btnText.textContent = 'Memproses Pendaftaran...';
+          btnSpinner.classList.remove('hidden');
+        } else {
+          btnText.textContent = 'Daftar Sekarang';
+          btnSpinner.classList.add('hidden');
+        }
+      }
+    }
+  </script>
+</MainLayout>

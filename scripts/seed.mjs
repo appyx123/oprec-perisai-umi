@@ -95,6 +95,26 @@ async function seed() {
       )
     `);
 
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS system_settings (
+        id INTEGER PRIMARY KEY DEFAULT 1 NOT NULL,
+        registration_start INTEGER,
+        registration_end INTEGER,
+        is_registration_open INTEGER DEFAULT 0 NOT NULL
+      )
+    `);
+
+    // Inisialisasi baris pengaturan default jika belum ada
+    const existingSettings = await client.execute('SELECT id FROM system_settings WHERE id = 1 LIMIT 1');
+    if (existingSettings.rows.length === 0) {
+      await client.execute(`
+        INSERT INTO system_settings (id, registration_start, registration_end, is_registration_open)
+        VALUES (1, NULL, NULL, 0)
+      `);
+      console.log('⚙️ Baris system_settings default (id=1) berhasil dibuat.');
+    }
+
+
     // 2. Hash default password "password"
     const rawPassword = 'password';
     const hashedPassword = await bcrypt.hash(rawPassword, 10);
