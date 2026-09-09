@@ -2,7 +2,7 @@
 import MainLayout from '../../layouts/MainLayout.astro';
 import type { AuthUser } from '../../lib/auth';
 import { createDb } from '../../db';
-import { cagens, berkasCagens } from '../../db/schema';
+import { cagens, berkasCagens, systemSettings } from '../../db/schema';
 import { eq } from 'drizzle-orm';
 
 const user = Astro.locals.user as AuthUser | null | undefined;
@@ -12,6 +12,7 @@ if (!user || user.role !== 'user') {
 
 let cagenData: any = null;
 let berkasData: any = null;
+let settingData: any = null;
 let dbError: string | null = null;
 
 try {
@@ -34,6 +35,15 @@ try {
     .limit(1);
 
   berkasData = berkasRow || null;
+
+  // 3. Ambil konfigurasi WhatsApp Call Center
+  const [settingRow] = await db
+    .select({ waNumber: systemSettings.waNumber, waMessage: systemSettings.waMessage })
+    .from(systemSettings)
+    .where(eq(systemSettings.id, 1))
+    .limit(1);
+
+  settingData = settingRow || null;
 } catch (err) {
   console.error('Error fetching applicant dashboard data:', err);
   dbError = 'Gagal memuat sebagian data profil. Silakan muat ulang halaman.';
@@ -41,6 +51,13 @@ try {
 
 const statusPendaftaran = cagenData?.statusPendaftaran || 'Belum Melengkapi';
 const peminatan = berkasData?.peminatan || null;
+
+let cleanWa = (settingData?.waNumber || '081234567890').replace(/\D/g, '');
+if (cleanWa.startsWith('0')) cleanWa = '62' + cleanWa.slice(1);
+else if (cleanWa.startsWith('8')) cleanWa = '62' + cleanWa;
+
+const waText = settingData?.waMessage || 'Halo Admin Panitia OREC PERISAI UMI, saya mengalami kendala pada berkas/tahapan seleksi.';
+const dashboardWaUrl = `https://wa.me/${cleanWa}?text=${encodeURIComponent(waText)}`;
 
 // Daftar Berkas Wajib
 const mandatoryDocs = [
@@ -161,7 +178,7 @@ if (statusPendaftaran === 'Belum Melengkapi') {
 
         <div class="hidden sm:flex flex-col items-end text-right">
           <span class="text-[11px] text-gray-500 font-mono uppercase tracking-wider">Nomor Registrasi</span>
-          <span class="text-lg font-black text-amber-400 font-mono">#{user.id}</span>
+          <span class="text-lg font-black text-amber-400 font-mono tracking-wider">#{cagenData?.nomorRegistrasi || user.nomorRegistrasi || user.id}</span>
           <span class="text-xs text-gray-400 mt-0.5">NIM: {cagenData?.nim || user.nim || '-'}</span>
         </div>
       </div>
@@ -445,6 +462,33 @@ if (statusPendaftaran === 'Belum Melengkapi') {
           </div>
         )}
       </div>
+    </div>
+
+    <!-- Static Pusat Bantuan WhatsApp Banner -->
+    <div class="mb-8 p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-emerald-950/30 via-[#131d17] to-[#121217] border border-emerald-500/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center flex-shrink-0">
+          <svg class="w-6 h-6 fill-currentColor" viewBox="0 0 24 24">
+            <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.159.57 4.187 1.564 5.946l-1.664 6.082 6.262-1.642c1.714.939 3.682 1.474 5.838 1.474 6.627 0 12-5.373 12-12s-5.373-12-12-12z"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-sm sm:text-base font-bold text-white tracking-tight">Mengalami Kendala Pemberkasan atau Seleksi?</h3>
+          <p class="text-xs text-gray-400 mt-0.5">Hubungi Call Center Admin Panitia OREC untuk bantuan teknis dan panduan pendaftaran.</p>
+        </div>
+      </div>
+
+      <a
+        href={dashboardWaUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs shadow-md shadow-emerald-500/20 hover:shadow-emerald-500/35 transition-all flex-shrink-0 cursor-pointer"
+      >
+        <svg class="w-4 h-4 fill-currentColor" viewBox="0 0 24 24">
+          <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.159.57 4.187 1.564 5.946l-1.664 6.082 6.262-1.642c1.714.939 3.682 1.474 5.838 1.474 6.627 0 12-5.373 12-12s-5.373-12-12-12z"/>
+        </svg>
+        <span>Hubungi Admin WA</span>
+      </a>
     </div>
 
     <!-- Document Checklist Section Sesuai STEP 2 -->

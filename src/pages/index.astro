@@ -25,13 +25,25 @@ try {
     .where(eq(systemSettings.id, 1))
     .limit(1);
 
+  let waNumber = '';
+  let waMessage = '';
+
   if (settings) {
     registrationConfig = {
       isOpen: Boolean(settings.isRegistrationOpen),
       start: settings.registrationStart ? new Date(settings.registrationStart).toISOString() : null,
       end: settings.registrationEnd ? new Date(settings.registrationEnd).toISOString() : null,
     };
+    waNumber = settings.waNumber || '';
+    waMessage = settings.waMessage || '';
   }
+
+  let cleanWa = (waNumber || '081234567890').replace(/\D/g, '');
+  if (cleanWa.startsWith('0')) cleanWa = '62' + cleanWa.slice(1);
+  else if (cleanWa.startsWith('8')) cleanWa = '62' + cleanWa;
+
+  const defaultWaMsg = waMessage || 'Halo Admin Panitia OREC PERISAI UMI, saya ingin bertanya terkait pendaftaran calon anggota.';
+  const homepageWaUrl = `https://wa.me/${cleanWa}?text=${encodeURIComponent(defaultWaMsg)}`;
 
   timelineList = await db
     .select()
@@ -495,6 +507,41 @@ function formatWITA(date: Date | null | undefined): string {
               </button>
             </div>
           </form>
+        </div>
+
+        <!-- Static WhatsApp Call Center Banner (Directly below Q&A) -->
+        <div class="mt-8 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-emerald-950/40 via-[#131d17] to-[#121217] border border-emerald-500/30 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl">
+          <div class="flex items-center gap-4 text-center sm:text-left">
+            <div class="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center flex-shrink-0 shadow-lg shadow-emerald-500/20">
+              <svg class="w-7 h-7 fill-currentColor" viewBox="0 0 24 24">
+                <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.159.57 4.187 1.564 5.946l-1.664 6.082 6.262-1.642c1.714.939 3.682 1.474 5.838 1.474 6.627 0 12-5.373 12-12s-5.373-12-12-12z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-semibold mb-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                Call Center Resmi
+              </div>
+              <h3 class="text-base sm:text-lg font-bold text-white tracking-tight">
+                Masih Bingung atau Butuh Bantuan Cepat?
+              </h3>
+              <p class="text-xs sm:text-sm text-gray-400 mt-0.5">
+                Tim admin panitia OREC PERISAI UMI siap membantu kendala pendaftaran Anda via WhatsApp.
+              </p>
+            </div>
+          </div>
+
+          <a
+            href={homepageWaUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-sm shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all duration-200 flex-shrink-0 cursor-pointer"
+          >
+            <svg class="w-5 h-5 fill-currentColor" viewBox="0 0 24 24">
+              <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.159.57 4.187 1.564 5.946l-1.664 6.082 6.262-1.642c1.714.939 3.682 1.474 5.838 1.474 6.627 0 12-5.373 12-12s-5.373-12-12-12z"/>
+            </svg>
+            <span>Hubungi via WhatsApp</span>
+          </a>
         </div>
       </div>
 

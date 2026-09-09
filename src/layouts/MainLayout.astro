@@ -1,10 +1,15 @@
 ---
 import '../styles/global.css';
 import type { AuthUser } from '../lib/auth';
+import { createDb } from '../db';
+import { systemSettings } from '../db/schema';
+import { eq } from 'drizzle-orm';
 
 interface Props {
   title?: string;
   description?: string;
+  waNumber?: string | null;
+  waMessage?: string | null;
 }
 
 const {
@@ -13,6 +18,35 @@ const {
 } = Astro.props;
 
 const user = Astro.locals.user as AuthUser | null | undefined;
+
+let waNum = Astro.props.waNumber;
+let waMsg = Astro.props.waMessage;
+
+if (waNum === undefined) {
+  try {
+    const db = createDb();
+    const [settings] = await db
+      .select({ waNumber: systemSettings.waNumber, waMessage: systemSettings.waMessage })
+      .from(systemSettings)
+      .where(eq(systemSettings.id, 1))
+      .limit(1);
+    if (settings) {
+      waNum = settings.waNumber;
+      waMsg = settings.waMessage;
+    }
+  } catch {
+    // fallback
+  }
+}
+
+let cleanWa = (waNum || '081234567890').replace(/\D/g, '');
+if (cleanWa.startsWith('0')) cleanWa = '62' + cleanWa.slice(1);
+else if (cleanWa.startsWith('8')) cleanWa = '62' + cleanWa;
+
+const waMessageDefault = waMsg || 'Halo Admin Panitia OREC PERISAI UMI, saya ingin bertanya terkait pendaftaran calon anggota.';
+const waUrl = cleanWa
+  ? `https://wa.me/${cleanWa}?text=${encodeURIComponent(waMessageDefault)}`
+  : 'https://wa.me/';
 ---
 
 <!DOCTYPE html>
@@ -61,8 +95,21 @@ const user = Astro.locals.user as AuthUser | null | undefined;
             </div>
           </div>
 
-          <!-- Desktop Navigation: Profile & Logout Only -->
-          <nav class="hidden md:flex items-center gap-4">
+          <!-- Desktop Navigation: Profile & Logout & WhatsApp CTA -->
+          <nav class="hidden md:flex items-center gap-3">
+            <a
+              href={waUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all duration-200 shadow-sm shadow-emerald-500/10"
+              title="Hubungi Call Center Panitia via WhatsApp"
+            >
+              <svg class="w-4 h-4 fill-currentColor" viewBox="0 0 24 24">
+                <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.159.57 4.187 1.564 5.946l-1.664 6.082 6.262-1.642c1.714.939 3.682 1.474 5.838 1.474 6.627 0 12-5.373 12-12s-5.373-12-12-12z"/>
+              </svg>
+              <span>📞 Bantuan</span>
+            </a>
+
             {user ? (
               <div class="flex items-center gap-4">
                 <div class="text-right">
@@ -107,8 +154,20 @@ const user = Astro.locals.user as AuthUser | null | undefined;
         </div>
       </div>
 
-      <!-- Mobile Dropdown Menu: Profile & Logout Only -->
+      <!-- Mobile Dropdown Menu -->
       <div id="mobile-menu" class="hidden md:hidden border-t border-white/10 bg-[#121216] px-4 pt-3 pb-5 space-y-3">
+        <a
+          href={waUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-bold text-xs"
+        >
+          <svg class="w-4 h-4 fill-currentColor" viewBox="0 0 24 24">
+            <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.159.57 4.187 1.564 5.946l-1.664 6.082 6.262-1.642c1.714.939 3.682 1.474 5.838 1.474 6.627 0 12-5.373 12-12s-5.373-12-12-12z"/>
+          </svg>
+          <span>Bantuan WhatsApp</span>
+        </a>
+
         {user ? (
           <div class="space-y-3">
             <div class="text-sm">

@@ -108,6 +108,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           name: cagen.namaLengkap,
           email: cagen.email,
           nim: cagen.nim,
+          nomorRegistrasi: cagen.nomorRegistrasi || undefined,
         };
 
         const token = await signJwt(authUser);

@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { eq, or } from 'drizzle-orm';
 import { createDb } from '../../../db';
 import { cagens, systemSettings } from '../../../db/schema';
-import { signJwt, setAuthCookie, type AuthUser } from '../../../lib/auth';
+import { signJwt, setAuthCookie, type AuthUser, generateNomorRegistrasi } from '../../../lib/auth';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
@@ -134,7 +134,25 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     // 5. Enkripsi Password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 6. Simpan Peserta Baru ke Database
+    // 6. Generate Nomor Registrasi Unik 7 Digit Angka Acak
+    let nomorRegistrasi = generateNomorRegistrasi(7);
+    let isUnique = false;
+    let attempts = 0;
+    while (!isUnique && attempts < 5) {
+      const [dup] = await db
+        .select({ id: cagens.id })
+        .from(cagens)
+        .where(eq(cagens.nomorRegistrasi, nomorRegistrasi))
+        .limit(1);
+      if (!dup) {
+        isUnique = true;
+      } else {
+        nomorRegistrasi = generateNomorRegistrasi(7);
+        attempts++;
+      }
+    }
+
+    // 7. Simpan Peserta Baru ke Database
     const [inserted] = await db
       .insert(cagens)
       .values({
@@ -147,11 +165,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         fakultas,
         jurusan,
         angkatan,
+        nomorRegistrasi,
         statusPendaftaran: 'Belum Melengkapi',
       })
-      .returning({ id: cagens.id });
+      .returning({ id: cagens.id, nomorRegistrasi: cagens.nomorRegistrasi });
 
-    // 7. Otomatis Login Peserta
+    // 8. Otomatis Login Peserta
     const authUser: AuthUser = {
       id: inserted.id,
       role: 'user',
@@ -159,6 +178,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       name: namaLengkap,
       email,
       nim,
+      nomorRegistrasi: inserted.nomorRegistrasi || nomorRegistrasi,
     };
 
     const token = await signJwt(authUser);

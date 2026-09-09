@@ -187,7 +187,7 @@ const documentList = [
           <div class="relative z-10">
             <div class="flex flex-wrap items-center gap-2.5 mb-3">
               <span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-gray-300 text-xs font-mono">
-                ID #{cagen.id}
+                No. Reg: <strong class="text-amber-400 font-bold tracking-wider">#{cagen.nomorRegistrasi || cagen.id}</strong>
               </span>
               <span id="current-status-badge" class="px-3 py-1 rounded-full text-xs font-semibold border bg-amber-500/15 text-amber-300 border-amber-500/30">
                 {cagen.statusPendaftaran}

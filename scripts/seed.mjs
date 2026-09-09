@@ -70,6 +70,7 @@ async function seed() {
         fakultas TEXT NOT NULL,
         jurusan TEXT NOT NULL,
         angkatan TEXT NOT NULL,
+        nomor_registrasi TEXT UNIQUE,
         status_pendaftaran TEXT DEFAULT 'Belum Melengkapi' NOT NULL,
         created_at INTEGER DEFAULT (unixepoch()) NOT NULL
       )
@@ -262,11 +263,19 @@ async function seed() {
       args: [cagenEmail, cagenNim],
     });
 
+    const digits = '0123456789';
+    function genReg() {
+      let s = String(Math.floor(Math.random() * 9) + 1); // 1-9
+      for (let i = 1; i < 7; i++) s += digits[Math.floor(Math.random() * digits.length)];
+      return s;
+    }
+
     if (existingCagen.rows.length === 0) {
+      const regCode = genReg();
       await client.execute({
         sql: `INSERT INTO cagens (
-          email, password, nama_lengkap, nama_panggilan, nim, no_wa, fakultas, jurusan, angkatan, status_pendaftaran
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Belum Melengkapi')`,
+          email, password, nama_lengkap, nama_panggilan, nim, no_wa, fakultas, jurusan, angkatan, nomor_registrasi, status_pendaftaran
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Belum Melengkapi')`,
         args: [
           cagenEmail,
           hashedPassword,
@@ -277,9 +286,10 @@ async function seed() {
           cagenFakultas,
           cagenJurusan,
           cagenAngkatan,
+          regCode,
         ],
       });
-      console.log(`✅ [USER/CAGEN] Berhasil dibuat: Email="${cagenEmail}" / NIM="${cagenNim}" | Password="${rawPassword}"`);
+      console.log(`✅ [USER/CAGEN] Berhasil dibuat: Email="${cagenEmail}" / NIM="${cagenNim}" / NoReg="#${regCode}" | Password="${rawPassword}"`);
     } else {
       await client.execute({
         sql: `UPDATE cagens SET password = ?, nama_lengkap = ? WHERE id = ?`,

@@ -66,6 +66,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     let isRegistrationOpen = false;
     let registrationStartRaw: any = null;
     let registrationEndRaw: any = null;
+    let waNumberRaw: string | undefined = undefined;
+    let waMessageRaw: string | undefined = undefined;
 
     const contentType = request.headers.get('content-type') || '';
     if (contentType.includes('application/json')) {
@@ -74,6 +76,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
         isRegistrationOpen = Boolean(body.isRegistrationOpen);
         registrationStartRaw = body.registrationStart;
         registrationEndRaw = body.registrationEnd;
+        if (body.waNumber !== undefined) waNumberRaw = String(body.waNumber).trim();
+        if (body.waMessage !== undefined) waMessageRaw = String(body.waMessage).trim();
       }
     } else {
       const formData = await request.formData().catch(() => null);
@@ -81,6 +85,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
         isRegistrationOpen = formData.get('isRegistrationOpen') === 'true' || formData.get('isRegistrationOpen') === 'on' || formData.get('isRegistrationOpen') === '1';
         registrationStartRaw = formData.get('registrationStart');
         registrationEndRaw = formData.get('registrationEnd');
+        if (formData.has('waNumber')) waNumberRaw = String(formData.get('waNumber') || '').trim();
+        if (formData.has('waMessage')) waMessageRaw = String(formData.get('waMessage') || '').trim();
       }
     }
 
@@ -118,14 +124,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .where(eq(systemSettings.id, 1))
       .limit(1);
 
+    const updatePayload: Record<string, any> = {
+      isRegistrationOpen,
+      registrationStart: startDate,
+      registrationEnd: endDate,
+    };
+    if (waNumberRaw !== undefined) updatePayload.waNumber = waNumberRaw;
+    if (waMessageRaw !== undefined) updatePayload.waMessage = waMessageRaw;
+
     if (existing) {
       await db
         .update(systemSettings)
-        .set({
-          isRegistrationOpen,
-          registrationStart: startDate,
-          registrationEnd: endDate,
-        })
+        .set(updatePayload)
         .where(eq(systemSettings.id, 1));
     } else {
       await db.insert(systemSettings).values({
@@ -133,6 +143,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
         isRegistrationOpen,
         registrationStart: startDate,
         registrationEnd: endDate,
+        waNumber: waNumberRaw || null,
+        waMessage: waMessageRaw || null,
       });
     }
 

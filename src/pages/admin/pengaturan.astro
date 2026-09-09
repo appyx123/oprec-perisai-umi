@@ -16,6 +16,8 @@ let settings = {
   isRegistrationOpen: false,
   registrationStart: null as Date | null,
   registrationEnd: null as Date | null,
+  waNumber: '',
+  waMessage: '',
 };
 
 let dbError: string | null = null;
@@ -33,6 +35,8 @@ try {
       isRegistrationOpen: row.isRegistrationOpen,
       registrationStart: row.registrationStart,
       registrationEnd: row.registrationEnd,
+      waNumber: row.waNumber || '',
+      waMessage: row.waMessage || '',
     };
   }
 } catch (err) {
@@ -248,6 +252,82 @@ const isCurrentlyActive = settings.isRegistrationOpen && isWithinWindow;
 
         </div>
 
+        <!-- WhatsApp Call Center Settings Section -->
+        <div class="pt-6 border-t border-white/10">
+          <div class="flex items-center gap-2.5 mb-4">
+            <div class="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center flex-shrink-0">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.159.57 4.187 1.564 5.946l-1.664 6.082 6.262-1.642c1.714.939 3.682 1.474 5.838 1.474 6.627 0 12-5.373 12-12s-5.373-12-12-12z"/>
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-white tracking-tight">WhatsApp Call Center</h3>
+              <p class="text-xs text-gray-400">Pusat bantuan langsung untuk calon pendaftar yang mengalami kendala.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-4">
+            <!-- Nomor WA -->
+            <div>
+              <label for="wa-number" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                Nomor WhatsApp Admin *
+              </label>
+              <input
+                type="text"
+                id="wa-number"
+                name="waNumber"
+                value={settings.waNumber}
+                placeholder="Contoh: 081234567890 atau 6281234567890"
+                class="w-full px-4 py-3 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors text-sm font-mono"
+              />
+              <p class="text-[11px] text-gray-500 mt-1.5">
+                Format nomor lokal (08...) atau internasional (62...). Sistem otomatis memformat ke standar tautan wa.me.
+              </p>
+            </div>
+
+            <!-- Preview Link -->
+            <div class="flex flex-col justify-between">
+              <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                Uji Tautan WhatsApp
+              </label>
+              <div class="p-3.5 rounded-xl bg-[#171720] border border-white/10 flex items-center justify-between gap-3">
+                <span id="wa-preview-text" class="text-xs text-gray-400 font-mono truncate">
+                  {settings.waNumber ? `https://wa.me/${settings.waNumber.replace(/\D/g, '')}` : 'Belum diisi'}
+                </span>
+                <a
+                  id="wa-test-link"
+                  href="#"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-semibold border border-emerald-500/40 transition-colors flex-shrink-0"
+                >
+                  Tes Chat
+                </a>
+              </div>
+              <p class="text-[11px] text-gray-500 mt-1.5">
+                Pastikan tautan dapat membuka percakapan WhatsApp dengan benar.
+              </p>
+            </div>
+          </div>
+
+          <!-- Pre-filled Message -->
+          <div class="mb-4">
+            <label for="wa-message" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+              Template Pesan Otomatis (Pre-filled Message)
+            </label>
+            <textarea
+              id="wa-message"
+              name="waMessage"
+              rows="3"
+              placeholder="Contoh: Halo Admin Panitia OREC PERISAI UMI, saya ingin bertanya terkait pendaftaran calon anggota."
+              class="w-full px-4 py-3 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors text-sm"
+            >{settings.waMessage}</textarea>
+            <p class="text-[11px] text-gray-500 mt-1">
+              Pesan default yang akan otomatis terisi saat calon peserta menekan tombol WhatsApp.
+            </p>
+          </div>
+        </div>
+
         <!-- Note info -->
         <div class="p-4 rounded-xl bg-amber-400/5 border border-amber-400/20 text-amber-300 text-xs flex items-start gap-2.5">
           <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -295,6 +375,37 @@ const isCurrentlyActive = settings.isRegistrationOpen && isWithinWindow;
     const saveBtnSpinner = document.getElementById('save-btn-spinner') as SVGElement | null;
     const alertBox = document.getElementById('feedback-alert') as HTMLDivElement | null;
     const alertText = document.getElementById('feedback-text') as HTMLSpanElement | null;
+    const waNumberInput = document.getElementById('wa-number') as HTMLInputElement | null;
+    const waMessageInput = document.getElementById('wa-message') as HTMLTextAreaElement | null;
+    const waPreviewText = document.getElementById('wa-preview-text') as HTMLSpanElement | null;
+    const waTestLink = document.getElementById('wa-test-link') as HTMLAnchorElement | null;
+
+    function updateWaPreview() {
+      const rawNum = waNumberInput?.value?.trim() || '';
+      const rawMsg = waMessageInput?.value?.trim() || '';
+      let clean = rawNum.replace(/\D/g, '');
+      if (clean.startsWith('0')) clean = '62' + clean.slice(1);
+      else if (clean.startsWith('8')) clean = '62' + clean;
+
+      if (clean) {
+        const url = `https://wa.me/${clean}?text=${encodeURIComponent(rawMsg)}`;
+        if (waPreviewText) waPreviewText.textContent = `https://wa.me/${clean}`;
+        if (waTestLink) {
+          waTestLink.href = url;
+          waTestLink.classList.remove('pointer-events-none', 'opacity-50');
+        }
+      } else {
+        if (waPreviewText) waPreviewText.textContent = 'Nomor belum diisi';
+        if (waTestLink) {
+          waTestLink.href = '#';
+          waTestLink.classList.add('pointer-events-none', 'opacity-50');
+        }
+      }
+    }
+
+    if (waNumberInput) waNumberInput.addEventListener('input', updateWaPreview);
+    if (waMessageInput) waMessageInput.addEventListener('input', updateWaPreview);
+    updateWaPreview();
 
     // Real-time ticking WITA clock
     function updateWITAClock() {
@@ -335,6 +446,8 @@ const isCurrentlyActive = settings.isRegistrationOpen && isWithinWindow;
         const isRegistrationOpen = Boolean(toggleOpen?.checked);
         const registrationStart = toWITAISO(startInput?.value || null);
         const registrationEnd = toWITAISO(endInput?.value || null);
+        const waNumber = waNumberInput?.value?.trim() || '';
+        const waMessage = waMessageInput?.value?.trim() || '';
 
         if (registrationStart && registrationEnd) {
           if (new Date(registrationStart).getTime() > new Date(registrationEnd).getTime()) {
@@ -357,6 +470,8 @@ const isCurrentlyActive = settings.isRegistrationOpen && isWithinWindow;
               isRegistrationOpen,
               registrationStart,
               registrationEnd,
+              waNumber,
+              waMessage,
             }),
           });
 

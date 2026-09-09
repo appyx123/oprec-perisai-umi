@@ -26,6 +26,7 @@ let stats = {
 
 let applicantList: Array<{
   id: number;
+  nomorRegistrasi?: string | null;
   namaLengkap: string;
   nim: string;
   fakultas: string;
@@ -61,6 +62,7 @@ try {
         like(cagens.namaLengkap, `%${search}%`),
         like(cagens.nim, `%${search}%`),
         like(cagens.email, `%${search}%`),
+        like(cagens.nomorRegistrasi, `%${search}%`),
         like(cagens.jurusan, `%${search}%`),
         like(cagens.fakultas, `%${search}%`)
       )
@@ -71,6 +73,7 @@ try {
   let query = db
     .select({
       id: cagens.id,
+      nomorRegistrasi: cagens.nomorRegistrasi,
       namaLengkap: cagens.namaLengkap,
       nim: cagens.nim,
       fakultas: cagens.fakultas,
@@ -91,6 +94,7 @@ try {
 
   applicantList = rows.map((r) => ({
     id: r.id,
+    nomorRegistrasi: r.nomorRegistrasi,
     namaLengkap: r.namaLengkap,
     nim: r.nim,
     fakultas: r.fakultas,
@@ -304,7 +308,7 @@ const isFiltered = Boolean(search || (statusFilter && statusFilter !== 'SEMUA'))
           <table class="w-full text-left border-collapse text-sm">
             <thead>
               <tr class="border-b border-white/10 text-gray-400 text-xs uppercase tracking-wider">
-                <th class="py-3.5 px-4 w-16">ID</th>
+                <th class="py-3.5 px-4 w-24">No. Reg</th>
                 <th class="py-3.5 px-4">Calon Anggota</th>
                 <th class="py-3.5 px-4">Fakultas & Program Studi</th>
                 <th class="py-3.5 px-4">Peminatan</th>
@@ -327,7 +331,7 @@ const isFiltered = Boolean(search || (statusFilter && statusFilter !== 'SEMUA'))
 
                 return (
                   <tr class="hover:bg-white/[0.02] transition-colors">
-                    <td class="py-4 px-4 font-mono text-gray-400 text-xs">#{cagen.id}</td>
+                    <td class="py-4 px-4 font-mono font-bold text-amber-400 text-xs tracking-wider">#{cagen.nomorRegistrasi || cagen.id}</td>
                     <td class="py-4 px-4">
                       <div class="font-bold text-white">{cagen.namaLengkap}</div>
                       <div class="font-mono text-xs text-amber-400/90 mt-0.5">{cagen.nim}</div>

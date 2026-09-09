@@ -64,6 +64,10 @@ export const cagens = sqliteTable('cagens', {
   angkatan: text('angkatan')
     .notNull(),
 
+  // Nomor Registrasi unik 5 karakter acak (contoh: '94C39', 'QBXAA')
+  nomorRegistrasi: text('nomor_registrasi')
+    .unique(),
+
   // MySQL ENUM -> SQLite text dengan constraint enum di TypeScript level
   // Validasi runtime tetap perlu dilakukan di application layer
   statusPendaftaran: text('status_pendaftaran', {
@@ -145,6 +149,10 @@ export const systemSettings = sqliteTable('system_settings', {
   isRegistrationOpen: integer('is_registration_open', { mode: 'boolean' })
     .notNull()
     .default(false),
+
+  // WhatsApp Call Center
+  waNumber: text('wa_number'),
+  waMessage: text('wa_message'),
 });
 
 // ============================================================

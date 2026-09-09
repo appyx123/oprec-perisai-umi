@@ -13,7 +13,25 @@ export interface AuthUser {
   email?: string;
   username?: string;
   nim?: string;
+  nomorRegistrasi?: string;
   isAdmin?: boolean;
+}
+
+/**
+ * Menghasilkan Nomor Registrasi acak 7 digit angka (hanya angka 0-9).
+ * Contoh hasil: "7829104", "4829153", "9102845"
+ */
+export function generateNomorRegistrasi(length = 7): string {
+  const digits = '0123456789';
+  const array = new Uint8Array(length);
+  crypto.getRandomValues(array);
+  let result = '';
+  // Digit pertama 1-9 agar tidak diawali angka 0
+  result += String((array[0] % 9) + 1);
+  for (let i = 1; i < length; i++) {
+    result += digits[array[i] % 10];
+  }
+  return result;
 }
 
 export type JwtSecretOrEnv = string | { JWT_SECRET?: string; [key: string]: any };
