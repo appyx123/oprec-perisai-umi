@@ -16,6 +16,8 @@ let registrationConfig = {
 
 let timelineList: any[] = [];
 let qnaPublishedList: any[] = [];
+let waNumber = '';
+let waMessage = '';
 
 try {
   const db = createDb();
@@ -24,9 +26,6 @@ try {
     .from(systemSettings)
     .where(eq(systemSettings.id, 1))
     .limit(1);
-
-  let waNumber = '';
-  let waMessage = '';
 
   if (settings) {
     registrationConfig = {
@@ -37,13 +36,6 @@ try {
     waNumber = settings.waNumber || '';
     waMessage = settings.waMessage || '';
   }
-
-  let cleanWa = (waNumber || '081234567890').replace(/\D/g, '');
-  if (cleanWa.startsWith('0')) cleanWa = '62' + cleanWa.slice(1);
-  else if (cleanWa.startsWith('8')) cleanWa = '62' + cleanWa;
-
-  const defaultWaMsg = waMessage || 'Halo Admin Panitia OREC PERISAI UMI, saya ingin bertanya terkait pendaftaran calon anggota.';
-  const homepageWaUrl = `https://wa.me/${cleanWa}?text=${encodeURIComponent(defaultWaMsg)}`;
 
   timelineList = await db
     .select()
@@ -58,6 +50,13 @@ try {
 } catch (err) {
   console.error('Error loading settings, timeline, or QnA on homepage:', err);
 }
+
+let cleanWa = (waNumber || '081234567890').replace(/\D/g, '');
+if (cleanWa.startsWith('0')) cleanWa = '62' + cleanWa.slice(1);
+else if (cleanWa.startsWith('8')) cleanWa = '62' + cleanWa;
+
+const defaultWaMsg = waMessage || 'Halo Admin Panitia OREC PERISAI UMI, saya ingin bertanya terkait pendaftaran calon anggota.';
+const homepageWaUrl = `https://wa.me/${cleanWa}?text=${encodeURIComponent(defaultWaMsg)}`;
 
 const now = new Date();
 
@@ -74,7 +73,7 @@ function formatWITA(date: Date | null | undefined): string {
 }
 ---
 
-<MainLayout title="Open Recruitment PERISAI UMI">
+<MainLayout title="Open Recruitment PERISAI UMI" waNumber={waNumber} waMessage={waMessage}>
   <!-- Hero Section -->
   <section class="relative min-h-[85vh] flex items-center justify-center overflow-hidden py-16 lg:py-24">
     <!-- Ambient Background Glows -->
