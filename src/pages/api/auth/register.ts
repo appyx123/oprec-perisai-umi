@@ -65,7 +65,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       if (!isOpen) {
         message = 'Pendaftaran saat ini dinonaktifkan oleh panitia seleksi.';
       } else if (isBeforeStart && start) {
-        message = `Pendaftaran belum dibuka. Pendaftaran dibuka pada ${start.toLocaleString('id-ID')}.`;
+        message = `Pendaftaran belum dibuka. Pendaftaran dibuka pada ${start.toLocaleString('id-ID', { timeZone: 'Asia/Makassar', dateStyle: 'medium', timeStyle: 'short' })} WITA.`;
       } else if (isAfterEnd) {
         message = 'Masa pendaftaran calon anggota baru telah resmi berakhir.';
       }

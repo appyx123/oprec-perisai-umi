@@ -34,7 +34,7 @@ try {
     if (!isOpen) {
       closedMessage = 'Pendaftaran saat ini sedang dinonaktifkan oleh panitia.';
     } else if (isBeforeStart && start) {
-      closedMessage = `Pendaftaran baru akan dibuka pada ${start.toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })}.`;
+      closedMessage = `Pendaftaran baru akan dibuka pada ${start.toLocaleString('id-ID', { timeZone: 'Asia/Makassar', dateStyle: 'full', timeStyle: 'short' })} WITA.`;
     } else if (isAfterEnd) {
       closedMessage = 'Masa pendaftaran calon anggota baru telah resmi berakhir.';
     } else {

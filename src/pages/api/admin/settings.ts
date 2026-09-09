@@ -86,7 +86,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const parseDate = (val: any): Date | null => {
       if (!val || val === '' || val === 'null' || val === 'undefined') return null;
-      const d = new Date(val);
+      let str = String(val).trim();
+      // Jika string waktu tidak memiliki timezone offset (misalnya format YYYY-MM-DDTHH:mm dari datetime-local),
+      // asumsikan zona waktu resmi WITA (+08:00)
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(str)) {
+        str = `${str.length === 16 ? str + ':00' : str}+08:00`;
+      }
+      const d = new Date(str);
       return isNaN(d.getTime()) ? null : d;
     };
 
