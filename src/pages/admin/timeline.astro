@@ -153,7 +153,8 @@ function formatForDatetimeLocalWITA(date: Date | null | undefined): string {
             <tbody class="divide-y divide-white/5">
               {eventsList.map((event) => {
                 const startMs = new Date(event.startDate).getTime();
-                const endMs = new Date(event.endDate).getTime();
+                // Jika tidak ada endDate atau acara 1 hari saja, anggap batas selesai adalah 23:59:59 hari tersebut
+                let endMs = event.endDate ? new Date(event.endDate).getTime() : startMs + (24 * 60 * 60 * 1000);
                 const nowMs = now.getTime();
 
                 const isPast = nowMs > endMs;
@@ -186,7 +187,14 @@ function formatForDatetimeLocalWITA(date: Date | null | undefined): string {
                     </td>
                     <td class="py-4 px-4 text-xs font-mono text-gray-300">
                       <div><span class="text-gray-500">Mulai :</span> {formatWITA(event.startDate)}</div>
-                      <div class="mt-0.5"><span class="text-gray-500">Selesai:</span> {formatWITA(event.endDate)}</div>
+                      {event.endDate ? (
+                        <div class="mt-0.5"><span class="text-gray-500">Selesai:</span> {formatWITA(event.endDate)}</div>
+                      ) : (
+                        <div class="mt-0.5 inline-flex items-center gap-1 text-amber-400 font-semibold">
+                          <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                          <span>Acara 1 Hari Saja</span>
+                        </div>
+                      )}
                     </td>
                     <td class="py-4 px-4">
                       <span class={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${statusBadge}`}>
@@ -203,7 +211,7 @@ function formatForDatetimeLocalWITA(date: Date | null | undefined): string {
                           data-title={event.title}
                           data-description={event.description || ''}
                           data-start={formatForDatetimeLocalWITA(event.startDate)}
-                          data-end={formatForDatetimeLocalWITA(event.endDate)}
+                          data-end={event.endDate ? formatForDatetimeLocalWITA(event.endDate) : ''}
                           data-order={event.sequenceOrder}
                         >
                           Ubah
@@ -274,6 +282,21 @@ function formatForDatetimeLocalWITA(date: Date | null | undefined): string {
             ></textarea>
           </div>
 
+          <!-- Toggle Acara 1 Hari Saja -->
+          <div class="p-3.5 rounded-2xl bg-[#1c1c24] border border-white/10 flex items-center justify-between gap-3">
+            <div>
+              <label for="is-single-day" class="text-xs font-bold text-white cursor-pointer select-none">
+                Acara 1 Hari Saja
+              </label>
+              <p class="text-[11px] text-gray-400">Centang jika tahapan berlangsung dalam satu hari saja (tanpa rentang selesai).</p>
+            </div>
+            <input
+              type="checkbox"
+              id="is-single-day"
+              class="w-4 h-4 rounded border-gray-600 text-amber-400 focus:ring-amber-400 bg-[#121217] cursor-pointer"
+            />
+          </div>
+
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label for="event-start" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
@@ -288,7 +311,7 @@ function formatForDatetimeLocalWITA(date: Date | null | undefined): string {
               />
             </div>
 
-            <div>
+            <div id="end-date-container">
               <label for="event-end" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
                 Waktu Selesai (WITA) *
               </label>
@@ -352,6 +375,8 @@ function formatForDatetimeLocalWITA(date: Date | null | undefined): string {
     const descInput = document.getElementById('event-description') as HTMLTextAreaElement | null;
     const startInput = document.getElementById('event-start') as HTMLInputElement | null;
     const endInput = document.getElementById('event-end') as HTMLInputElement | null;
+    const isSingleDayCheckbox = document.getElementById('is-single-day') as HTMLInputElement | null;
+    const endDateContainer = document.getElementById('end-date-container') as HTMLDivElement | null;
     const orderInput = document.getElementById('event-order') as HTMLInputElement | null;
     const saveBtn = document.getElementById('save-modal-btn') as HTMLButtonElement | null;
     const saveText = document.getElementById('save-text') as HTMLSpanElement | null;
@@ -363,10 +388,34 @@ function formatForDatetimeLocalWITA(date: Date | null | undefined): string {
     const alertBox = document.getElementById('feedback-alert') as HTMLDivElement | null;
     const alertText = document.getElementById('feedback-text') as HTMLSpanElement | null;
 
+    function handleSingleDayToggle() {
+      const isSingle = Boolean(isSingleDayCheckbox?.checked);
+      if (isSingle) {
+        if (endDateContainer) endDateContainer.classList.add('hidden');
+        if (endInput) {
+          endInput.required = false;
+          endInput.disabled = true;
+          endInput.value = '';
+        }
+      } else {
+        if (endDateContainer) endDateContainer.classList.remove('hidden');
+        if (endInput) {
+          endInput.required = true;
+          endInput.disabled = false;
+        }
+      }
+    }
+
+    if (isSingleDayCheckbox) {
+      isSingleDayCheckbox.addEventListener('change', handleSingleDayToggle);
+    }
+
     function openCreate() {
       if (form && modalTitle) {
         form.reset();
         if (idInput) idInput.value = '';
+        if (isSingleDayCheckbox) isSingleDayCheckbox.checked = false;
+        handleSingleDayToggle();
         modalTitle.textContent = 'Tambah Tahapan';
         modal?.classList.remove('hidden');
       }
@@ -394,10 +443,18 @@ function formatForDatetimeLocalWITA(date: Date | null | undefined): string {
         if (titleInput) titleInput.value = title;
         if (descInput) descInput.value = description;
         if (startInput) startInput.value = start;
-        if (endInput) endInput.value = end;
         if (orderInput) orderInput.value = order;
-        if (modalTitle) modalTitle.textContent = 'Ubah Tahapan';
 
+        if (isSingleDayCheckbox) {
+          isSingleDayCheckbox.checked = !end || end === start;
+        }
+        handleSingleDayToggle();
+
+        if (endInput && end) {
+          endInput.value = end;
+        }
+
+        if (modalTitle) modalTitle.textContent = 'Ubah Tahapan';
         modal?.classList.remove('hidden');
       });
     });
@@ -439,10 +496,11 @@ function formatForDatetimeLocalWITA(date: Date | null | undefined): string {
         const title = titleInput?.value.trim() || '';
         const description = descInput?.value.trim() || null;
         const startDate = startInput?.value || '';
-        const endDate = endInput?.value || '';
+        const isSingle = Boolean(isSingleDayCheckbox?.checked);
+        const endDate = isSingle ? null : (endInput?.value || null);
         const sequenceOrder = Number(orderInput?.value) || 1;
 
-        if (!title || !startDate || !endDate) {
+        if (!title || !startDate || (!isSingle && !endDate)) {
           alert('Mohon isi semua kolom yang diperlukan.');
           return;
         }

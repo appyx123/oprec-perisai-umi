@@ -121,7 +121,7 @@ async function seed() {
         title TEXT NOT NULL,
         description TEXT,
         start_date INTEGER NOT NULL,
-        end_date INTEGER NOT NULL,
+        end_date INTEGER,
         sequence_order INTEGER DEFAULT 1 NOT NULL,
         created_at INTEGER DEFAULT (unixepoch()) NOT NULL
       )

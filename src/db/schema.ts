@@ -171,8 +171,7 @@ export const timelineEvents = sqliteTable('timeline_events', {
   startDate: integer('start_date', { mode: 'timestamp' })
     .notNull(),
 
-  endDate: integer('end_date', { mode: 'timestamp' })
-    .notNull(),
+  endDate: integer('end_date', { mode: 'timestamp' }),
 
   sequenceOrder: integer('sequence_order', { mode: 'number' })
     .notNull()

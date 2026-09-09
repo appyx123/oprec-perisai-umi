@@ -78,14 +78,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
 
-    if (!startDate || !endDate) {
+    if (!startDate) {
       return new Response(
-        JSON.stringify({ success: false, message: 'Waktu mulai dan selesai wajib diisi.' }),
+        JSON.stringify({ success: false, message: 'Waktu mulai wajib diisi.' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    if (startDate.getTime() > endDate.getTime()) {
+    if (endDate && startDate.getTime() > endDate.getTime()) {
       return new Response(
         JSON.stringify({ success: false, message: 'Waktu mulai tidak boleh lebih lambat daripada waktu selesai.' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -99,7 +99,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         title,
         description,
         startDate,
-        endDate,
+        endDate: endDate || null,
         sequenceOrder,
       })
       .returning();
@@ -155,14 +155,14 @@ export const PUT: APIRoute = async ({ request, locals }) => {
       );
     }
 
-    if (!startDate || !endDate) {
+    if (!startDate) {
       return new Response(
-        JSON.stringify({ success: false, message: 'Waktu mulai dan selesai wajib diisi.' }),
+        JSON.stringify({ success: false, message: 'Waktu mulai wajib diisi.' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    if (startDate.getTime() > endDate.getTime()) {
+    if (endDate && startDate.getTime() > endDate.getTime()) {
       return new Response(
         JSON.stringify({ success: false, message: 'Waktu mulai tidak boleh lebih lambat daripada waktu selesai.' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -189,7 +189,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
         title,
         description,
         startDate,
-        endDate,
+        endDate: endDate || null,
         sequenceOrder,
       })
       .where(eq(timelineEvents.id, id))
