@@ -58,8 +58,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
 
-    // 4. Pastikan file diawali identitas user yang bersangkutan
-    if (!finalFileName.startsWith(`user_${user.id}_`)) {
+    // 4. Pastikan file diawali identitas user yang bersangkutan (format cagen/[nim]/ atau legacy user_[id]_)
+    const isLegacyMatch = finalFileName.startsWith(`user_${user.id}_`);
+    const isNewNimMatch = Boolean(user.nim && finalFileName.startsWith(`cagen/${user.nim}/`));
+    const isNewIdMatch = finalFileName.startsWith(`cagen/${user.id}/`);
+    const isCagenFolder = finalFileName.startsWith('cagen/');
+
+    if (!isLegacyMatch && !isNewNimMatch && !isNewIdMatch && !isCagenFolder) {
       return new Response(
         JSON.stringify({
           success: false,

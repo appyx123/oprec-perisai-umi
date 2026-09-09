@@ -29,10 +29,18 @@ export const GET: APIRoute = async ({ url, locals, redirect }) => {
 
     // 3. Hak Akses (Authorization Guard)
     // - Admin dapat melihat semua file
-    // - Peserta (user) HANYA diizinkan melihat file miliknya sendiri (prefix user_{id}_)
+    // - Peserta (user) HANYA diizinkan melihat file miliknya sendiri
     if (user.role === 'user') {
-      const allowedPrefix = `user_${user.id}_`;
-      if (!fileName.startsWith(allowedPrefix)) {
+      const allowedLegacy = `user_${user.id}_`;
+      const allowedNewNim = user.nim ? `cagen/${user.nim}/` : null;
+      const allowedNewId = `cagen/${user.id}/`;
+
+      const isOwner =
+        fileName.startsWith(allowedLegacy) ||
+        (allowedNewNim && fileName.startsWith(allowedNewNim)) ||
+        fileName.startsWith(allowedNewId);
+
+      if (!isOwner) {
         return new Response(
           JSON.stringify({
             success: false,

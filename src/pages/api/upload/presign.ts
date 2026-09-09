@@ -39,51 +39,74 @@ export const POST: APIRoute = async ({ request, locals }) => {
     );
   }
 
-  const { filename, contentType, category } = body;
+  // STEP 1: EXTRACT DATA
+  // Mendukung parameter baru: nim, jenisBerkas, fileName
+  // Serta fallback kompatibilitas: category, filename
+  const rawNim = String(body.nim || user.nim || '').trim();
+  const rawJenisBerkas = String(body.jenisBerkas || body.category || '').trim();
+  const rawFileName = String(body.fileName || body.filename || '').trim();
+  const rawContentType = String(body.contentType || 'application/octet-stream').trim();
 
-  if (!filename || typeof filename !== 'string' || filename.trim() === '') {
+  if (!rawNim) {
     return new Response(
       JSON.stringify({
         success: false,
-        message: 'Parameter filename wajib diisi dengan nama berkas yang valid.',
+        message: 'Parameter nim wajib disertakan.',
       }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
   }
 
-  if (!contentType || typeof contentType !== 'string' || contentType.trim() === '') {
+  if (!rawJenisBerkas) {
     return new Response(
       JSON.stringify({
         success: false,
-        message: 'Parameter contentType wajib disertakan.',
+        message: 'Parameter jenisBerkas wajib disertakan (contoh: KTM, CV, Pas Foto).',
       }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
   }
 
-  // 3. Sanitasi dan susun nama file yang unik dan aman
-  // Format: user_{userId}_{kategori}_{timestamp}_{randomHex}.{ext}
-  const sanitizedCategory = String(category || 'ktm')
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]/g, '');
+  if (!rawFileName) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        message: 'Parameter fileName wajib disertakan untuk menentukan format berkas.',
+      }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
 
-  const trimmedFilename = filename.trim();
-  const rawExt = trimmedFilename.includes('.')
-    ? trimmedFilename.substring(trimmedFilename.lastIndexOf('.')).toLowerCase()
+  // STEP 2: SANITIZE & FORMAT
+  // 1. Ekstrak ekstensi berkas asli
+  const rawExt = rawFileName.includes('.')
+    ? rawFileName.substring(rawFileName.lastIndexOf('.')).toLowerCase()
     : '';
-  // Cegah ekstensi berbahaya
   const safeExt = rawExt.replace(/[^a-z0-9.]/g, '');
 
-  const timestamp = Math.floor(Date.now() / 1000);
-  const randomHex = Math.random().toString(36).substring(2, 8);
-  const finalFileName = `user_${user.id}_${sanitizedCategory}_${timestamp}_${randomHex}${safeExt}`;
+  // 2. Sanitasi jenisBerkas: huruf kecil, spasi menjadi tanda hubung (-), hapus karakter khusus
+  const sanitizedJenisBerkas = rawJenisBerkas
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9_-]/g, '')
+    .replace(/-+/g, '-');
 
-  // 4. Buat Presigned PUT URL menggunakan aws4fetch (Edge-Native)
+  // 3. Sanitasi NIM: hanya alfanumerik untuk keamanan path traversal
+  const sanitizedNim = rawNim.replace(/[^a-zA-Z0-9_-]/g, '');
+
+  // 4. Generate Unix timestamp (dalam detik)
+  const timestamp = Math.floor(Date.now() / 1000);
+
+  // STEP 3: CONSTRUCT THE OBJECT KEY
+  // Template: cagen/[nim]/[sanitized-jenisBerkas]-[timestamp][extension]
+  // Contoh: cagen/13020210001/pas-foto-1788917002.jpg
+  const fileKey = `cagen/${sanitizedNim}/${sanitizedJenisBerkas}-${timestamp}${safeExt}`;
+
+  // STEP 4: GENERATE PRESIGNED URL
   try {
-    // Teruskan `locals` agar kredensial diambil dari Cloudflare Workers runtime env / secrets
-    const uploadUrl = await createPresignedPutUrl(
-      finalFileName,
-      contentType.trim(),
+    const presignedUrl = await createPresignedPutUrl(
+      fileKey,
+      rawContentType,
       locals,
       900
     );
@@ -91,8 +114,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return new Response(
       JSON.stringify({
         success: true,
-        uploadUrl,
-        finalFileName,
+        presignedUrl,
+        fileKey,
+        // Alias backward compatibility untuk frontend
+        uploadUrl: presignedUrl,
+        finalFileName: fileKey,
         expiresIn: 900,
       }),
       {
@@ -118,4 +144,3 @@ export const POST: APIRoute = async ({ request, locals }) => {
     );
   }
 };
-

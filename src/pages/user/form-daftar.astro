@@ -56,7 +56,7 @@ if (!user || user.role !== 'user') {
       </div>
 
       <!-- Upload Form -->
-      <form id="upload-form" class="space-y-6">
+      <form id="upload-form" data-nim={user.nim || ''} class="space-y-6">
         <div>
           <label for="ktm-file" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
             Unggah Kartu Tanda Mahasiswa (KTM)
@@ -142,6 +142,7 @@ if (!user || user.role !== 'user') {
 
         try {
           // 1. Minta izin unggah dokumen
+          const userNim = form.getAttribute('data-nim') || '';
           const presignRes = await fetch('/api/upload/presign', {
             method: 'POST',
             headers: {
@@ -149,6 +150,9 @@ if (!user || user.role !== 'user') {
               'Accept': 'application/json',
             },
             body: JSON.stringify({
+              nim: userNim,
+              jenisBerkas: 'KTM',
+              fileName: file.name,
               filename: file.name,
               contentType: file.type || 'application/octet-stream',
               category: 'ktm',
@@ -161,7 +165,8 @@ if (!user || user.role !== 'user') {
             throw new Error(presignData.message || 'Gagal menyiapkan pengunggahan berkas.');
           }
 
-          const { uploadUrl, finalFileName } = presignData;
+          const uploadUrl = presignData.presignedUrl || presignData.uploadUrl;
+          const finalFileName = presignData.fileKey || presignData.finalFileName;
 
           // 2. Unggah file dokumen
           setLoading(true, 'Mengunggah berkas...');
