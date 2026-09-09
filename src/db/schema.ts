@@ -148,6 +148,58 @@ export const systemSettings = sqliteTable('system_settings', {
 });
 
 // ============================================================
+// TABLE: timeline_events
+// Linimasa/Jadwal tahapan seleksi Open Recruitment
+// ============================================================
+export const timelineEvents = sqliteTable('timeline_events', {
+  id: integer('id', { mode: 'number' })
+    .primaryKey({ autoIncrement: true }),
+
+  title: text('title')
+    .notNull(),
+
+  description: text('description'),
+
+  startDate: integer('start_date', { mode: 'timestamp' })
+    .notNull(),
+
+  endDate: integer('end_date', { mode: 'timestamp' })
+    .notNull(),
+
+  sequenceOrder: integer('sequence_order', { mode: 'number' })
+    .notNull()
+    .default(1),
+
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// ============================================================
+// TABLE: public_qna
+// Tanya Jawab publik dan moderasi admin
+// ============================================================
+export const publicQna = sqliteTable('public_qna', {
+  id: integer('id', { mode: 'number' })
+    .primaryKey({ autoIncrement: true }),
+
+  askerName: text('asker_name'),
+
+  question: text('question')
+    .notNull(),
+
+  answer: text('answer'),
+
+  isPublished: integer('is_published', { mode: 'boolean' })
+    .notNull()
+    .default(false),
+
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// ============================================================
 // RELATIONS — Untuk Drizzle relational query API
 // ============================================================
 
@@ -174,12 +226,18 @@ export type Admin = typeof admins.$inferSelect;
 export type Cagen = typeof cagens.$inferSelect;
 export type BerkasCagen = typeof berkasCagens.$inferSelect;
 export type SystemSetting = typeof systemSettings.$inferSelect;
+export type TimelineEvent = typeof timelineEvents.$inferSelect;
+export type PublicQna = typeof publicQna.$inferSelect;
 
 // Types untuk INSERT (menulis data ke DB)
 export type NewAdmin = typeof admins.$inferInsert;
 export type NewCagen = typeof cagens.$inferInsert;
 export type NewBerkasCagen = typeof berkasCagens.$inferInsert;
 export type NewSystemSetting = typeof systemSettings.$inferInsert;
+export type NewTimelineEvent = typeof timelineEvents.$inferInsert;
+export type NewPublicQna = typeof publicQna.$inferInsert;
+
+
 
 // Extracted ENUM types untuk digunakan di seluruh aplikasi
 export type StatusPendaftaran = Cagen['statusPendaftaran'];

@@ -1,0 +1,366 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+import type { AuthUser } from '../../lib/auth';
+import { createDb } from '../../db';
+import { publicQna } from '../../db/schema';
+import { desc } from 'drizzle-orm';
+
+const user = Astro.locals.user as AuthUser | null | undefined;
+const isAdmin = user?.role === 'admin' || user?.isAdmin === true || String(user?.role).toLowerCase() === 'admin';
+
+if (!user || !isAdmin) {
+  return Astro.redirect('/auth/login');
+}
+
+let qnaList: any[] = [];
+let dbError: string | null = null;
+
+try {
+  const db = createDb();
+  qnaList = await db
+    .select()
+    .from(publicQna)
+    .orderBy(desc(publicQna.createdAt));
+} catch (err) {
+  console.error('Error fetching Q&A list in admin:', err);
+  dbError = 'Gagal memuat daftar tanya jawab. Silakan muat ulang halaman.';
+}
+
+const totalQuestions = qnaList.length;
+const pendingCount = qnaList.filter((q) => !q.answer || !q.isPublished).length;
+const publishedCount = qnaList.filter((q) => q.isPublished).length;
+
+function formatWITA(date: Date | null | undefined): string {
+  if (!date) return '-';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '-';
+  return (
+    d.toLocaleDateString('id-ID', {
+      timeZone: 'Asia/Makassar',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }) +
+    ', ' +
+    d.toLocaleTimeString('id-ID', {
+      timeZone: 'Asia/Makassar',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }) +
+    ' WITA'
+  );
+}
+---
+
+<MainLayout title="Moderasi Q&A - Admin PERISAI UMI">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    
+    <!-- Header Card -->
+    <div class="bg-gradient-to-r from-[#1b1912] via-[#201c13] to-[#121217] border border-amber-500/30 rounded-3xl p-8 sm:p-10 shadow-xl relative overflow-hidden mb-8">
+      <div class="absolute -right-16 -top-16 w-64 h-64 bg-amber-500/15 rounded-full blur-[90px] pointer-events-none"></div>
+
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
+        <div>
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold mb-3">
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+            Layanan Informasi Publik
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            Moderasi Tanya Jawab (Q&A)
+          </h1>
+          <p class="text-xs sm:text-sm text-gray-400 mt-1 max-w-xl">
+            Tinjau pertanyaan yang diajukan oleh pengunjung situs, tuliskan jawaban resmi panitia, dan tampilkan ke beranda publik.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <a
+            href="/admin/dashboard"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white text-xs font-semibold transition-colors"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Kembali
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {dbError && (
+      <div class="mb-8 p-4 rounded-2xl bg-rose-950/50 border border-rose-800/50 text-rose-300 text-sm flex items-center gap-3">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>{dbError}</span>
+      </div>
+    )}
+
+    <!-- Dynamic Feedback Toast/Alert -->
+    <div
+      id="feedback-alert"
+      class="hidden mb-6 p-4 rounded-xl text-sm flex items-center gap-3"
+      role="alert"
+    >
+      <span id="feedback-text"></span>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+      <div class="bg-[#121217] border border-white/10 rounded-2xl p-6">
+        <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold block mb-1">Total Pertanyaan Masuk</span>
+        <p class="text-3xl font-extrabold text-white">{totalQuestions}</p>
+        <span class="text-[11px] text-gray-500 mt-1 block">Pertanyaan dari pengunjung website</span>
+      </div>
+
+      <div class="bg-[#121217] border border-white/10 rounded-2xl p-6">
+        <span class="text-xs uppercase tracking-wider text-amber-400/80 font-semibold block mb-1">Menunggu Tindakan / Pending</span>
+        <p class="text-3xl font-extrabold text-amber-400">{pendingCount}</p>
+        <span class="text-[11px] text-gray-500 mt-1 block">Belum dijawab atau belum tayang</span>
+      </div>
+
+      <div class="bg-[#121217] border border-white/10 rounded-2xl p-6">
+        <span class="text-xs uppercase tracking-wider text-emerald-400/80 font-semibold block mb-1">Ditampilkan di Beranda</span>
+        <p class="text-3xl font-extrabold text-emerald-400">{publishedCount}</p>
+        <span class="text-[11px] text-gray-500 mt-1 block">Tayang pada accordion FAQ publik</span>
+      </div>
+    </div>
+
+    <!-- Questions Management List -->
+    <div class="bg-[#121217] border border-white/10 rounded-2xl p-6 sm:p-8 shadow-xl">
+      <div class="flex items-center justify-between pb-6 border-b border-white/10 mb-6">
+        <h2 class="text-lg font-bold text-white tracking-tight">Daftar Pertanyaan Masuk</h2>
+        <span class="text-xs text-gray-400 font-mono">
+          Menampilkan {qnaList.length} pertanyaan
+        </span>
+      </div>
+
+      {qnaList.length === 0 ? (
+        <div class="text-center py-16 text-gray-400 text-sm">
+          <p>Belum ada pertanyaan dari pengunjung website.</p>
+        </div>
+      ) : (
+        <div class="space-y-6">
+          {qnaList.map((item) => (
+            <div
+              class={`p-6 rounded-2xl border transition-all ${
+                item.isPublished
+                  ? 'bg-[#15151e] border-emerald-500/25'
+                  : item.answer
+                  ? 'bg-[#15151e] border-amber-500/25'
+                  : 'bg-[#15151e] border-white/10'
+              }`}
+              id={`card-qna-${item.id}`}
+            >
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 mb-4 border-b border-white/5">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-xl bg-white/5 border border-white/10 text-amber-400 font-bold flex items-center justify-center text-xs">
+                    ?
+                  </div>
+                  <div>
+                    <div class="font-bold text-sm text-white">
+                      {item.askerName || 'Anonim'}
+                    </div>
+                    <div class="text-[11px] text-gray-500 font-mono">
+                      {formatWITA(item.createdAt)}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  {item.isPublished ? (
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                      Tayang di Beranda
+                    </span>
+                  ) : item.answer ? (
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 border border-amber-500/30 text-amber-300">
+                      Dijawab (Belum Tayang)
+                    </span>
+                  ) : (
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-800 border border-gray-700 text-gray-400">
+                      Menunggu Jawaban
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <!-- Question Content -->
+              <div class="mb-4">
+                <span class="text-xs uppercase tracking-wider text-amber-400 font-bold block mb-1">
+                  Pertanyaan:
+                </span>
+                <p class="text-sm sm:text-base text-gray-100 font-medium leading-relaxed bg-[#191924] p-4 rounded-xl border border-white/5">
+                  "{item.question}"
+                </p>
+              </div>
+
+              <!-- Answer Form -->
+              <div class="space-y-3">
+                <label for={`answer-${item.id}`} class="block text-xs uppercase tracking-wider text-gray-400 font-bold">
+                  Jawaban Panitia:
+                </label>
+                <textarea
+                  id={`answer-${item.id}`}
+                  rows="3"
+                  placeholder="Tuliskan jawaban resmi panitia untuk pertanyaan ini..."
+                  class="w-full px-4 py-3 rounded-xl bg-[#1c1c28] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 text-xs leading-relaxed"
+                >{item.answer || ''}</textarea>
+
+                <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      class="save-btn px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-bold shadow-sm transition-all cursor-pointer"
+                      data-id={item.id}
+                    >
+                      Simpan
+                    </button>
+
+                    <button
+                      type="button"
+                      class={`toggle-btn px-4 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                        item.isPublished
+                          ? 'bg-white/5 hover:bg-white/10 text-gray-300 border-white/10'
+                          : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-500/40'
+                      }`}
+                      data-id={item.id}
+                      data-published={String(item.isPublished)}
+                    >
+                      {item.isPublished ? 'Sembunyikan' : 'Tampilkan'}
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    class="delete-btn px-3 py-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/40 text-rose-300 hover:text-white text-xs font-semibold transition-all cursor-pointer"
+                    data-id={item.id}
+                  >
+                    Hapus
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+
+  </div>
+
+  <script>
+    const alertBox = document.getElementById('feedback-alert') as HTMLDivElement | null;
+    const alertText = document.getElementById('feedback-text') as HTMLSpanElement | null;
+
+    function showAlert(type: 'success' | 'error', msg: string) {
+      if (!alertBox || !alertText) return;
+      alertBox.className = type === 'success'
+        ? 'mb-6 p-4 rounded-xl text-sm bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center gap-3'
+        : 'mb-6 p-4 rounded-xl text-sm bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center gap-3';
+      alertText.textContent = msg;
+      alertBox.classList.remove('hidden');
+    }
+
+    // Save Answer Button
+    document.querySelectorAll('.save-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        const textarea = document.getElementById(`answer-${id}`) as HTMLTextAreaElement | null;
+        const answer = textarea?.value.trim() || '';
+
+        const originalText = btn.textContent;
+        btn.textContent = 'Menyimpan...';
+
+        try {
+          const res = await fetch('/api/admin/qna', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, answer }),
+          });
+
+          const data = (await res.json()) as any;
+          if (res.ok && data.success) {
+            showAlert('success', data.message || 'Jawaban berhasil disimpan.');
+            setTimeout(() => window.location.reload(), 800);
+          } else {
+            alert(data.message || 'Gagal menyimpan jawaban.');
+          }
+        } catch {
+          alert('Terjadi kendala jaringan.');
+        } finally {
+          btn.textContent = originalText;
+        }
+      });
+    });
+
+    // Toggle Publish Button
+    document.querySelectorAll('.toggle-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        const currentPublished = btn.getAttribute('data-published') === 'true';
+        const nextPublished = !currentPublished;
+
+        const textarea = document.getElementById(`answer-${id}`) as HTMLTextAreaElement | null;
+        const answer = textarea?.value.trim() || '';
+
+        const originalText = btn.textContent;
+        btn.textContent = 'Memproses...';
+
+        try {
+          const res = await fetch('/api/admin/qna', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id,
+              answer,
+              isPublished: nextPublished,
+            }),
+          });
+
+          const data = (await res.json()) as any;
+          if (res.ok && data.success) {
+            showAlert(
+              'success',
+              nextPublished ? 'Pertanyaan kini ditayangkan di beranda.' : 'Pertanyaan disembunyikan dari beranda.'
+            );
+            setTimeout(() => window.location.reload(), 800);
+          } else {
+            alert(data.message || 'Gagal memperbarui status tayang.');
+          }
+        } catch {
+          alert('Terjadi kendala jaringan.');
+        } finally {
+          btn.textContent = originalText;
+        }
+      });
+    });
+
+    // Delete Button
+    document.querySelectorAll('.delete-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        if (!confirm('Apakah Anda yakin ingin menghapus pertanyaan ini?')) {
+          return;
+        }
+
+        try {
+          const res = await fetch(`/api/admin/qna?id=${id}`, {
+            method: 'DELETE',
+          });
+
+          const data = (await res.json()) as any;
+          if (res.ok && data.success) {
+            showAlert('success', data.message || 'Pertanyaan berhasil dihapus.');
+            const card = document.getElementById(`card-qna-${id}`);
+            if (card) card.remove();
+          } else {
+            alert(data.message || 'Gagal menghapus pertanyaan.');
+          }
+        } catch {
+          alert('Terjadi kendala jaringan.');
+        }
+      });
+    });
+  </script>
+</MainLayout>

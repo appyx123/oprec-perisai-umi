@@ -1,81 +1,623 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
 import type { AuthUser } from '../../lib/auth';
+import { createDb } from '../../db';
+import { cagens, berkasCagens } from '../../db/schema';
+import { eq } from 'drizzle-orm';
 
 const user = Astro.locals.user as AuthUser | null | undefined;
 if (!user || user.role !== 'user') {
   return Astro.redirect('/auth/login');
 }
+
+let cagenData: any = null;
+let berkasData: any = null;
+let dbError: string | null = null;
+
+try {
+  const db = createDb();
+
+  // 1. Ambil data profil & status terkini peserta dari database Turso
+  const [cagenRow] = await db
+    .select()
+    .from(cagens)
+    .where(eq(cagens.id, user.id))
+    .limit(1);
+
+  cagenData = cagenRow || null;
+
+  // 2. Ambil catatan berkas pendaftaran peserta
+  const [berkasRow] = await db
+    .select()
+    .from(berkasCagens)
+    .where(eq(berkasCagens.cagenId, user.id))
+    .limit(1);
+
+  berkasData = berkasRow || null;
+} catch (err) {
+  console.error('Error fetching applicant dashboard data:', err);
+  dbError = 'Gagal memuat sebagian data profil. Silakan muat ulang halaman.';
+}
+
+const statusPendaftaran = cagenData?.statusPendaftaran || 'Belum Melengkapi';
+const peminatan = berkasData?.peminatan || null;
+
+// Daftar Berkas Wajib
+const mandatoryDocs = [
+  {
+    id: 'ktm',
+    name: 'Kartu Tanda Mahasiswa (KTM)',
+    description: 'KTM resmi atau surat keterangan mahasiswa aktif',
+    fileName: berkasData?.ktm || null,
+    uploaded: Boolean(berkasData?.ktm && berkasData.ktm.trim().length > 0),
+  },
+  {
+    id: 'transkripNilai',
+    name: 'Transkrip Nilai',
+    description: 'Transkrip nilai semester terakhir',
+    fileName: berkasData?.transkripNilai || null,
+    uploaded: Boolean(berkasData?.transkripNilai && berkasData.transkripNilai.trim().length > 0),
+  },
+  {
+    id: 'pasFoto',
+    name: 'Pas Foto Formal',
+    description: 'Pas foto formal terbaru dengan latar belakang rapi',
+    fileName: berkasData?.pasFoto || null,
+    uploaded: Boolean(berkasData?.pasFoto && berkasData.pasFoto.trim().length > 0),
+  },
+  {
+    id: 'cv',
+    name: 'Curriculum Vitae (CV)',
+    description: 'Daftar riwayat hidup, pengalaman organisasi & keahlian',
+    fileName: berkasData?.cv || null,
+    uploaded: Boolean(berkasData?.cv && berkasData.cv.trim().length > 0),
+  },
+  {
+    id: 'buktiFollow',
+    name: 'Bukti Follow Akun Media Sosial',
+    description: 'Tangkapan layar bukti mengikuti Instagram resmi @perisai.umi',
+    fileName: berkasData?.buktiFollow || null,
+    uploaded: Boolean(berkasData?.buktiFollow && berkasData.buktiFollow.trim().length > 0),
+  },
+  {
+    id: 'buktiShare',
+    name: 'Bukti Share Publikasi OREC',
+    description: 'Tangkapan layar membagikan pamflet OREC ke media sosial/grup',
+    fileName: berkasData?.buktiShare || null,
+    uploaded: Boolean(berkasData?.buktiShare && berkasData.buktiShare.trim().length > 0),
+  },
+  {
+    id: 'fileKarya',
+    name: 'File Karya Utama',
+    description: 'Karya inovatif sesuai dengan bidang peminatan yang dipilih',
+    fileName: berkasData?.fileKarya || null,
+    uploaded: Boolean(berkasData?.fileKarya && berkasData.fileKarya.trim().length > 0),
+  },
+];
+
+// Daftar Berkas Pendukung (Opsional)
+const optionalDocs = [
+  {
+    id: 'sertifikatPrestasi',
+    name: 'Sertifikat Prestasi',
+    description: 'Sertifikat kejuaraan, kompetisi, atau penghargaan akademik',
+    fileName: berkasData?.sertifikatPrestasi || null,
+    uploaded: Boolean(berkasData?.sertifikatPrestasi && berkasData.sertifikatPrestasi.trim().length > 0),
+  },
+  {
+    id: 'sertifikatBahasa',
+    name: 'Sertifikat Kemampuan Bahasa',
+    description: 'Sertifikat TOEFL, IELTS, atau tes kemampuan bahasa asing',
+    fileName: berkasData?.sertifikatBahasa || null,
+    uploaded: Boolean(berkasData?.sertifikatBahasa && berkasData.sertifikatBahasa.trim().length > 0),
+  },
+  {
+    id: 'sertifikatOrganisasi',
+    name: 'Sertifikat Organisasi / Kepanitiaan',
+    description: 'Bukti keaktifan dalam organisasi atau kepanitiaan sebelumnya',
+    fileName: berkasData?.sertifikatOrganisasi || null,
+    uploaded: Boolean(berkasData?.sertifikatOrganisasi && berkasData.sertifikatOrganisasi.trim().length > 0),
+  },
+];
+
+const totalMandatory = mandatoryDocs.length;
+const uploadedMandatoryCount = mandatoryDocs.filter((d) => d.uploaded).length;
+const isAllMandatoryUploaded = uploadedMandatoryCount === totalMandatory;
+const progressPercentage = Math.round((uploadedMandatoryCount / totalMandatory) * 100);
+
+// Logika Stepper Tahapan Seleksi
+let activeStep = 1; // 1: Pendaftaran, 2: Seleksi Berkas, 3: Pengumuman
+if (statusPendaftaran === 'Belum Melengkapi') {
+  activeStep = isAllMandatoryUploaded ? 2 : 1;
+} else if (statusPendaftaran === 'Review Berkas') {
+  activeStep = 2;
+} else if (statusPendaftaran === 'Berkas Diterima') {
+  activeStep = 2;
+} else if (statusPendaftaran === 'Lulus' || statusPendaftaran === 'Tidak Lulus') {
+  activeStep = 3;
+}
 ---
 
-<MainLayout title="Dashboard Peserta - PERISAI UMI">
+<MainLayout title="Dashboard Calon Anggota - PERISAI UMI">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
     
-    <!-- Welcome Header Card -->
+    <!-- Welcome Header Card (Cleaned up: No redundant logout button) -->
     <div class="bg-gradient-to-r from-[#171720] via-[#1a1a24] to-[#121217] border border-amber-400/20 rounded-3xl p-8 sm:p-10 shadow-xl relative overflow-hidden mb-8">
       <div class="absolute -right-16 -bottom-16 w-64 h-64 bg-amber-500/10 rounded-full blur-[90px] pointer-events-none"></div>
 
       <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
         <div>
           <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold mb-3">
-            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-            Portal Calon Anggota
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            Portal Calon Anggota Baru
           </div>
           <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">
-            Selamat Datang, <span class="text-amber-400">{user.name}</span>!
+            Selamat Datang, <span class="text-amber-400">{cagenData?.namaLengkap || user.name}</span>!
           </h1>
           <p class="text-sm sm:text-base text-gray-400 mt-2 max-w-2xl">
-            Ini adalah portal calon anggota baru UKM PERISAI UMI. Anda dapat memantau status seleksi dan melengkapi berkas administrasi di sini.
+            Pantau status verifikasi berkas dan tahapan seleksi Anda secara real-time melalui dashboard ini.
           </p>
         </div>
 
-        <a
-          href="/api/auth/logout"
-          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/40 text-rose-300 hover:text-white text-sm font-semibold transition-colors"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-          </svg>
-          Keluar
-        </a>
-      </div>
-    </div>
-
-    <!-- User Information Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <div class="bg-[#121217] border border-white/10 rounded-2xl p-6">
-        <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold block mb-1">Nama Lengkap</span>
-        <p class="text-lg font-bold text-white">{user.name}</p>
-      </div>
-
-      <div class="bg-[#121217] border border-white/10 rounded-2xl p-6">
-        <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold block mb-1">Nomor Induk Mahasiswa (NIM)</span>
-        <p class="text-lg font-bold text-amber-400 font-mono">{user.nim || 'Belum terdata'}</p>
-      </div>
-
-      <div class="bg-[#121217] border border-white/10 rounded-2xl p-6">
-        <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold block mb-1">Alamat Email</span>
-        <p class="text-lg font-bold text-white truncate">{user.email || '-'}</p>
-      </div>
-    </div>
-
-    <!-- Status Overview Shell -->
-    <div class="bg-[#121217] border border-white/10 rounded-2xl p-8">
-      <h2 class="text-lg font-bold text-white mb-2">Status Pendaftaran & Verifikasi</h2>
-      <p class="text-sm text-gray-400 mb-6">
-        Akun pendaftaran Anda telah aktif. Silakan lengkapi berkas administrasi dan dokumen persyaratan untuk melanjutkan proses seleksi calon anggota.
-      </p>
-      <div class="flex flex-wrap items-center justify-between gap-4">
-        <a href="/user/form-daftar" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-sm shadow-md transition-colors">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-          Unggah Berkas
-        </a>
-        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-gray-400 text-xs font-mono">
-          <span class="text-gray-300">Status:</span> <span class="text-emerald-400 font-semibold">Calon Anggota</span> &bull; <span class="text-gray-300">No. Pendaftaran:</span> #{user.id}
+        <div class="hidden sm:flex flex-col items-end text-right">
+          <span class="text-[11px] text-gray-500 font-mono uppercase tracking-wider">Nomor Registrasi</span>
+          <span class="text-lg font-black text-amber-400 font-mono">#{user.id}</span>
+          <span class="text-xs text-gray-400 mt-0.5">NIM: {cagenData?.nim || user.nim || '-'}</span>
         </div>
       </div>
+    </div>
+
+    {dbError && (
+      <div class="mb-8 p-4 rounded-2xl bg-rose-950/50 border border-rose-800/50 text-rose-300 text-sm flex items-center gap-3">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>{dbError}</span>
+      </div>
+    )}
+
+    <!-- Selection Stage Stepper Card -->
+    <div class="bg-[#121217] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-xl mb-8">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-6 border-b border-white/10 mb-8">
+        <div>
+          <h2 class="text-lg font-bold text-white tracking-tight">Alur Tahapan Seleksi</h2>
+          <p class="text-xs text-gray-400 mt-0.5">Proses seleksi berlangsung secara bertahap dan transparan.</p>
+        </div>
+        <div>
+          <span class="text-xs font-semibold text-gray-400 mr-2">Status Saat Ini:</span>
+          <span class={`inline-block px-3 py-1 rounded-full text-xs font-bold border ${
+            statusPendaftaran === 'Lulus'
+              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+              : statusPendaftaran === 'Tidak Lulus'
+              ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+              : statusPendaftaran === 'Berkas Diterima'
+              ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+              : statusPendaftaran === 'Review Berkas'
+              ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+              : 'bg-gray-800 text-gray-300 border-gray-700'
+          }`}>
+            {statusPendaftaran}
+          </span>
+        </div>
+      </div>
+
+      <!-- Stepper Component -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
+        
+        <!-- Step 1: Pendaftaran -->
+        <div class="flex items-start gap-4">
+          <div class="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center font-bold flex-shrink-0 shadow-lg shadow-emerald-500/10">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono font-bold text-emerald-400">TAHAP 1</span>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold">Selesai</span>
+            </div>
+            <h3 class="text-sm font-bold text-white mt-1">Pendaftaran Akun</h3>
+            <p class="text-xs text-gray-400 mt-1 leading-relaxed">
+              Akun calon anggota berhasil didaftarkan di sistem.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 2: Seleksi Berkas -->
+        <div class="flex items-start gap-4">
+          <div class={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold flex-shrink-0 shadow-lg ${
+            activeStep > 2 || statusPendaftaran === 'Berkas Diterima' || statusPendaftaran === 'Lulus'
+              ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 shadow-emerald-500/10'
+              : activeStep === 2
+              ? 'bg-amber-400/20 border border-amber-400/50 text-amber-400 shadow-amber-500/20 animate-pulse'
+              : 'bg-white/5 border border-white/10 text-gray-500'
+          }`}>
+            {activeStep > 2 || statusPendaftaran === 'Berkas Diterima' || statusPendaftaran === 'Lulus' ? (
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+              </svg>
+            ) : (
+              <span class="text-sm">2</span>
+            )}
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class={`text-xs font-mono font-bold ${activeStep === 2 ? 'text-amber-400' : activeStep > 2 ? 'text-emerald-400' : 'text-gray-500'}`}>
+                TAHAP 2
+              </span>
+              <span class={`text-[10px] px-2 py-0.5 rounded font-semibold ${
+                statusPendaftaran === 'Berkas Diterima' || statusPendaftaran === 'Lulus'
+                  ? 'bg-emerald-500/10 text-emerald-400'
+                  : activeStep === 2
+                  ? 'bg-amber-400/10 text-amber-300'
+                  : 'bg-white/5 text-gray-500'
+              }`}>
+                {statusPendaftaran === 'Berkas Diterima' || statusPendaftaran === 'Lulus'
+                  ? 'Lolos Berkas'
+                  : statusPendaftaran === 'Review Berkas'
+                  ? 'Sedang Ditinjau'
+                  : 'Proses Dokumen'}
+              </span>
+            </div>
+            <h3 class="text-sm font-bold text-white mt-1">Seleksi & Verifikasi Berkas</h3>
+            <p class="text-xs text-gray-400 mt-1 leading-relaxed">
+              {statusPendaftaran === 'Review Berkas'
+                ? 'Berkas Anda sedang dalam proses verifikasi oleh panitia seleksi.'
+                : statusPendaftaran === 'Berkas Diterima'
+                ? 'Berkas administrasi telah diverifikasi dan dinyatakan lengkap.'
+                : 'Lengkapi seluruh dokumen persyaratan wajib di bawah.'}
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 3: Pengumuman Kelulusan -->
+        <div class="flex items-start gap-4">
+          <div class={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold flex-shrink-0 shadow-lg ${
+            statusPendaftaran === 'Lulus'
+              ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 shadow-emerald-500/20'
+              : statusPendaftaran === 'Tidak Lulus'
+              ? 'bg-rose-500/20 border border-rose-500/40 text-rose-400 shadow-rose-500/20'
+              : 'bg-white/5 border border-white/10 text-gray-500'
+          }`}>
+            {statusPendaftaran === 'Lulus' ? (
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+              </svg>
+            ) : statusPendaftaran === 'Tidak Lulus' ? (
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            ) : (
+              <span class="text-sm">3</span>
+            )}
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class={`text-xs font-mono font-bold ${activeStep === 3 ? 'text-amber-400' : 'text-gray-500'}`}>
+                TAHAP 3
+              </span>
+              <span class={`text-[10px] px-2 py-0.5 rounded font-semibold ${
+                statusPendaftaran === 'Lulus'
+                  ? 'bg-emerald-500/10 text-emerald-400'
+                  : statusPendaftaran === 'Tidak Lulus'
+                  ? 'bg-rose-500/10 text-rose-400'
+                  : 'bg-white/5 text-gray-500'
+              }`}>
+                {statusPendaftaran === 'Lulus'
+                  ? 'Resmi Lulus'
+                  : statusPendaftaran === 'Tidak Lulus'
+                  ? 'Belum Lulus'
+                  : 'Menunggu'}
+              </span>
+            </div>
+            <h3 class="text-sm font-bold text-white mt-1">Pengumuman Kelulusan</h3>
+            <p class="text-xs text-gray-400 mt-1 leading-relaxed">
+              {statusPendaftaran === 'Lulus'
+                ? 'Selamat! Anda resmi diterima sebagai Calon Anggota UKM PERISAI UMI.'
+                : statusPendaftaran === 'Tidak Lulus'
+                ? 'Terima kasih atas partisipasi Anda dalam seleksi OREC tahun ini.'
+                : 'Keputusan kelulusan akhir akan diumumkan setelah verifikasi berkas selesai.'}
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Status Feedback Alert Box -->
+    <div class="mb-8">
+      {statusPendaftaran === 'Belum Melengkapi' && (
+        <div class="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-4">
+          <div class="w-9 h-9 rounded-xl bg-amber-400/20 text-amber-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h3 class="font-bold text-sm text-white">Lengkapi Berkas Pendaftaran Anda</h3>
+            <p class="text-xs text-gray-300 mt-1 leading-relaxed">
+              Progres berkas wajib Anda saat ini adalah <strong class="text-amber-300 font-mono">{uploadedMandatoryCount} dari {totalMandatory}</strong> dokumen ({progressPercentage}%). 
+              Pastikan Anda mengunggah seluruh dokumen persyaratan wajib agar profil Anda dapat diajukan ke panitia seleksi.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {statusPendaftaran === 'Review Berkas' && (
+        <div class="p-5 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-start gap-4">
+          <div class="w-9 h-9 rounded-xl bg-blue-400/20 text-blue-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h3 class="font-bold text-sm text-white">Dokumen Sedang Ditinjau Panitia</h3>
+            <p class="text-xs text-gray-300 mt-1 leading-relaxed">
+              Seluruh berkas pendaftaran Anda telah tercatat dan sedang dalam antrean verifikasi oleh panitia OREC. Silakan pantau halaman ini secara berkala untuk mengetahui perkembangan hasil verifikasi.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {statusPendaftaran === 'Berkas Diterima' && (
+        <div class="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-4">
+          <div class="w-9 h-9 rounded-xl bg-emerald-400/20 text-emerald-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h3 class="font-bold text-sm text-white">Berkas Pendaftaran Dinyatakan Lengkap & Valid</h3>
+            <p class="text-xs text-gray-300 mt-1 leading-relaxed">
+              Selamat! Berkas persyaratan Anda telah berhasil lolos verifikasi administrasi. Anda memenuhi syarat untuk melangkah ke tahap pengumuman akhir calon anggota.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {statusPendaftaran === 'Lulus' && (
+        <div class="p-6 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-amber-950/20 to-[#121217] border border-emerald-500/40 flex items-start gap-4">
+          <div class="w-10 h-10 rounded-xl bg-emerald-400 text-black flex items-center justify-center flex-shrink-0 font-bold text-lg">
+            ★
+          </div>
+          <div class="flex-1">
+            <h3 class="font-black text-base text-white">Selamat! Anda Resmi Lulus Seleksi OREC</h3>
+            <p class="text-xs sm:text-sm text-gray-200 mt-1 leading-relaxed">
+              Selamat bergabung menjadi bagian dari UKM PERISAI Universitas Muslim Indonesia! Silakan nantikan instruksi kegiatan pengenalan dan pembekalan calon anggota baru melalui narahubung resmi panitia.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {statusPendaftaran === 'Tidak Lulus' && (
+        <div class="p-5 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-4">
+          <div class="w-9 h-9 rounded-xl bg-rose-400/20 text-rose-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h3 class="font-bold text-sm text-white">Informasi Hasil Seleksi</h3>
+            <p class="text-xs text-gray-300 mt-1 leading-relaxed">
+              Terima kasih atas partisipasi dan antusiasme Anda dalam rangkaian seleksi Open Recruitment PERISAI UMI. Tetap semangat mengasah kemampuan dan terus berkarya di masa depan.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+
+    <!-- User Information & Peminatan Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="bg-[#121217] border border-white/10 rounded-2xl p-6 hover:border-amber-400/30 transition-colors">
+        <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold block mb-1">Nama Calon Anggota</span>
+        <p class="text-base font-bold text-white truncate">{cagenData?.namaLengkap || user.name}</p>
+        <span class="text-[11px] text-gray-500 mt-1 block">Panggilan: {cagenData?.namaPanggilan || '-'}</span>
+      </div>
+
+      <div class="bg-[#121217] border border-white/10 rounded-2xl p-6 hover:border-amber-400/30 transition-colors">
+        <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold block mb-1">NIM & Angkatan</span>
+        <p class="text-base font-bold text-amber-400 font-mono">{cagenData?.nim || user.nim || '-'}</p>
+        <span class="text-[11px] text-gray-500 mt-1 block">Angkatan Mahasiswa {cagenData?.angkatan || '-'}</span>
+      </div>
+
+      <div class="bg-[#121217] border border-white/10 rounded-2xl p-6 hover:border-amber-400/30 transition-colors">
+        <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold block mb-1">Fakultas & Program Studi</span>
+        <p class="text-base font-bold text-white truncate">{cagenData?.jurusan || '-'}</p>
+        <span class="text-[11px] text-gray-500 mt-1 block truncate">{cagenData?.fakultas || '-'}</span>
+      </div>
+
+      <!-- Field Peminatan Sesuai STEP 4 -->
+      <div class="bg-[#121217] border border-white/10 rounded-2xl p-6 hover:border-amber-400/30 transition-colors">
+        <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold block mb-1">Bidang Peminatan</span>
+        {peminatan ? (
+          <div>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs font-bold mt-0.5">
+              ★ {peminatan}
+            </span>
+            <span class="text-[11px] text-gray-500 mt-1 block">Pilihan Bidang Karya</span>
+          </div>
+        ) : (
+          <div>
+            <span class="inline-block px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-gray-500 text-xs italic mt-0.5">
+              Belum Dipilih
+            </span>
+            <span class="text-[11px] text-gray-500 mt-1 block">Pilih saat mengisi berkas karya</span>
+          </div>
+        )}
+      </div>
+    </div>
+
+    <!-- Document Checklist Section Sesuai STEP 2 -->
+    <div class="bg-[#121217] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-xl mb-8">
+      
+      <!-- Checklist Header with Progress Summary & Action Button -->
+      <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-white/10 mb-6">
+        <div>
+          <div class="flex items-center gap-3">
+            <h2 class="text-xl font-bold text-white tracking-tight">Daftar Kelengkapan Dokumen</h2>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-400/10 text-amber-300 border border-amber-400/20">
+              {uploadedMandatoryCount} / {totalMandatory} Wajib
+            </span>
+          </div>
+          <p class="text-xs text-gray-400 mt-1">
+            Periksa tanda status untuk setiap dokumen. Dokumen yang telah diunggah dapat dilihat kembali melalui tautan yang tersedia.
+          </p>
+        </div>
+
+        <!-- Action Button: Only highlighted / shown if missing documents -->
+        <div>
+          {!isAllMandatoryUploaded ? (
+            <a
+              href="/user/form-daftar"
+              class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs shadow-lg shadow-amber-500/20 hover:shadow-amber-500/35 transition-all"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+              </svg>
+              Lengkapi Berkas Sekarang
+            </a>
+          ) : (
+            <div class="flex items-center gap-3">
+              <span class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Semua Berkas Wajib Lengkap
+              </span>
+              <a
+                href="/user/form-daftar"
+                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 text-xs font-semibold transition-colors"
+                title="Perbarui Berkas"
+              >
+                Perbarui
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <!-- Mandatory Documents List -->
+      <div class="mb-8">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+          Berkas Wajib Persyaratan (7 Dokumen)
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {mandatoryDocs.map((doc) => (
+            <div class={`p-4 rounded-2xl border transition-all ${
+              doc.uploaded
+                ? 'bg-[#15151d] border-emerald-500/20 hover:border-emerald-500/40'
+                : 'bg-[#15151d] border-rose-500/20 hover:border-rose-500/40'
+            }`}>
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3">
+                  <!-- Visual Status Indicator Icon -->
+                  <div class={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                    doc.uploaded
+                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                  }`}>
+                    {doc.uploaded ? (
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                    ) : (
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                    )}
+                  </div>
+
+                  <div>
+                    <h4 class="font-bold text-sm text-white leading-snug">{doc.name}</h4>
+                    <p class="text-xs text-gray-400 mt-0.5 leading-relaxed">{doc.description}</p>
+                  </div>
+                </div>
+
+                <!-- Status Badge & View Button -->
+                <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                  {doc.uploaded ? (
+                    <>
+                      <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                        Sudah Diunggah
+                      </span>
+                      {doc.fileName && (
+                        <a
+                          href={`/api/file/view?name=${encodeURIComponent(doc.fileName)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+                        >
+                          Lihat
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                          </svg>
+                        </a>
+                      )}
+                    </>
+                  ) : (
+                    <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30">
+                      Belum Diunggah
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <!-- Optional Documents List -->
+      <div>
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-gray-500"></span>
+          Berkas Pendukung / Nilai Tambah (Opsional)
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {optionalDocs.map((doc) => (
+            <div class={`p-4 rounded-2xl border transition-all ${
+              doc.uploaded
+                ? 'bg-[#15151d] border-emerald-500/20'
+                : 'bg-[#15151d] border-white/5'
+            }`}>
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <h4 class="font-bold text-xs text-white leading-snug">{doc.name}</h4>
+                  <p class="text-[11px] text-gray-500 mt-1">{doc.description}</p>
+                </div>
+
+                <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                  {doc.uploaded ? (
+                    <>
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                        Terlampir
+                      </span>
+                      {doc.fileName && (
+                        <a
+                          href={`/api/file/view?name=${encodeURIComponent(doc.fileName)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="text-[10px] text-amber-400 hover:underline"
+                        >
+                          Lihat
+                        </a>
+                      )}
+                    </>
+                  ) : (
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/5 text-gray-500 border border-white/5">
+                      Opsional
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
     </div>
 
   </div>
 </MainLayout>
-

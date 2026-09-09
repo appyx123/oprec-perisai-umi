@@ -114,6 +114,110 @@ async function seed() {
       console.log('⚙️ Baris system_settings default (id=1) berhasil dibuat.');
     }
 
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS timeline_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        start_date INTEGER NOT NULL,
+        end_date INTEGER NOT NULL,
+        sequence_order INTEGER DEFAULT 1 NOT NULL,
+        created_at INTEGER DEFAULT (unixepoch()) NOT NULL
+      )
+    `);
+
+    // Inisialisasi tahapan linimasa default jika masih kosong
+    const existingEvents = await client.execute('SELECT count(*) as total FROM timeline_events');
+    if (Number(existingEvents.rows[0]?.total || 0) === 0) {
+      const nowSec = Math.floor(Date.now() / 1000);
+      const daySec = 86400;
+
+      const initialEvents = [
+        {
+          title: 'Pendaftaran Online & Unggah Berkas',
+          description: 'Pengisian biodata diri serta pengunggahan dokumen administrasi calon anggota baru.',
+          start: nowSec - 2 * daySec,
+          end: nowSec + 5 * daySec,
+          order: 1,
+        },
+        {
+          title: 'Seleksi & Verifikasi Berkas Administrasi',
+          description: 'Pemeriksaan validitas berkas dan portofolio karya oleh tim panitia seleksi.',
+          start: nowSec + 6 * daySec,
+          end: nowSec + 9 * daySec,
+          order: 2,
+        },
+        {
+          title: 'Wawancara & Uji Gagasan Peminatan',
+          description: 'Sesi wawancara komprehensif untuk mengeksplorasi motivasi, komitmen, dan wawasan riset.',
+          start: nowSec + 10 * daySec,
+          end: nowSec + 13 * daySec,
+          order: 3,
+        },
+        {
+          title: 'Pengumuman Kelulusan Akhir',
+          description: 'Pengumuman resmi calon anggota yang dinyatakan diterima bergabung di UKM PERISAI UMI.',
+          start: nowSec + 14 * daySec,
+          end: nowSec + 15 * daySec,
+          order: 4,
+        },
+      ];
+
+      for (const ev of initialEvents) {
+        await client.execute({
+          sql: `INSERT INTO timeline_events (title, description, start_date, end_date, sequence_order) VALUES (?, ?, ?, ?, ?)`,
+          args: [ev.title, ev.description, ev.start, ev.end, ev.order],
+        });
+      }
+      console.log('📅 4 Tahapan Linimasa default berhasil dibuat.');
+    }
+
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS public_qna (
+        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        asker_name TEXT,
+        question TEXT NOT NULL,
+        answer TEXT,
+        is_published INTEGER DEFAULT 0 NOT NULL,
+        created_at INTEGER DEFAULT (unixepoch()) NOT NULL
+      )
+    `);
+
+    // Inisialisasi Q&A awal jika masih kosong
+    const existingQna = await client.execute('SELECT count(*) as total FROM public_qna');
+    if (Number(existingQna.rows[0]?.total || 0) === 0) {
+      const initialQna = [
+        {
+          name: 'Mahasiswa Baru',
+          question: 'Apakah mahasiswa semester 1 diperbolehkan mendaftar di UKM PERISAI UMI?',
+          answer: 'Tentu saja! UKM PERISAI UMI sangat menyambut mahasiswa baru untuk bergabung dan mulai mengembangkan minat di bidang riset, karya tulis ilmiah, bisnis, debat, maupun media kreatif sejak awal perkuliahan.',
+          isPublished: 1,
+        },
+        {
+          name: 'Pendaftar FTI',
+          question: 'Bagaimana jika saya belum memiliki sertifikat prestasi atau kejuaraan lomba?',
+          answer: 'Sertifikat prestasi bersifat opsional (nilai tambah). Anda tetap memiliki peluang besar untuk lulus seleksi asalkan berkas wajib lengkap dan memiliki motivasi belajar yang tinggi.',
+          isPublished: 1,
+        },
+        {
+          name: 'Calon Anggota',
+          question: 'Apakah boleh memilih peminatan yang belum pernah saya pelajari sebelumnya?',
+          answer: 'Boleh sekali! Di UKM PERISAI UMI, seluruh calon anggota akan mendapatkan pembinaan, mentoring intensif dari senior berprestasi, serta pendampingan karya hingga siap berkompetisi di tingkat nasional.',
+          isPublished: 1,
+        },
+      ];
+
+      for (const q of initialQna) {
+        await client.execute({
+          sql: `INSERT INTO public_qna (asker_name, question, answer, is_published) VALUES (?, ?, ?, ?)`,
+          args: [q.name, q.question, q.answer, q.isPublished],
+        });
+      }
+      console.log('💬 3 Tanya Jawab publik default berhasil dibuat.');
+    }
+
+
+
 
     // 2. Hash default password "password"
     const rawPassword = 'password';
