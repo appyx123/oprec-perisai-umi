@@ -15,32 +15,13 @@ export interface AppEnv {
 
 /**
  * Mendapatkan nilai environment variable dengan urutan prioritas:
- * 1. Override eksplisit yang dilewatkan pemanggil (jika ada)
- * 2. Runtime Cloudflare Workers: `env` dari 'cloudflare:workers'
+ * 1. Runtime Cloudflare Workers: `env` dari 'cloudflare:workers'
+ * 2. Explicit dictionary override (jika dilewatkan pemanggil)
  * 3. Vite / Astro import.meta.env (misal saat astro dev / SSR)
  * 4. Node.js process.env
  */
 export function getEnvVar(key: string, source?: any): string {
-  // 1. Periksa dari source override / locals yang dilewatkan
-  if (source) {
-    // Jika source adalah Astro locals atau objek dengan properti runtime.env (Astro Cloudflare adapter)
-    if (source.runtime?.env && typeof source.runtime.env[key] !== 'undefined') {
-      const val = String(source.runtime.env[key]).trim();
-      if (val !== '') return val;
-    }
-    // Jika source memiliki properti .env langsung
-    if (source.env && typeof source.env[key] !== 'undefined') {
-      const val = String(source.env[key]).trim();
-      if (val !== '') return val;
-    }
-    // Jika source adalah dictionary key-value langsung
-    if (typeof source[key] !== 'undefined') {
-      const val = String(source[key]).trim();
-      if (val !== '') return val;
-    }
-  }
-
-  // 2. Runtime Cloudflare Workers: `env` dari 'cloudflare:workers'
+  // 1. Runtime Cloudflare Workers: `env` dari 'cloudflare:workers'
   try {
     const rawCf = cfEnv as Record<string, any> | undefined;
     if (rawCf && typeof rawCf[key] !== 'undefined') {
@@ -49,6 +30,14 @@ export function getEnvVar(key: string, source?: any): string {
     }
   } catch {
     // Abaikan jika cfEnv belum siap atau di luar worker context
+  }
+
+  // 2. Explicit dictionary override (hanya jika bukan objek runtime Astro)
+  if (source && typeof source === 'object' && !('runtime' in source)) {
+    if (typeof source[key] !== 'undefined') {
+      const val = String(source[key]).trim();
+      if (val !== '') return val;
+    }
   }
 
   // 3. Vite / Astro import.meta.env (misal saat astro dev / SSR)
@@ -89,9 +78,9 @@ export function getAllEnv(source?: any): AppEnv {
   } catch {}
 
   const sourceEnv =
-    source?.runtime?.env ||
-    source?.env ||
-    (source && typeof source === 'object' ? source : {});
+    source && typeof source === 'object' && !('runtime' in source)
+      ? source
+      : {};
 
   return {
     ...(typeof process !== 'undefined' ? process.env : {}),

@@ -52,7 +52,7 @@ export const GET: APIRoute = async ({ url, locals, redirect }) => {
     }
 
     // 4. Buat presigned GET URL menggunakan aws4fetch dengan masa berlaku 15 menit (900 detik)
-    const signedUrl = await createPresignedGetUrl(fileName, locals, 900);
+    const signedUrl = await createPresignedGetUrl(fileName, 900);
 
     // 5. Alihkan (redirect) langsung ke presigned URL S3
     return redirect(signedUrl, 302);

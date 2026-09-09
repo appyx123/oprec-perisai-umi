@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
-import { createPresignedPutUrl } from '../../../lib/s3';
+import { AwsClient } from 'aws4fetch';
+import { env } from 'cloudflare:workers';
 
 export const POST: APIRoute = async ({ request, locals }) => {
   // 1. Verifikasi status otentikasi user
@@ -40,8 +41,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   // STEP 1: EXTRACT DATA
-  // Mendukung parameter baru: nim, jenisBerkas, fileName
-  // Serta fallback kompatibilitas: category, filename
   const rawNim = String(body.nim || user.nim || '').trim();
   const rawJenisBerkas = String(body.jenisBerkas || body.category || '').trim();
   const rawFileName = String(body.fileName || body.filename || '').trim();
@@ -91,7 +90,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     .replace(/[^a-z0-9_-]/g, '')
     .replace(/-+/g, '-');
 
-  // 3. Sanitasi NIM: hanya alfanumerik untuk keamanan path traversal
+  // 3. Sanitasi NIM: hanya alfanumerik
   const sanitizedNim = rawNim.replace(/[^a-zA-Z0-9_-]/g, '');
 
   // 4. Generate Unix timestamp (dalam detik)
@@ -99,24 +98,79 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   // STEP 3: CONSTRUCT THE OBJECT KEY
   // Template: cagen/[nim]/[sanitized-jenisBerkas]-[timestamp][extension]
-  // Contoh: cagen/13020210001/pas-foto-1788917002.jpg
   const fileKey = `cagen/${sanitizedNim}/${sanitizedJenisBerkas}-${timestamp}${safeExt}`;
 
-  // STEP 4: GENERATE PRESIGNED URL
+  // STEP 4: GENERATE PRESIGNED URL USING aws4fetch & import { env } from 'cloudflare:workers'
   try {
-    const presignedUrl = await createPresignedPutUrl(
-      fileKey,
-      rawContentType,
-      locals,
-      900
-    );
+    const accessKeyId =
+      env.AWS_ACCESS_KEY_ID ||
+      (typeof import.meta !== 'undefined' && import.meta.env?.AWS_ACCESS_KEY_ID) ||
+      (typeof process !== 'undefined' && process.env?.AWS_ACCESS_KEY_ID) ||
+      '';
+
+    const secretAccessKey =
+      env.AWS_SECRET_ACCESS_KEY ||
+      (typeof import.meta !== 'undefined' && import.meta.env?.AWS_SECRET_ACCESS_KEY) ||
+      (typeof process !== 'undefined' && process.env?.AWS_SECRET_ACCESS_KEY) ||
+      '';
+
+    const region =
+      env.S3_REGION ||
+      (typeof import.meta !== 'undefined' && import.meta.env?.S3_REGION) ||
+      (typeof process !== 'undefined' && process.env?.S3_REGION) ||
+      'auto';
+
+    let endpoint =
+      env.S3_ENDPOINT ||
+      (typeof import.meta !== 'undefined' && import.meta.env?.S3_ENDPOINT) ||
+      (typeof process !== 'undefined' && process.env?.S3_ENDPOINT) ||
+      'https://s3.eu-central-003.backblazeb2.com';
+
+    const bucketName =
+      env.S3_BUCKET_NAME ||
+      (typeof import.meta !== 'undefined' && import.meta.env?.S3_BUCKET_NAME) ||
+      (typeof process !== 'undefined' && process.env?.S3_BUCKET_NAME) ||
+      'oprec-perisai';
+
+    if (!accessKeyId || !secretAccessKey) {
+      throw new Error(
+        'Kredensial S3 tidak ditemukan. Pastikan AWS_ACCESS_KEY_ID dan AWS_SECRET_ACCESS_KEY telah dikonfigurasi pada Cloudflare Environment Variables / Secrets.'
+      );
+    }
+
+    if (!endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
+      endpoint = `https://${endpoint}`;
+    }
+    endpoint = endpoint.replace(/\/+$/, '');
+
+    const aws = new AwsClient({
+      accessKeyId,
+      secretAccessKey,
+      region,
+      service: 's3',
+    });
+
+    const cleanKey = fileKey.replace(/^\/+/, '');
+    const targetUrl = new URL(`${endpoint}/${bucketName}/${cleanKey}`);
+    targetUrl.searchParams.set('X-Amz-Expires', '900');
+
+    const signed = await aws.sign(targetUrl.toString(), {
+      method: 'PUT',
+      headers: {
+        'Content-Type': rawContentType,
+      },
+      aws: {
+        signQuery: true,
+      },
+    });
+
+    const presignedUrl = signed.url;
 
     return new Response(
       JSON.stringify({
         success: true,
         presignedUrl,
         fileKey,
-        // Alias backward compatibility untuk frontend
         uploadUrl: presignedUrl,
         finalFileName: fileKey,
         expiresIn: 900,

@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { eq } from 'drizzle-orm';
 import { createDb } from '../../../db';
-import { berkasCagens } from '../../../db/schema';
+import { berkasCagens, cagens } from '../../../db/schema';
 
 // Whitelist kolom berkas yang valid untuk mencegah modifikasi kolom sembarangan
 const VALID_CATEGORIES = [
@@ -19,6 +19,35 @@ const VALID_CATEGORIES = [
 
 type ValidCategory = (typeof VALID_CATEGORIES)[number];
 
+const CATEGORY_MAP: Record<string, ValidCategory> = {
+  ktm: 'ktm',
+  'transkrip-nilai': 'transkripNilai',
+  transkripnilai: 'transkripNilai',
+  transkripNilai: 'transkripNilai',
+  'pas-foto': 'pasFoto',
+  pasfoto: 'pasFoto',
+  pasFoto: 'pasFoto',
+  cv: 'cv',
+  'bukti-follow': 'buktiFollow',
+  buktifollow: 'buktiFollow',
+  buktiFollow: 'buktiFollow',
+  'bukti-share': 'buktiShare',
+  buktishare: 'buktiShare',
+  buktiShare: 'buktiShare',
+  'file-karya': 'fileKarya',
+  filekarya: 'fileKarya',
+  fileKarya: 'fileKarya',
+  'sertifikat-prestasi': 'sertifikatPrestasi',
+  sertifikatprestasi: 'sertifikatPrestasi',
+  sertifikatPrestasi: 'sertifikatPrestasi',
+  'sertifikat-bahasa': 'sertifikatBahasa',
+  sertifikatbahasa: 'sertifikatBahasa',
+  sertifikatBahasa: 'sertifikatBahasa',
+  'sertifikat-organisasi': 'sertifikatOrganisasi',
+  sertifikatorganisasi: 'sertifikatOrganisasi',
+  sertifikatOrganisasi: 'sertifikatOrganisasi',
+};
+
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
     // 1. Verifikasi status otentikasi (wajib login sebagai peserta/user)
@@ -35,24 +64,26 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // 2. Baca payload request
     const body = (await request.json().catch(() => null)) as Record<string, any> | null;
-    if (!body || !body.finalFileName || !body.category) {
+    const finalFileName = (body?.fileKey || body?.finalFileName || '') as string;
+    const rawCategory = (body?.category || body?.jenisBerkas || '') as string;
+
+    if (!body || !finalFileName || !rawCategory) {
       return new Response(
         JSON.stringify({
           success: false,
-          message: 'Parameter finalFileName dan category wajib disertakan.',
+          message: 'Parameter fileKey/finalFileName dan category wajib disertakan.',
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    const { finalFileName, category } = body as { finalFileName: string; category: string };
-
-    // 3. Validasi kategori terhadap whitelist
-    if (!VALID_CATEGORIES.includes(category as ValidCategory)) {
+    // 3. Normalisasi kategori berkas
+    const category = CATEGORY_MAP[rawCategory];
+    if (!category || !VALID_CATEGORIES.includes(category)) {
       return new Response(
         JSON.stringify({
           success: false,
-          message: `Kategori '${category}' tidak valid. Pilihan yang diperbolehkan: ${VALID_CATEGORIES.join(', ')}`,
+          message: `Kategori '${rawCategory}' tidak valid. Pilihan yang diperbolehkan: ${VALID_CATEGORIES.join(', ')}`,
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
@@ -96,7 +127,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .limit(1);
 
     if (existingRecord) {
-      // UPDATE kolom yang sesuai
+      // PARTIAL UPDATE kolom yang sesuai tanpa mengganggu berkas lainnya
       await db
         .update(berkasCagens)
         .set({
@@ -105,7 +136,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         })
         .where(eq(berkasCagens.id, existingRecord.id));
     } else {
-      // INSERT record baru dengan nilai placeholder sementara untuk kolom NOT NULL
+      // INSERT record baru dengan nilai default sementara
       await db.insert(berkasCagens).values({
         cagenId: user.id,
         ktm: category === 'ktm' ? finalFileName : '',
@@ -123,14 +154,53 @@ export const POST: APIRoute = async ({ request, locals }) => {
       });
     }
 
+    // 7. Ambil catatan terbaru untuk memeriksa kelengkapan berkas wajib
+    const [updatedRecord] = await db
+      .select()
+      .from(berkasCagens)
+      .where(eq(berkasCagens.cagenId, user.id))
+      .limit(1);
+
+    const mandatoryCheck = [
+      Boolean(updatedRecord?.ktm?.trim()),
+      Boolean(updatedRecord?.transkripNilai?.trim()),
+      Boolean(updatedRecord?.pasFoto?.trim()),
+      Boolean(updatedRecord?.cv?.trim()),
+      Boolean(updatedRecord?.buktiFollow?.trim()),
+      Boolean(updatedRecord?.buktiShare?.trim()),
+      Boolean(updatedRecord?.fileKarya?.trim()),
+    ];
+
+    const completedMandatoryCount = mandatoryCheck.filter(Boolean).length;
+    const isAllMandatoryCompleted = completedMandatoryCount === mandatoryCheck.length;
+
+    // Jika seluruh 7 berkas wajib sudah lengkap dan status masih 'Belum Melengkapi', naikkan ke 'Review Berkas'
+    if (isAllMandatoryCompleted) {
+      const [cagenRow] = await db
+        .select({ status: cagens.statusPendaftaran })
+        .from(cagens)
+        .where(eq(cagens.id, user.id))
+        .limit(1);
+
+      if (cagenRow?.status === 'Belum Melengkapi') {
+        await db
+          .update(cagens)
+          .set({ statusPendaftaran: 'Review Berkas' })
+          .where(eq(cagens.id, user.id));
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Berkas berhasil disimpan.',
+        message: 'Berkas berhasil disimpan ke database.',
         data: {
           cagenId: user.id,
           category,
           finalFileName,
+          fileKey: finalFileName,
+          completedMandatoryCount,
+          isAllMandatoryCompleted,
         },
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
@@ -146,3 +216,5 @@ export const POST: APIRoute = async ({ request, locals }) => {
     );
   }
 };
+
+export const PATCH: APIRoute = POST;

@@ -1,10 +1,9 @@
 /// <reference types="astro/client" />
 
-type CloudflareRuntime = import('@astrojs/cloudflare').Runtime;
-
 declare namespace App {
-  interface Locals extends CloudflareRuntime {
+  interface Locals {
     user?: import('./lib/auth').AuthUser | null;
+    [key: string]: any;
   }
 }
 

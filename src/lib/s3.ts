@@ -1,5 +1,5 @@
 import { AwsClient } from 'aws4fetch';
-import { getEnvVar } from './env';
+import { env } from 'cloudflare:workers';
 
 export interface S3Config {
   endpoint: string;
@@ -10,18 +10,42 @@ export interface S3Config {
 }
 
 /**
- * Mengambil dan memvalidasi konfigurasi S3 / B2 dari environment (Cloudflare Workers / locals / env).
+ * Mengambil dan memvalidasi konfigurasi S3 / B2 dari Cloudflare Workers runtime env.
  */
-export function getS3Config(source?: any): S3Config {
-  let endpoint = getEnvVar('S3_ENDPOINT', source) || 'https://s3.eu-central-003.backblazeb2.com';
-  const region = getEnvVar('S3_REGION', source) || 'auto';
-  const bucketName = getEnvVar('S3_BUCKET_NAME', source) || 'oprec-perisai';
-  const accessKeyId = getEnvVar('AWS_ACCESS_KEY_ID', source);
-  const secretAccessKey = getEnvVar('AWS_SECRET_ACCESS_KEY', source);
+export function getS3Config(): S3Config {
+  const accessKeyId =
+    env.AWS_ACCESS_KEY_ID ||
+    (typeof import.meta !== 'undefined' && import.meta.env?.AWS_ACCESS_KEY_ID) ||
+    (typeof process !== 'undefined' && process.env?.AWS_ACCESS_KEY_ID) ||
+    '';
+
+  const secretAccessKey =
+    env.AWS_SECRET_ACCESS_KEY ||
+    (typeof import.meta !== 'undefined' && import.meta.env?.AWS_SECRET_ACCESS_KEY) ||
+    (typeof process !== 'undefined' && process.env?.AWS_SECRET_ACCESS_KEY) ||
+    '';
+
+  const region =
+    env.S3_REGION ||
+    (typeof import.meta !== 'undefined' && import.meta.env?.S3_REGION) ||
+    (typeof process !== 'undefined' && process.env?.S3_REGION) ||
+    'auto';
+
+  let endpoint =
+    env.S3_ENDPOINT ||
+    (typeof import.meta !== 'undefined' && import.meta.env?.S3_ENDPOINT) ||
+    (typeof process !== 'undefined' && process.env?.S3_ENDPOINT) ||
+    'https://s3.eu-central-003.backblazeb2.com';
+
+  const bucketName =
+    env.S3_BUCKET_NAME ||
+    (typeof import.meta !== 'undefined' && import.meta.env?.S3_BUCKET_NAME) ||
+    (typeof process !== 'undefined' && process.env?.S3_BUCKET_NAME) ||
+    'oprec-perisai';
 
   if (!accessKeyId || !secretAccessKey) {
     throw new Error(
-      'Kredensial S3 tidak ditemukan. Pastikan AWS_ACCESS_KEY_ID dan AWS_SECRET_ACCESS_KEY telah dikonfigurasi di environment atau Cloudflare secrets.'
+      'Kredensial S3 tidak ditemukan. Pastikan AWS_ACCESS_KEY_ID dan AWS_SECRET_ACCESS_KEY telah dikonfigurasi di Cloudflare Environment Variables / Secrets.'
     );
   }
 
@@ -43,8 +67,8 @@ export function getS3Config(source?: any): S3Config {
 /**
  * Membuat instance AwsClient dari aws4fetch yang 100% native Edge / Cloudflare Workers.
  */
-export function getAwsClient(source?: any): { client: AwsClient; config: S3Config } {
-  const config = getS3Config(source);
+export function getAwsClient(): { client: AwsClient; config: S3Config } {
+  const config = getS3Config();
 
   const client = new AwsClient({
     accessKeyId: config.accessKeyId,
@@ -62,10 +86,9 @@ export function getAwsClient(source?: any): { client: AwsClient; config: S3Confi
 export async function createPresignedPutUrl(
   key: string,
   contentType: string,
-  source?: any,
   expiresInSeconds = 900
 ): Promise<string> {
-  const { client, config } = getAwsClient(source);
+  const { client, config } = getAwsClient();
 
   const cleanKey = key.replace(/^\/+/, '');
   const url = new URL(`${config.endpoint}/${config.bucketName}/${cleanKey}`);
@@ -89,10 +112,9 @@ export async function createPresignedPutUrl(
  */
 export async function createPresignedGetUrl(
   key: string,
-  source?: any,
   expiresInSeconds = 900
 ): Promise<string> {
-  const { client, config } = getAwsClient(source);
+  const { client, config } = getAwsClient();
 
   const cleanKey = key.replace(/^\/+/, '');
   const url = new URL(`${config.endpoint}/${config.bucketName}/${cleanKey}`);
