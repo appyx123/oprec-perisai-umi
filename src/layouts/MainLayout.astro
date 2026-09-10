@@ -44,22 +44,14 @@ const user = Astro.locals.user as AuthUser | null | undefined;
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-20">
           
-          <!-- Logo & Brand (Static, Aligned, Utilitarian) -->
-          <div class="flex items-center gap-3.5 select-none">
+          <!-- Logo & Brand -->
+          <a href="/" class="flex items-center select-none hover:opacity-90 transition-opacity">
             <img
               src="/assets/img/logoperisai.png"
               alt="Logo PERISAI UMI"
               class="h-11 w-auto"
             />
-            <div class="flex flex-col justify-center">
-              <span class="font-extrabold text-lg sm:text-xl tracking-tight text-white leading-tight">
-                PERISAI <span class="text-amber-400">UMI</span>
-              </span>
-              <span class="text-[10px] tracking-widest uppercase text-gray-400 font-semibold">
-                Open Recruitment
-              </span>
-            </div>
-          </div>
+          </a>
 
           <!-- Desktop Navigation: Profile & Logout -->
           <nav class="hidden md:flex items-center gap-3">
