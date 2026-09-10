@@ -174,21 +174,22 @@ try {
                 </div>
               </div>
 
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label for="email" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-                    Alamat Email *
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    required
-                    placeholder="nama@email.com"
-                    class="w-full px-4 py-2.5 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 text-sm"
-                  />
-                </div>
+              <div>
+                <label for="email" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                  Alamat Email *
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  required
+                  placeholder="nama@email.com"
+                  class="w-full px-4 py-2.5 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 text-sm"
+                />
+              </div>
 
+              <!-- Password & Konfirmasi Kata Sandi -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label for="password" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
                     Kata Sandi *
@@ -203,49 +204,87 @@ try {
                     class="w-full px-4 py-2.5 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 text-sm"
                   />
                 </div>
+
+                <div>
+                  <label for="confirmPassword" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Konfirmasi Kata Sandi *
+                  </label>
+                  <input
+                    type="password"
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    required
+                    minlength="6"
+                    placeholder="Ulangi kata sandi"
+                    class="w-full px-4 py-2.5 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 text-sm"
+                  />
+                </div>
               </div>
 
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
+              <!-- Fakultas, Program Studi, & Angkatan Dropdowns -->
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                <div class="sm:col-span-5">
                   <label for="fakultas" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
                     Fakultas *
                   </label>
-                  <input
-                    type="text"
-                    id="fakultas"
-                    name="fakultas"
-                    required
-                    placeholder="Contoh: FTI / FIK"
-                    class="w-full px-4 py-2.5 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 text-sm"
-                  />
+                  <div class="relative">
+                    <select
+                      id="fakultas"
+                      name="fakultas"
+                      required
+                      class="w-full px-4 py-2.5 rounded-xl bg-[#1c1c24] border border-white/10 text-white focus:outline-none focus:border-amber-400 text-sm cursor-pointer appearance-none pr-9"
+                    >
+                      <option value="" disabled selected class="bg-[#1c1c24] text-gray-400">Pilih Fakultas</option>
+                    </select>
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
+                <div class="sm:col-span-4">
                   <label for="jurusan" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
                     Program Studi *
                   </label>
-                  <input
-                    type="text"
-                    id="jurusan"
-                    name="jurusan"
-                    required
-                    placeholder="Contoh: Teknik Informatika"
-                    class="w-full px-4 py-2.5 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 text-sm"
-                  />
+                  <div class="relative">
+                    <select
+                      id="jurusan"
+                      name="jurusan"
+                      required
+                      disabled
+                      class="w-full px-4 py-2.5 rounded-xl bg-[#1c1c24] border border-white/10 text-white focus:outline-none focus:border-amber-400 text-sm cursor-pointer appearance-none pr-9 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <option value="" disabled selected class="bg-[#1c1c24] text-gray-400">Pilih Fakultas Dahulu</option>
+                    </select>
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
+                <div class="sm:col-span-3">
                   <label for="angkatan" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
                     Angkatan *
                   </label>
-                  <input
-                    type="text"
-                    id="angkatan"
-                    name="angkatan"
-                    required
-                    placeholder="Contoh: 2024"
-                    class="w-full px-4 py-2.5 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 text-sm"
-                  />
+                  <div class="relative">
+                    <select
+                      id="angkatan"
+                      name="angkatan"
+                      required
+                      class="w-full px-4 py-2.5 rounded-xl bg-[#1c1c24] border border-white/10 text-white focus:outline-none focus:border-amber-400 text-sm cursor-pointer appearance-none pr-9"
+                    >
+                      <option value="" disabled selected class="bg-[#1c1c24] text-gray-400">Pilih Angkatan</option>
+                    </select>
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -278,6 +317,72 @@ try {
   </div>
 
   <script>
+    const FAKULTAS_PRODI_MAP: Record<string, string[]> = {
+      'Agama Islam': [
+        'Hukum Ekonomi Syariah (Muamalah)',
+        'Hukum Keluarga (Akhwal Syahsiyyah)',
+        'Komunikasi dan Penyiaran Islam',
+        'Pendidikan Agama Islam',
+        'Pendidikan Bahasa Arab',
+        'Pendidikan Guru Madrasah Ibtidaiyah (PGMI)',
+      ],
+      'Ekonomi dan Bisnis': [
+        'Akuntansi',
+        'Ekonomi Pembangunan',
+        'Manajemen',
+      ],
+      'Farmasi': [
+        'Farmasi',
+      ],
+      'Hukum': [
+        'Ilmu Hukum',
+      ],
+      'Ilmu Komputer': [
+        'Sistem Informasi',
+        'Teknik Informatika',
+      ],
+      'Kedokteran': [
+        'Pendidikan Dokter',
+      ],
+      'Kedokteran Gigi': [
+        'Kedokteran Gigi',
+      ],
+      'Kesehatan Masyarakat': [
+        'Ilmu Keperawatan',
+        'Kebidanan',
+        'Kesehatan Masyarakat',
+      ],
+      'Pertanian & Bioremediasi': [
+        'Agribisnis',
+        'Agroteknologi',
+      ],
+      'Sastra, Ilmu Komunikasi & Pendidikan': [
+        'Ilmu Komunikasi',
+        'Pendidikan Bahasa dan Sastra Indonesia',
+        'Pendidikan Bahasa Inggris',
+        'Sastra Arab',
+        'Sastra Indonesia',
+        'Sastra Inggris',
+      ],
+      'Teknik': [
+        'Arsitektur',
+        'Teknik Elektro',
+        'Teknik Lingkungan',
+        'Teknik Mesin',
+        'Teknik Sipil',
+      ],
+      'Teknologi Industri': [
+        'Teknik Industri',
+        'Teknik Kimia',
+        'Teknik Pertambangan',
+      ],
+      'Perikanan dan Ilmu Kelautan': [
+        'Budidaya Perairan',
+        'Ilmu Kelautan',
+        'Pemanfaatan Sumber Daya Perikanan',
+      ],
+    };
+
     const form = document.getElementById('register-form') as HTMLFormElement | null;
     const errorAlert = document.getElementById('error-alert') as HTMLDivElement | null;
     const errorMessage = document.getElementById('error-message') as HTMLSpanElement | null;
@@ -285,16 +390,77 @@ try {
     const btnText = document.getElementById('btn-text') as HTMLSpanElement | null;
     const btnSpinner = document.getElementById('btn-spinner') as SVGElement | null;
 
+    const passwordInput = document.getElementById('password') as HTMLInputElement | null;
+    const confirmPasswordInput = document.getElementById('confirmPassword') as HTMLInputElement | null;
+    const fakultasSelect = document.getElementById('fakultas') as HTMLSelectElement | null;
+    const jurusanSelect = document.getElementById('jurusan') as HTMLSelectElement | null;
+    const angkatanSelect = document.getElementById('angkatan') as HTMLSelectElement | null;
+
+    // STEP 2: DYNAMIC ANGKATAN DROPDOWN (currentYear - 2 dan currentYear - 1)
+    if (angkatanSelect) {
+      const currentYear = new Date().getFullYear();
+      const years = [currentYear - 2, currentYear - 1];
+      angkatanSelect.innerHTML = '<option value="" disabled selected class="bg-[#1c1c24] text-gray-400">Pilih Angkatan</option>';
+      years.forEach((year) => {
+        const option = document.createElement('option');
+        option.value = String(year);
+        option.textContent = String(year);
+        option.className = 'bg-[#1c1c24] text-white';
+        angkatanSelect.appendChild(option);
+      });
+    }
+
+    // STEP 3: FAKULTAS & PROGRAM STUDI DEPENDENT DROPDOWNS
+    if (fakultasSelect && jurusanSelect) {
+      fakultasSelect.innerHTML = '<option value="" disabled selected class="bg-[#1c1c24] text-gray-400">Pilih Fakultas</option>';
+      Object.keys(FAKULTAS_PRODI_MAP).forEach((fakultas) => {
+        const option = document.createElement('option');
+        option.value = fakultas;
+        option.textContent = fakultas;
+        option.className = 'bg-[#1c1c24] text-white';
+        fakultasSelect.appendChild(option);
+      });
+
+      fakultasSelect.addEventListener('change', () => {
+        const selectedFakultas = fakultasSelect.value;
+        const prodiList = FAKULTAS_PRODI_MAP[selectedFakultas] || [];
+
+        if (prodiList.length > 0) {
+          jurusanSelect.disabled = false;
+          let optionsHtml = '<option value="" disabled selected class="bg-[#1c1c24] text-gray-400">Pilih Program Studi</option>';
+          prodiList.forEach((prodi) => {
+            optionsHtml += `<option value="${prodi}" class="bg-[#1c1c24] text-white">${prodi}</option>`;
+          });
+          jurusanSelect.innerHTML = optionsHtml;
+        } else {
+          jurusanSelect.disabled = true;
+          jurusanSelect.innerHTML = '<option value="" disabled selected class="bg-[#1c1c24] text-gray-400">Pilih Fakultas Dahulu</option>';
+        }
+      });
+    }
+
     if (form) {
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         hideError();
+
+        // STEP 1: VALIDASI PASSWORD & KONFIRMASI KATA SANDI
+        if (passwordInput && confirmPasswordInput) {
+          if (passwordInput.value !== confirmPasswordInput.value) {
+            showError('Konfirmasi kata sandi tidak cocok. Pastikan kata sandi yang Anda masukkan sama.');
+            confirmPasswordInput.focus();
+            return;
+          }
+        }
 
         const formData = new FormData(form);
         const payload: Record<string, any> = {};
         formData.forEach((value, key) => {
           payload[key] = value;
         });
+
+        // Hapus confirmPassword dari payload sebelum dikirim ke API
+        delete payload.confirmPassword;
 
         setLoading(true);
 
@@ -328,6 +494,7 @@ try {
       if (errorAlert && errorMessage) {
         errorMessage.textContent = msg;
         errorAlert.classList.remove('hidden');
+        errorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
       } else {
         alert(msg);
       }
