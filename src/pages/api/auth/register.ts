@@ -158,7 +158,7 @@ export const POST: APIRoute = async ({ request }) => {
     const verificationToken = crypto.randomUUID();
 
     // 8. Simpan Peserta Baru ke Database (is_verified: false)
-    const [inserted] = await db
+    await db
       .insert(cagens)
       .values({
         namaLengkap,
@@ -174,8 +174,7 @@ export const POST: APIRoute = async ({ request }) => {
         statusPendaftaran: 'Belum Melengkapi',
         isVerified: false,
         verificationToken,
-      })
-      .returning({ id: cagens.id, nomorRegistrasi: cagens.nomorRegistrasi });
+      });
 
     // 9. Kirim Email Verifikasi via Resend REST API (Native Fetch untuk Cloudflare Edge)
     const resendApiKey = env.RESEND_API_KEY || getEnvVar('RESEND_API_KEY');
