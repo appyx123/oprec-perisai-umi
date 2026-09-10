@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import { drizzle } from 'drizzle-orm/libsql';
 import { createClient } from '@libsql/client/http';
 import * as schema from './schema';
@@ -14,8 +15,8 @@ export interface DbEnvConfig {
  * 'cloudflare:workers' env, import.meta.env, or process.env.
  */
 export function resolveDbCredentials(override?: DbEnvConfig): { url: string; authToken: string } {
-  const url = getEnvVar('TURSO_DATABASE_URL', override);
-  const authToken = getEnvVar('TURSO_AUTH_TOKEN', override);
+  const url = override?.TURSO_DATABASE_URL || env.TURSO_DATABASE_URL || getEnvVar('TURSO_DATABASE_URL', override);
+  const authToken = override?.TURSO_AUTH_TOKEN || env.TURSO_AUTH_TOKEN || getEnvVar('TURSO_AUTH_TOKEN', override);
 
   return { url, authToken };
 }

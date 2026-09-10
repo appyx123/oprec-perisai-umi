@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import { SignJWT, jwtVerify } from 'jose';
 import type { AstroCookies } from 'astro';
 import { getEnvVar } from './env';
@@ -52,6 +53,10 @@ export function resolveJwtSecret(secretOrEnv?: JwtSecretOrEnv): string {
     if (typeof secretOrEnv.JWT_SECRET === 'string' && secretOrEnv.JWT_SECRET.trim() !== '') {
       return secretOrEnv.JWT_SECRET.trim();
     }
+  }
+
+  if (env.JWT_SECRET && typeof env.JWT_SECRET === 'string' && env.JWT_SECRET.trim() !== '') {
+    return env.JWT_SECRET.trim();
   }
 
   const resolved = getEnvVar('JWT_SECRET');

@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import type { APIRoute } from 'astro';
 import bcrypt from 'bcryptjs';
 import { eq, or } from 'drizzle-orm';

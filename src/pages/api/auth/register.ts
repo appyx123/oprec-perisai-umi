@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import type { APIRoute } from 'astro';
 import bcrypt from 'bcryptjs';
 import { eq, or } from 'drizzle-orm';
@@ -6,7 +7,7 @@ import { cagens, systemSettings } from '../../../db/schema';
 import { generateNomorRegistrasi } from '../../../lib/auth';
 import { getEnvVar } from '../../../lib/env';
 
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async ({ request }) => {
   try {
     let payload: Record<string, any> = {};
 
@@ -177,11 +178,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .returning({ id: cagens.id, nomorRegistrasi: cagens.nomorRegistrasi });
 
     // 9. Kirim Email Verifikasi via Resend REST API (Native Fetch untuk Cloudflare Edge)
-    const resendApiKey = getEnvVar('RESEND_API_KEY', locals?.runtime?.env);
-    const resendFrom = getEnvVar('RESEND_FROM_EMAIL', locals?.runtime?.env) || 'Admin PERISAI UMI <onboarding@resend.dev>';
+    const resendApiKey = env.RESEND_API_KEY || getEnvVar('RESEND_API_KEY');
+    const resendFrom =
+      env.RESEND_FROM_EMAIL ||
+      getEnvVar('RESEND_FROM_EMAIL') ||
+      'Admin PERISAI UMI <admin@perisai.site>';
     const appBaseUrl =
-      getEnvVar('APP_URL', locals?.runtime?.env) ||
-      getEnvVar('PUBLIC_APP_URL', locals?.runtime?.env) ||
+      env.APP_URL ||
+      env.PUBLIC_APP_URL ||
+      getEnvVar('APP_URL') ||
       new URL(request.url).origin;
     const verificationUrl = `${appBaseUrl}/verify?token=${verificationToken}`;
 

@@ -1,5 +1,4 @@
-// @ts-ignore
-import { env as cfEnv } from 'cloudflare:workers';
+import { env } from 'cloudflare:workers';
 
 export interface AppEnv {
   TURSO_DATABASE_URL?: string;
@@ -27,20 +26,24 @@ export interface AppEnv {
 export function getEnvVar(key: string, source?: any): string {
   // 1. Runtime Cloudflare Workers: `env` dari 'cloudflare:workers'
   try {
-    const rawCf = cfEnv as Record<string, any> | undefined;
+    const rawCf = env as Record<string, any> | undefined;
     if (rawCf && typeof rawCf[key] !== 'undefined') {
       const val = String(rawCf[key]).trim();
       if (val !== '') return val;
     }
   } catch {
-    // Abaikan jika cfEnv belum siap atau di luar worker context
+    // Abaikan jika env belum siap atau di luar worker context
   }
 
-  // 2. Explicit dictionary override (hanya jika bukan objek runtime Astro)
-  if (source && typeof source === 'object' && !('runtime' in source)) {
-    if (typeof source[key] !== 'undefined') {
-      const val = String(source[key]).trim();
-      if (val !== '') return val;
+  // 2. Explicit dictionary override
+  if (source && typeof source === 'object') {
+    try {
+      if (typeof source[key] !== 'undefined') {
+        const val = String(source[key]).trim();
+        if (val !== '') return val;
+      }
+    } catch {
+      // Abaikan jika getter melempar error
     }
   }
 
@@ -78,13 +81,15 @@ export function getEnvVar(key: string, source?: any): string {
 export function getAllEnv(source?: any): AppEnv {
   let cf: Record<string, any> = {};
   try {
-    if (cfEnv) cf = cfEnv as Record<string, any>;
+    if (env) cf = env as Record<string, any>;
   } catch {}
 
-  const sourceEnv =
-    source && typeof source === 'object' && !('runtime' in source)
-      ? source
-      : {};
+  let sourceEnv: Record<string, any> = {};
+  if (source && typeof source === 'object') {
+    try {
+      sourceEnv = { ...source };
+    } catch {}
+  }
 
   return {
     ...(typeof process !== 'undefined' ? process.env : {}),
@@ -93,3 +98,4 @@ export function getAllEnv(source?: any): AppEnv {
     ...sourceEnv,
   };
 }
+
