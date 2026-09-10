@@ -1,5 +1,7 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
+import { Image } from 'astro:assets';
+import logoPerisai from '../../assets/img/logoperisai.webp';
 
 const user = Astro.locals.user;
 if (user) {
@@ -19,9 +21,14 @@ if (user) {
 
         <!-- Logo & Title -->
         <div class="text-center mb-8">
-          <img
-            src="/assets/img/logoperisai.png"
+          <Image
+            src={logoPerisai}
             alt="Logo PERISAI"
+            width={245}
+            height={56}
+            quality={90}
+            format="webp"
+            loading="eager"
             class="h-14 w-auto mx-auto mb-4 drop-shadow-[0_0_15px_rgba(245,158,11,0.3)]"
           />
           <h1 class="text-2xl font-black text-white tracking-tight">Selamat Datang</h1>

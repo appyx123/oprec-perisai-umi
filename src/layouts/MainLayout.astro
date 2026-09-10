@@ -1,6 +1,8 @@
 ---
 import '../styles/global.css';
 import type { AuthUser } from '../lib/auth';
+import { Image } from 'astro:assets';
+import logoPerisai from '../assets/img/logoperisai.webp';
 
 interface Props {
   title?: string;
@@ -21,7 +23,8 @@ const user = Astro.locals.user as AuthUser | null | undefined;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
-    <link rel="icon" type="image/png" href="/assets/img/logoperisai.png" />
+    <link rel="icon" type="image/png" href="/assets/img/favicon.png" />
+    <link rel="apple-touch-icon" href="/assets/img/favicon.png" />
     <title>{title}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -46,9 +49,14 @@ const user = Astro.locals.user as AuthUser | null | undefined;
           
           <!-- Logo & Brand -->
           <a href="/" class="flex items-center select-none hover:opacity-90 transition-opacity">
-            <img
-              src="/assets/img/logoperisai.png"
+            <Image
+              src={logoPerisai}
               alt="Logo PERISAI UMI"
+              width={192}
+              height={44}
+              quality={90}
+              format="webp"
+              loading="eager"
               class="h-11 w-auto"
             />
           </a>
@@ -135,7 +143,16 @@ const user = Astro.locals.user as AuthUser | null | undefined;
     <footer class="border-t border-white/10 bg-[#0d0d10] py-10 mt-16 text-center text-sm text-gray-400">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
         <div class="flex items-center gap-3">
-          <img src="/assets/img/logoperisai.png" alt="PERISAI UMI" class="h-7 w-auto opacity-70" />
+          <Image
+            src={logoPerisai}
+            alt="PERISAI UMI"
+            width={122}
+            height={28}
+            quality={80}
+            format="webp"
+            loading="lazy"
+            class="h-7 w-auto opacity-70"
+          />
         </div>
         <p class="text-xs text-gray-500">
           &copy; {new Date().getFullYear()} PERISAI UMI TECH
