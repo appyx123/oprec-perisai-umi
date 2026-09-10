@@ -10,6 +10,10 @@ export interface AppEnv {
   S3_BUCKET_NAME?: string;
   AWS_ACCESS_KEY_ID?: string;
   AWS_SECRET_ACCESS_KEY?: string;
+  RESEND_API_KEY?: string;
+  RESEND_FROM_EMAIL?: string;
+  APP_URL?: string;
+  PUBLIC_APP_URL?: string;
   [key: string]: any;
 }
 

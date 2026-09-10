@@ -1,0 +1,221 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import { createDb } from '../db';
+import { cagens } from '../db/schema';
+import { eq } from 'drizzle-orm';
+
+const token = Astro.url.searchParams.get('token');
+const pending = Astro.url.searchParams.get('pending');
+const emailParam = Astro.url.searchParams.get('email') || '';
+
+type VerificationStatus = 'success' | 'pending' | 'invalid' | 'error';
+let status: VerificationStatus = 'invalid';
+let verifiedEmail = '';
+let verifiedName = '';
+let errorMessage = '';
+
+if (token && token.trim() !== '') {
+  try {
+    const db = createDb();
+    const [cagen] = await db
+      .select()
+      .from(cagens)
+      .where(eq(cagens.verificationToken, token.trim()))
+      .limit(1);
+
+    if (cagen) {
+      // Update status is_verified menjadi true dan hapus token verifikasi
+      await db
+        .update(cagens)
+        .set({
+          isVerified: true,
+          verificationToken: null,
+        })
+        .where(eq(cagens.id, cagen.id));
+
+      status = 'success';
+      verifiedEmail = cagen.email;
+      verifiedName = cagen.namaLengkap;
+    } else {
+      status = 'invalid';
+      errorMessage =
+        'Tautan verifikasi tidak valid atau sudah kadaluwarsa. Jika Anda sudah pernah memverifikasi email sebelumnya, silakan langsung masuk ke akun Anda.';
+    }
+  } catch (err) {
+    console.error('Error during email verification:', err);
+    status = 'error';
+    errorMessage =
+      'Terjadi kendala saat memproses verifikasi akun pada server. Silakan coba kembali beberapa saat lagi.';
+  }
+} else if (pending) {
+  status = 'pending';
+  verifiedEmail = emailParam;
+} else {
+  status = 'invalid';
+  errorMessage = 'Tautan verifikasi tidak lengkap atau token tidak ditemukan.';
+}
+---
+
+<MainLayout title="Verifikasi Akun - Open Recruitment PERISAI UMI">
+  <div class="min-h-[80vh] flex items-center justify-center px-4 py-12">
+    <div class="w-full max-w-md">
+      
+      <!-- Card Container -->
+      <div class="bg-[#131317]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl shadow-black/80 relative overflow-hidden">
+        
+        <!-- Decorative Header Glow -->
+        <div class={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent ${
+          status === 'success' 
+            ? 'via-emerald-400' 
+            : status === 'pending' 
+              ? 'via-amber-400' 
+              : 'via-rose-400'
+        } to-transparent`}></div>
+
+        <!-- Logo -->
+        <div class="text-center mb-6">
+          <img
+            src="/assets/img/logoperisai.png"
+            alt="Logo PERISAI"
+            class="h-12 w-auto mx-auto mb-3 drop-shadow-[0_0_15px_rgba(245,158,11,0.25)]"
+          />
+        </div>
+
+        {/* STATUS: SUCCESS */}
+        {status === 'success' && (
+          <div class="text-center">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 mb-5 shadow-lg shadow-emerald-500/10">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+
+            <h1 class="text-2xl font-black text-white tracking-tight">Email Berhasil Diverifikasi!</h1>
+            
+            {verifiedName && (
+              <p class="text-sm font-semibold text-amber-400 mt-2">
+                Halo, {verifiedName}!
+              </p>
+            )}
+
+            <p class="text-sm text-gray-300 mt-3 leading-relaxed">
+              Akun pendaftaran Anda dengan email <span class="text-white font-medium bg-white/5 px-2 py-0.5 rounded border border-white/10">{verifiedEmail}</span> telah aktif dan terverifikasi.
+            </p>
+
+            <div class="mt-8">
+              <a
+                href="/auth/login"
+                class="w-full py-3.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-sm shadow-lg shadow-amber-500/20 hover:shadow-amber-500/35 transition-all flex items-center justify-center gap-2"
+              >
+                <span>Masuk Sekarang</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                </svg>
+              </a>
+            </div>
+          </div>
+        )}
+
+        {/* STATUS: PENDING (Baru Saja Mendaftar) */}
+        {status === 'pending' && (
+          <div class="text-center">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 mb-5 shadow-lg shadow-amber-500/10 animate-pulse">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+              </svg>
+            </div>
+
+            <h1 class="text-2xl font-black text-white tracking-tight">Verifikasi Email Anda</h1>
+            
+            <p class="text-sm text-gray-300 mt-3 leading-relaxed">
+              Kami telah mengirimkan tautan verifikasi akun pendaftaran ke:
+            </p>
+
+            {verifiedEmail ? (
+              <div class="my-3 inline-block px-3 py-1.5 rounded-lg bg-white/5 border border-amber-400/30 text-amber-300 text-sm font-semibold tracking-wide">
+                {verifiedEmail}
+              </div>
+            ) : (
+              <p class="text-xs text-gray-400 mt-1">alamat email yang Anda daftarkan</p>
+            )}
+
+            <div class="mt-4 p-4 rounded-xl bg-[#1a1a22] border border-white/5 text-left text-xs text-gray-400 space-y-2">
+              <div class="flex items-start gap-2">
+                <span class="text-amber-400 font-bold">1.</span>
+                <span>Buka aplikasi atau kotak masuk email Anda.</span>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="text-amber-400 font-bold">2.</span>
+                <span>Cari email dengan subjek <strong class="text-gray-300">"Verifikasi Akun Pendaftaran PERISAI UMI"</strong>.</span>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="text-amber-400 font-bold">3.</span>
+                <span>Periksa juga folder <strong class="text-gray-300">Spam / Junk</strong> bila belum muncul.</span>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="text-amber-400 font-bold">4.</span>
+                <span>Klik tombol <strong class="text-amber-400">"Verifikasi Akun"</strong> pada email tersebut.</span>
+              </div>
+            </div>
+
+            <div class="mt-8 space-y-3">
+              <a
+                href="/auth/login"
+                class="w-full py-3.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-sm shadow-lg shadow-amber-500/20 hover:shadow-amber-500/35 transition-all flex items-center justify-center gap-2"
+              >
+                <span>Sudah Verifikasi? Masuk di Sini</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                </svg>
+              </a>
+
+              <a
+                href="/auth/register"
+                class="block text-xs text-gray-400 hover:text-gray-200 transition-colors"
+              >
+                Salah memasukkan email? <span class="text-amber-400 underline">Daftar kembali</span>
+              </a>
+            </div>
+          </div>
+        )}
+
+        {/* STATUS: INVALID / ERROR */}
+        {(status === 'invalid' || status === 'error') && (
+          <div class="text-center">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 mb-5 shadow-lg shadow-rose-500/10">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+              </svg>
+            </div>
+
+            <h1 class="text-2xl font-black text-white tracking-tight">Verifikasi Tidak Valid</h1>
+
+            <p class="text-sm text-gray-300 mt-3 leading-relaxed">
+              {errorMessage}
+            </p>
+
+            <div class="mt-8 space-y-3">
+              <a
+                href="/auth/login"
+                class="w-full py-3.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-sm shadow-lg shadow-amber-500/20 hover:shadow-amber-500/35 transition-all flex items-center justify-center gap-2"
+              >
+                <span>Coba Masuk ke Akun</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                </svg>
+              </a>
+
+              <a
+                href="/"
+                class="block w-full py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white font-medium text-xs transition-colors border border-white/5"
+              >
+                Kembali ke Beranda
+              </a>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  </div>
+</MainLayout>

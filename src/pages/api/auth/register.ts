@@ -3,9 +3,10 @@ import bcrypt from 'bcryptjs';
 import { eq, or } from 'drizzle-orm';
 import { createDb } from '../../../db';
 import { cagens, systemSettings } from '../../../db/schema';
-import { signJwt, setAuthCookie, type AuthUser, generateNomorRegistrasi } from '../../../lib/auth';
+import { generateNomorRegistrasi } from '../../../lib/auth';
+import { getEnvVar } from '../../../lib/env';
 
-export const POST: APIRoute = async ({ request, cookies }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
     let payload: Record<string, any> = {};
 
@@ -152,7 +153,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
     }
 
-    // 7. Simpan Peserta Baru ke Database
+    // 7. Generate Secure Random Verification Token
+    const verificationToken = crypto.randomUUID();
+
+    // 8. Simpan Peserta Baru ke Database (is_verified: false)
     const [inserted] = await db
       .insert(cagens)
       .values({
@@ -167,29 +171,95 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         angkatan,
         nomorRegistrasi,
         statusPendaftaran: 'Belum Melengkapi',
+        isVerified: false,
+        verificationToken,
       })
       .returning({ id: cagens.id, nomorRegistrasi: cagens.nomorRegistrasi });
 
-    // 8. Otomatis Login Peserta
-    const authUser: AuthUser = {
-      id: inserted.id,
-      role: 'user',
-      isAdmin: false,
-      name: namaLengkap,
-      email,
-      nim,
-      nomorRegistrasi: inserted.nomorRegistrasi || nomorRegistrasi,
-    };
+    // 9. Kirim Email Verifikasi via Resend REST API (Native Fetch untuk Cloudflare Edge)
+    const resendApiKey = getEnvVar('RESEND_API_KEY', locals?.runtime?.env);
+    const resendFrom = getEnvVar('RESEND_FROM_EMAIL', locals?.runtime?.env) || 'Admin PERISAI UMI <onboarding@resend.dev>';
+    const appBaseUrl =
+      getEnvVar('APP_URL', locals?.runtime?.env) ||
+      getEnvVar('PUBLIC_APP_URL', locals?.runtime?.env) ||
+      new URL(request.url).origin;
+    const verificationUrl = `${appBaseUrl}/verify?token=${verificationToken}`;
 
-    const token = await signJwt(authUser);
-    setAuthCookie(cookies, token);
+    if (!resendApiKey) {
+      console.warn('⚠️ RESEND_API_KEY tidak dikonfigurasi. Tautan verifikasi langsung:', verificationUrl);
+    } else {
+      try {
+        const resendResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: resendFrom,
+            to: [email],
+            subject: 'Verifikasi Akun Pendaftaran PERISAI UMI',
+            html: `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <meta charset="utf-8">
+                <title>Verifikasi Akun Pendaftaran PERISAI UMI</title>
+              </head>
+              <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0c0c0e; color: #f3f4f6; margin: 0; padding: 24px;">
+                <div style="max-width: 560px; margin: 0 auto; background-color: #141418; border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 16px; padding: 32px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                  <div style="text-align: center; margin-bottom: 24px;">
+                    <h2 style="color: #f59e0b; margin: 0 0 6px 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">PERISAI UMI</h2>
+                    <p style="color: #9ca3af; margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px;">Open Recruitment Calon Anggota</p>
+                  </div>
+                  
+                  <div style="margin-bottom: 24px; font-size: 15px; line-height: 1.6; color: #e5e7eb;">
+                    <p>Halo, <strong>${namaLengkap}</strong>!</p>
+                    <p>Terima kasih telah mendaftar sebagai Calon Anggota UKM PERISAI Universitas Muslim Indonesia.</p>
+                    <p>Untuk mengaktifkan akun Anda dan melanjutkan proses pendaftaran, silakan verifikasi alamat email Anda.</p>
+                    <p>Klik tautan ini untuk memverifikasi akun Anda: <a href="${verificationUrl}" style="color: #f59e0b; text-decoration: underline; font-weight: bold;">Verifikasi Akun</a></p>
+                  </div>
 
+                  <div style="text-align: center; margin: 32px 0;">
+                    <a href="${verificationUrl}" style="background-color: #f59e0b; color: #000000; font-weight: 700; font-size: 14px; text-decoration: none; padding: 14px 28px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);">
+                      Verifikasi Akun Sekarang
+                    </a>
+                  </div>
+
+                  <p style="font-size: 12px; color: #6b7280; line-height: 1.5; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 16px; margin-top: 24px;">
+                    Jika tombol di atas tidak dapat diklik, salin dan buka tautan berikut di peramban Anda:<br>
+                    <a href="${verificationUrl}" style="color: #f59e0b; word-break: break-all;">${verificationUrl}</a>
+                  </p>
+
+                  <div style="margin-top: 24px; font-size: 11px; color: #4b5563; text-align: center;">
+                    Jika Anda tidak merasa mendaftar di OREC PERISAI UMI, silakan abaikan email ini.<br>
+                    &copy; ${new Date().getFullYear()} UKM PERISAI Universitas Muslim Indonesia.
+                  </div>
+                </div>
+              </body>
+              </html>
+            `,
+          }),
+        });
+
+        if (!resendResponse.ok) {
+          const resendError = await resendResponse.text().catch(() => '');
+          console.error(`Resend API response error (${resendResponse.status}):`, resendError);
+        } else {
+          console.log(`✅ Email verifikasi berhasil dikirim via Resend ke: ${email}`);
+        }
+      } catch (err) {
+        console.error('Resend fetch network error:', err);
+      }
+    }
+
+    // 10. Kembalikan Respon Sukses Pendaftaran & Instruksi Verifikasi
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Pendaftaran berhasil! Akun Anda telah aktif.',
-        redirectUrl: '/user/dashboard',
-        user: authUser,
+        message: 'Pendaftaran berhasil! Silakan periksa email Anda untuk memverifikasi akun.',
+        requiresVerification: true,
+        redirectUrl: `/verify?pending=1&email=${encodeURIComponent(email)}`,
       }),
       { status: 201, headers: { 'Content-Type': 'application/json' } }
     );

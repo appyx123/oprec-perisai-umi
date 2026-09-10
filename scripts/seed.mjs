@@ -72,9 +72,19 @@ async function seed() {
         angkatan TEXT NOT NULL,
         nomor_registrasi TEXT UNIQUE,
         status_pendaftaran TEXT DEFAULT 'Belum Melengkapi' NOT NULL,
+        is_verified INTEGER DEFAULT 0 NOT NULL,
+        verification_token TEXT,
         created_at INTEGER DEFAULT (unixepoch()) NOT NULL
       )
     `);
+
+    // Migrasi kolom jika tabel sudah ada sebelumnya di Turso
+    try {
+      await client.execute(`ALTER TABLE cagens ADD COLUMN is_verified INTEGER DEFAULT 0 NOT NULL`);
+    } catch (_) {}
+    try {
+      await client.execute(`ALTER TABLE cagens ADD COLUMN verification_token TEXT`);
+    } catch (_) {}
 
     await client.execute(`
       CREATE TABLE IF NOT EXISTS berkas_cagens (
@@ -274,8 +284,8 @@ async function seed() {
       const regCode = genReg();
       await client.execute({
         sql: `INSERT INTO cagens (
-          email, password, nama_lengkap, nama_panggilan, nim, no_wa, fakultas, jurusan, angkatan, nomor_registrasi, status_pendaftaran
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Belum Melengkapi')`,
+          email, password, nama_lengkap, nama_panggilan, nim, no_wa, fakultas, jurusan, angkatan, nomor_registrasi, status_pendaftaran, is_verified
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Belum Melengkapi', 1)`,
         args: [
           cagenEmail,
           hashedPassword,
@@ -292,10 +302,10 @@ async function seed() {
       console.log(`✅ [USER/CAGEN] Berhasil dibuat: Email="${cagenEmail}" / NIM="${cagenNim}" / NoReg="#${regCode}" | Password="${rawPassword}"`);
     } else {
       await client.execute({
-        sql: `UPDATE cagens SET password = ?, nama_lengkap = ? WHERE id = ?`,
+        sql: `UPDATE cagens SET password = ?, nama_lengkap = ?, is_verified = 1 WHERE id = ?`,
         args: [hashedPassword, cagenNama, existingCagen.rows[0].id],
       });
-      console.log(`ℹ️ [USER/CAGEN] Sudah ada (id=${existingCagen.rows[0].id}), password telah di-update ke: "${rawPassword}"`);
+      console.log(`ℹ️ [USER/CAGEN] Sudah ada (id=${existingCagen.rows[0].id}), password telah di-update ke: "${rawPassword}" (is_verified=1)`);
     }
 
     console.log('\n🎉 Seeding selesai dengan sukses!');

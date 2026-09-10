@@ -82,6 +82,12 @@ export const cagens = sqliteTable('cagens', {
     .notNull()
     .default('Belum Melengkapi'),
 
+  isVerified: integer('is_verified', { mode: 'boolean' })
+    .notNull()
+    .default(false),
+
+  verificationToken: text('verification_token'),
+
   createdAt: integer('created_at', { mode: 'timestamp' })
     .notNull()
     .default(sql`(unixepoch())`),

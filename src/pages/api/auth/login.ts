@@ -101,6 +101,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     if (cagen) {
       const isMatch = await bcrypt.compare(password, cagen.password);
       if (isMatch) {
+        // Cek verifikasi email calon anggota
+        if (!cagen.isVerified) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: 'Akun Anda belum diverifikasi. Silakan cek email Anda.',
+            }),
+            { status: 403, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
+
         const authUser: AuthUser = {
           id: cagen.id,
           role: 'user',
