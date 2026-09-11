@@ -27,8 +27,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
   }
 
-  // 3. Proteksi rute User / Cagen (/user/* dan /api/user/*)
-  if (pathname.startsWith('/user') || pathname.startsWith('/api/user')) {
+  // 3. Proteksi rute User / Cagen (/user/*, /dashboard/*, dan /api/user/*)
+  if (pathname.startsWith('/user') || pathname.startsWith('/dashboard') || pathname.startsWith('/api/user')) {
     if (!locals.user) {
       return redirect('/auth/login', 302);
     }

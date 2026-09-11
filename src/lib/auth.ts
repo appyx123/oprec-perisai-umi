@@ -172,3 +172,59 @@ export function clearAuthCookie(cookies: AstroCookies): void {
 export function getAuthToken(cookies: AstroCookies): string | undefined {
   return cookies.get(AUTH_COOKIE_NAME)?.value;
 }
+
+export interface PasswordResetPayload {
+  userId: number;
+  email: string;
+  type: 'password-reset';
+}
+
+/**
+ * Membuat dan menandatangani (sign) JWT token berumur pendek (1 jam) untuk alur reset kata sandi.
+ */
+export async function signPasswordResetJwt(
+  userId: number,
+  email: string,
+  secretOrEnv?: JwtSecretOrEnv
+): Promise<string> {
+  const secretKey = getJwtSecretKey(secretOrEnv);
+  return new SignJWT({
+    userId: Number(userId),
+    email: String(email).trim().toLowerCase(),
+    type: 'password-reset',
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('1h') // Berlaku 1 jam
+    .sign(secretKey);
+}
+
+/**
+ * Memverifikasi integritas dan masa berlaku JWT token reset kata sandi.
+ */
+export async function verifyPasswordResetJwt(
+  token: string,
+  secretOrEnv?: JwtSecretOrEnv
+): Promise<PasswordResetPayload | null> {
+  try {
+    const secretKey = getJwtSecretKey(secretOrEnv);
+    const { payload } = await jwtVerify(token, secretKey);
+
+    if (
+      payload.type !== 'password-reset' ||
+      typeof payload.userId !== 'number' ||
+      typeof payload.email !== 'string'
+    ) {
+      return null;
+    }
+
+    return {
+      userId: Number(payload.userId),
+      email: String(payload.email),
+      type: 'password-reset',
+    };
+  } catch {
+    return null;
+  }
+}
+
