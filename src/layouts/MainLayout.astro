@@ -15,6 +15,7 @@ const {
 } = Astro.props;
 
 const user = Astro.locals.user as AuthUser | null | undefined;
+const isHomePage = Astro.url.pathname === '/';
 ---
 
 <!DOCTYPE html>
@@ -48,19 +49,38 @@ const user = Astro.locals.user as AuthUser | null | undefined;
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-20">
           
-          <!-- Logo & Brand -->
-          <a href="/" class="flex items-center select-none hover:opacity-90 transition-opacity">
-            <Image
-              src={logoPerisai}
-              alt="Logo PERISAI UMI"
-              width={384}
-              height={88}
-              quality={95}
-              format="webp"
-              loading="eager"
-              class="h-11 w-auto"
-            />
-          </a>
+          <!-- Brand & Global Back Button -->
+          <div class="flex items-center gap-2.5 sm:gap-3.5">
+            {!isHomePage && (
+              <button
+                id="global-back-btn"
+                type="button"
+                onclick="window.history.length > 1 ? window.history.back() : window.location.href = '/'"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 hover:border-amber-400/40 text-xs font-semibold transition-all shadow-sm group cursor-pointer"
+                title="Kembali ke halaman sebelumnya"
+                aria-label="Kembali"
+              >
+                <svg class="w-4 h-4 text-amber-400 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                <span class="hidden sm:inline">Kembali</span>
+              </button>
+            )}
+
+            <!-- Logo & Brand -->
+            <a href="/" class="flex items-center select-none hover:opacity-90 transition-opacity">
+              <Image
+                src={logoPerisai}
+                alt="Logo PERISAI UMI"
+                width={384}
+                height={88}
+                quality={95}
+                format="webp"
+                loading="eager"
+                class="h-10 sm:h-11 w-auto"
+              />
+            </a>
+          </div>
 
           <!-- Desktop Navigation: Profile & Logout -->
           <nav class="hidden md:flex items-center gap-3">
