@@ -92,13 +92,7 @@ const fakultasList = Object.keys(FAKULTAS_PRODI_MAP);
           </p>
         </div>
 
-        <div class="flex items-center gap-3 sm:gap-4 flex-wrap sm:flex-nowrap">
-          <div class="hidden sm:flex flex-col items-end text-right">
-            <span class="text-[11px] text-gray-500 font-mono uppercase tracking-wider">Nomor Registrasi</span>
-            <span class="text-lg font-black text-amber-400 font-mono tracking-wider">#{cagenData?.nomorRegistrasi || user.nomorRegistrasi || user.id}</span>
-            <span class="text-xs text-gray-400 mt-0.5">NIM: {cagenData?.nim || user.nim || '-'}</span>
-          </div>
-
+        <div class="flex items-center gap-2.5">
           <a
             href="/user/dashboard"
             class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white text-xs font-semibold transition-colors"
