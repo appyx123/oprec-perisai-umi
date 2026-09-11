@@ -237,7 +237,7 @@ async function seed() {
 
     // 3. Seeder untuk Role: ADMIN
     const adminUsername = 'admin';
-    const adminNama = 'Administrator OREC';
+    const adminNama = 'Administrator OPREC';
 
     const existingAdmin = await client.execute({
       sql: 'SELECT id, username, nama_lengkap FROM admins WHERE username = ? LIMIT 1',

@@ -38,7 +38,7 @@ export function generateNomorRegistrasi(length = 7): string {
 export type JwtSecretOrEnv = string | { JWT_SECRET?: string; [key: string]: any };
 
 // Default secret key untuk local development
-const DEFAULT_DEV_SECRET = 'orec_perisai_umi_super_secret_jwt_key_edge_compatible_2026_default';
+const DEFAULT_DEV_SECRET = 'oprec_perisai_umi_super_secret_jwt_key_edge_compatible_2026_default';
 
 /**
  * Resolves the JWT secret string from a direct string, an override object,

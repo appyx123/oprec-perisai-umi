@@ -72,7 +72,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           id: admin.id,
           role: 'admin',
           isAdmin: true,
-          name: admin.namaLengkap || admin.username || 'Administrator OREC',
+          name: admin.namaLengkap || admin.username || 'Administrator OPREC',
           username: admin.username,
         };
 

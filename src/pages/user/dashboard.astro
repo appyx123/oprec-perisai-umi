@@ -56,7 +56,7 @@ let cleanWa = (settingData?.waNumber || '081234567890').replace(/\D/g, '');
 if (cleanWa.startsWith('0')) cleanWa = '62' + cleanWa.slice(1);
 else if (cleanWa.startsWith('8')) cleanWa = '62' + cleanWa;
 
-const waText = settingData?.waMessage || 'Halo Admin Panitia OREC PERISAI UMI, saya mengalami kendala pada berkas/tahapan seleksi.';
+const waText = settingData?.waMessage || 'Halo Admin Panitia OPREC PERISAI UMI, saya mengalami kendala pada berkas/tahapan seleksi.';
 const dashboardWaUrl = `https://wa.me/${cleanWa}?text=${encodeURIComponent(waText)}`;
 
 // Daftar Berkas Wajib
@@ -98,8 +98,8 @@ const mandatoryDocs = [
   },
   {
     id: 'buktiShare',
-    name: 'Bukti Share Publikasi OREC',
-    description: 'Tangkapan layar membagikan pamflet OREC ke media sosial/grup',
+    name: 'Bukti Share Publikasi OPREC',
+    description: 'Tangkapan layar membagikan pamflet OPREC ke media sosial/grup',
     fileName: berkasData?.buktiShare || null,
     uploaded: Boolean(berkasData?.buktiShare && berkasData.buktiShare.trim().length > 0),
   },
@@ -332,7 +332,7 @@ if (statusPendaftaran === 'Belum Melengkapi') {
               {statusPendaftaran === 'Lulus'
                 ? 'Selamat! Anda resmi diterima sebagai Calon Anggota UKM PERISAI UMI.'
                 : statusPendaftaran === 'Tidak Lulus'
-                ? 'Terima kasih atas partisipasi Anda dalam seleksi OREC tahun ini.'
+                ? 'Terima kasih atas partisipasi Anda dalam seleksi OPREC tahun ini.'
                 : 'Keputusan kelulusan akhir akan diumumkan setelah verifikasi berkas selesai.'}
             </p>
           </div>
@@ -370,7 +370,7 @@ if (statusPendaftaran === 'Belum Melengkapi') {
           <div class="flex-1">
             <h3 class="font-bold text-sm text-white">Dokumen Sedang Ditinjau Panitia</h3>
             <p class="text-xs text-gray-300 mt-1 leading-relaxed">
-              Seluruh berkas pendaftaran Anda telah tercatat dan sedang dalam antrean verifikasi oleh panitia OREC. Silakan pantau halaman ini secara berkala untuk mengetahui perkembangan hasil verifikasi.
+              Seluruh berkas pendaftaran Anda telah tercatat dan sedang dalam antrean verifikasi oleh panitia OPREC. Silakan pantau halaman ini secara berkala untuk mengetahui perkembangan hasil verifikasi.
             </p>
           </div>
         </div>
@@ -398,7 +398,7 @@ if (statusPendaftaran === 'Belum Melengkapi') {
             ★
           </div>
           <div class="flex-1">
-            <h3 class="font-black text-base text-white">Selamat! Anda Resmi Lulus Seleksi OREC</h3>
+            <h3 class="font-black text-base text-white">Selamat! Anda Resmi Lulus Seleksi OPREC</h3>
             <p class="text-xs sm:text-sm text-gray-200 mt-1 leading-relaxed">
               Selamat bergabung menjadi bagian dari UKM PERISAI Universitas Muslim Indonesia! Silakan nantikan instruksi kegiatan pengenalan dan pembekalan calon anggota baru melalui narahubung resmi panitia.
             </p>
@@ -474,7 +474,7 @@ if (statusPendaftaran === 'Belum Melengkapi') {
         </div>
         <div>
           <h3 class="text-sm sm:text-base font-bold text-white tracking-tight">Mengalami Kendala Pemberkasan atau Seleksi?</h3>
-          <p class="text-xs text-gray-400 mt-0.5">Hubungi Call Center Admin Panitia OREC untuk bantuan teknis dan panduan pendaftaran.</p>
+          <p class="text-xs text-gray-400 mt-0.5">Hubungi Call Center Admin Panitia OPREC untuk bantuan teknis dan panduan pendaftaran.</p>
         </div>
       </div>
 

@@ -3,7 +3,7 @@ import { sql, relations } from 'drizzle-orm';
 
 // ============================================================
 // TABLE: admins
-// Menyimpan akun admin/panitia OREC
+// Menyimpan akun admin/panitia OPREC
 // ============================================================
 export const admins = sqliteTable('admins', {
   id: integer('id', { mode: 'number' })
@@ -27,7 +27,7 @@ export const admins = sqliteTable('admins', {
 });
 
 // ============================================================
-// TABLE: cagens (Calon Anggota / Peserta OREC)
+// TABLE: cagens (Calon Anggota / Peserta OPREC)
 // ============================================================
 export const cagens = sqliteTable('cagens', {
   id: integer('id', { mode: 'number' })

@@ -67,7 +67,7 @@ export const POST: APIRoute = async ({ request }) => {
       if (!isOpen) {
         message = 'Pendaftaran saat ini dinonaktifkan oleh panitia seleksi.';
       } else if (isBeforeStart && start) {
-        message = `Pendaftaran belum dibuka. Pendaftaran dibuka pada ${start.toLocaleString('id-ID', { timeZone: 'Asia/Makassar', dateStyle: 'medium', timeStyle: 'short' })} WITA.`;
+        message = `Pendaftaran belum dibuka. Pendaftaran dibuka pada ${start.toLocaleString('id-ID', { timeZone: 'Asia/Makassar', dateStyle: 'medium', timeStyle: 'short' })}.`;
       } else if (isAfterEnd) {
         message = 'Masa pendaftaran calon anggota baru telah resmi berakhir.';
       }
@@ -236,7 +236,7 @@ export const POST: APIRoute = async ({ request }) => {
                   </p>
 
                   <div style="margin-top: 24px; font-size: 11px; color: #4b5563; text-align: center;">
-                    Jika Anda tidak merasa mendaftar di OREC PERISAI UMI, silakan abaikan email ini.<br>
+                    Jika Anda tidak merasa mendaftar di OPREC PERISAI UMI, silakan abaikan email ini.<br>
                     &copy; ${new Date().getFullYear()} UKM PERISAI Universitas Muslim Indonesia.
                   </div>
                 </div>

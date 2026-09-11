@@ -21,7 +21,7 @@ async function handleStatusUpdate(request: Request, locals: App.Locals): Promise
       return new Response(
         JSON.stringify({
           success: false,
-          message: 'Akses ditolak. Tindakan ini hanya diperuntukkan bagi Administrator / Panitia OREC.',
+          message: 'Akses ditolak. Tindakan ini hanya diperuntukkan bagi Administrator / Panitia OPREC.',
         }),
         { status: 403, headers: { 'Content-Type': 'application/json' } }
       );

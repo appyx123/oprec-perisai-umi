@@ -47,7 +47,7 @@ let cleanWa = (settingData?.waNumber || '081234567890').replace(/\D/g, '');
 if (cleanWa.startsWith('0')) cleanWa = '62' + cleanWa.slice(1);
 else if (cleanWa.startsWith('8')) cleanWa = '62' + cleanWa;
 
-const waText = settingData?.waMessage || 'Halo Admin Panitia OREC PERISAI UMI, saya butuh bantuan terkait pengunggahan berkas pendaftaran.';
+const waText = settingData?.waMessage || 'Halo Admin Panitia OPREC PERISAI UMI, saya butuh bantuan terkait pengunggahan berkas pendaftaran.';
 const formWaUrl = `https://wa.me/${cleanWa}?text=${encodeURIComponent(waText)}`;
 
 // 7 Berkas Wajib dengan aturan validasi ketat
@@ -114,8 +114,8 @@ const mandatoryDocs = [
   },
   {
     id: 'buktiShare',
-    label: 'Bukti Share Pamflet OREC',
-    desc: 'Tangkapan layar bukti membagikan pamflet OREC ke grup atau status medsos.',
+    label: 'Bukti Share Pamflet OPREC',
+    desc: 'Tangkapan layar bukti membagikan pamflet OPREC ke grup atau status medsos.',
     accept: '.jpg,.jpeg,.png,image/jpeg,image/png',
     typeHint: 'JPG, PNG (Maks 5 Foto, 1MB/foto)',
     maxSizeMB: 1,
@@ -269,7 +269,7 @@ const initialProgressPercent = Math.round((uploadedMandatoryCount / totalMandato
         </div>
         <div>
           <h3 class="text-sm sm:text-base font-bold text-white tracking-tight">Butuh Bantuan Unggah Berkas?</h3>
-          <p class="text-xs text-gray-400 mt-0.5">Admin Panitia OREC siap membantu jika ukuran file terlalu besar, gagal upload, atau ada kendala format dokumen.</p>
+          <p class="text-xs text-gray-400 mt-0.5">Admin Panitia OPREC siap membantu jika ukuran file terlalu besar, gagal upload, atau ada kendala format dokumen.</p>
         </div>
       </div>
 
