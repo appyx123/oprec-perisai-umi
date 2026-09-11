@@ -14,38 +14,43 @@ export interface S3Config {
  */
 export function getS3Config(): S3Config {
   const accessKeyId =
+    env.B2_ACCESS_KEY_ID ||
     env.AWS_ACCESS_KEY_ID ||
-    (typeof import.meta !== 'undefined' && import.meta.env?.AWS_ACCESS_KEY_ID) ||
-    (typeof process !== 'undefined' && process.env?.AWS_ACCESS_KEY_ID) ||
+    (typeof import.meta !== 'undefined' && (import.meta.env?.B2_ACCESS_KEY_ID || import.meta.env?.AWS_ACCESS_KEY_ID)) ||
+    (typeof process !== 'undefined' && (process.env?.B2_ACCESS_KEY_ID || process.env?.AWS_ACCESS_KEY_ID)) ||
     '';
 
   const secretAccessKey =
+    env.B2_SECRET_ACCESS_KEY ||
     env.AWS_SECRET_ACCESS_KEY ||
-    (typeof import.meta !== 'undefined' && import.meta.env?.AWS_SECRET_ACCESS_KEY) ||
-    (typeof process !== 'undefined' && process.env?.AWS_SECRET_ACCESS_KEY) ||
+    (typeof import.meta !== 'undefined' && (import.meta.env?.B2_SECRET_ACCESS_KEY || import.meta.env?.AWS_SECRET_ACCESS_KEY)) ||
+    (typeof process !== 'undefined' && (process.env?.B2_SECRET_ACCESS_KEY || process.env?.AWS_SECRET_ACCESS_KEY)) ||
     '';
 
   const region =
+    env.B2_REGION ||
     env.S3_REGION ||
-    (typeof import.meta !== 'undefined' && import.meta.env?.S3_REGION) ||
-    (typeof process !== 'undefined' && process.env?.S3_REGION) ||
+    (typeof import.meta !== 'undefined' && (import.meta.env?.B2_REGION || import.meta.env?.S3_REGION)) ||
+    (typeof process !== 'undefined' && (process.env?.B2_REGION || process.env?.S3_REGION)) ||
     'auto';
 
   let endpoint =
+    env.B2_ENDPOINT ||
     env.S3_ENDPOINT ||
-    (typeof import.meta !== 'undefined' && import.meta.env?.S3_ENDPOINT) ||
-    (typeof process !== 'undefined' && process.env?.S3_ENDPOINT) ||
+    (typeof import.meta !== 'undefined' && (import.meta.env?.B2_ENDPOINT || import.meta.env?.S3_ENDPOINT)) ||
+    (typeof process !== 'undefined' && (process.env?.B2_ENDPOINT || process.env?.S3_ENDPOINT)) ||
     'https://s3.eu-central-003.backblazeb2.com';
 
   const bucketName =
+    env.B2_BUCKET_NAME ||
     env.S3_BUCKET_NAME ||
-    (typeof import.meta !== 'undefined' && import.meta.env?.S3_BUCKET_NAME) ||
-    (typeof process !== 'undefined' && process.env?.S3_BUCKET_NAME) ||
+    (typeof import.meta !== 'undefined' && (import.meta.env?.B2_BUCKET_NAME || import.meta.env?.S3_BUCKET_NAME)) ||
+    (typeof process !== 'undefined' && (process.env?.B2_BUCKET_NAME || process.env?.S3_BUCKET_NAME)) ||
     'oprec-perisai';
 
   if (!accessKeyId || !secretAccessKey) {
     throw new Error(
-      'Kredensial S3 tidak ditemukan. Pastikan AWS_ACCESS_KEY_ID dan AWS_SECRET_ACCESS_KEY telah dikonfigurasi di Cloudflare Environment Variables / Secrets.'
+      'Kredensial S3 / Backblaze B2 tidak ditemukan. Pastikan B2_ACCESS_KEY_ID / AWS_ACCESS_KEY_ID dan B2_SECRET_ACCESS_KEY / AWS_SECRET_ACCESS_KEY telah dikonfigurasi di Cloudflare Environment Variables / Secrets.'
     );
   }
 
@@ -128,6 +133,50 @@ export async function createPresignedGetUrl(
   });
 
   return signed.url;
+}
+
+/**
+ * Mengunggah file langsung ke S3 / Backblaze B2 menggunakan PUT request bertanda tangan aws4fetch.
+ */
+export async function uploadS3Object(
+  key: string,
+  body: ArrayBuffer | Uint8Array | ReadableStream | Blob,
+  contentType = 'application/pdf'
+): Promise<{ success: boolean; url: string; key: string; error?: string }> {
+  try {
+    const { client, config } = getAwsClient();
+    const cleanKey = key.replace(/^\/+/, '');
+    const targetUrl = `${config.endpoint}/${config.bucketName}/${cleanKey}`;
+
+    const res = await client.fetch(targetUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': contentType,
+      },
+      body: body as any,
+    });
+
+    if (res.ok || res.status === 200 || res.status === 201) {
+      const publicUrl = `${config.endpoint}/${config.bucketName}/${cleanKey}`;
+      return { success: true, url: publicUrl, key: cleanKey };
+    }
+
+    const errText = await res.text().catch(() => '');
+    return {
+      success: false,
+      url: '',
+      key: cleanKey,
+      error: `Upload gagal ke storage (HTTP ${res.status}): ${errText}`,
+    };
+  } catch (err: any) {
+    console.error(`[S3 UPLOAD ERROR] Gagal mengunggah file ke ${key}:`, err);
+    return {
+      success: false,
+      url: '',
+      key,
+      error: err?.message || String(err),
+    };
+  }
 }
 
 /**

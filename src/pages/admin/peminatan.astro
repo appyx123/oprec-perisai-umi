@@ -47,7 +47,7 @@ const unconfiguredCount = peminatanList.length - configuredCount;
             Manajemen Peminatan & Guidebook
           </h1>
           <p class="text-xs sm:text-sm text-gray-400 mt-1 max-w-xl">
-            Kelola tautan file Guidebook PDF untuk setiap Peminatan. Tautan ini akan dapat diakses calon pendaftar di beranda publik serta dashboard peserta.
+            Unggah file Guidebook PDF untuk setiap Peminatan. File akan disimpan langsung di Backblaze B2 (S3) dan tautan publiknya disinkronkan ke database secara otomatis.
           </p>
         </div>
 
@@ -85,13 +85,13 @@ const unconfiguredCount = peminatanList.length - configuredCount;
       <div class="bg-[#121217] border border-white/10 rounded-2xl p-6 hover:border-emerald-400/40 transition-colors">
         <span class="text-xs uppercase tracking-wider text-emerald-400/80 font-semibold block mb-1">Guidebook Siap</span>
         <p class="text-3xl font-extrabold text-emerald-400">{configuredCount}</p>
-        <span class="text-[11px] text-gray-500 mt-1 block">Telah terhubung dengan tautan PDF</span>
+        <span class="text-[11px] text-gray-500 mt-1 block">Telah tersimpan di cloud Backblaze B2</span>
       </div>
 
       <div class="bg-[#121217] border border-white/10 rounded-2xl p-6 hover:border-amber-400/40 transition-colors">
         <span class="text-xs uppercase tracking-wider text-amber-400/80 font-semibold block mb-1">Belum Terhubung</span>
         <p class="text-3xl font-extrabold text-amber-400">{unconfiguredCount}</p>
-        <span class="text-[11px] text-gray-500 mt-1 block">Menunggu tautan Guidebook diisi</span>
+        <span class="text-[11px] text-gray-500 mt-1 block">Menunggu unggahan Guidebook PDF</span>
       </div>
     </div>
 
@@ -120,7 +120,7 @@ const unconfiguredCount = peminatanList.length - configuredCount;
                   ) : (
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 border border-amber-500/30 text-amber-400">
                       <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                      Belum Diatur
+                      Belum Diunggah
                     </span>
                   )}
                 </div>
@@ -130,72 +130,99 @@ const unconfiguredCount = peminatanList.length - configuredCount;
                 </p>
 
                 {hasGuidebook && (
-                  <div class="flex items-center gap-3 text-xs">
-                    <span class="text-gray-500">Tautan Saat Ini:</span>
-                    <a
-                      href={item.guidebookUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="text-amber-400 hover:text-amber-300 underline underline-offset-4 truncate max-w-md inline-flex items-center gap-1"
-                      title={item.guidebookUrl}
-                    >
-                      <span class="truncate">{item.guidebookUrl}</span>
-                      <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                      </svg>
-                    </a>
-                  </div>
-                )}
-              </div>
-
-              <!-- Right: Form to Update Guidebook -->
-              <div class="w-full lg:w-[480px] bg-white/[0.03] border border-white/10 rounded-xl p-4 sm:p-5">
-                <form class="update-guidebook-form space-y-3" data-id={item.id}>
-                  <div>
-                    <label class="block text-xs font-semibold text-gray-300 mb-1.5">
-                      URL Guidebook PDF (Direct S3 / B2 / Cloudflare)
-                    </label>
-                    <div class="relative">
-                      <input
-                        type="url"
-                        name="guidebookUrl"
-                        value={item.guidebookUrl || ''}
-                        placeholder="https://storage.perisai.org/guidebook-kti.pdf"
-                        class="w-full px-3.5 py-2 rounded-xl bg-black/40 border border-white/15 text-white text-xs placeholder-gray-600 focus:outline-none focus:border-amber-400 transition-colors"
-                      />
+                  <div class="space-y-2 pt-2 border-t border-white/5">
+                    <div class="flex items-center gap-2 text-xs">
+                      <span class="text-gray-500">Tautan Cloud B2:</span>
+                      <a
+                        href={item.guidebookUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-amber-400 hover:text-amber-300 underline underline-offset-4 truncate max-w-md inline-flex items-center gap-1 font-mono text-[11px]"
+                        title={item.guidebookUrl}
+                      >
+                        <span class="truncate">{item.guidebookUrl}</span>
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                        </svg>
+                      </a>
                     </div>
-                    <span class="text-[10px] text-gray-500 mt-1 block">
-                      Masukkan direct link unduhan PDF. Kosongkan jika ingin menonaktifkan tombol unduh.
-                    </span>
-                  </div>
 
-                  <div class="flex items-center justify-between pt-1 gap-2">
-                    {hasGuidebook ? (
+                    <div class="flex items-center gap-3 pt-1">
                       <a
                         href={item.guidebookUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 text-xs font-medium transition-colors"
                       >
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                         </svg>
                         Pratinjau PDF
                       </a>
-                    ) : (
-                      <div></div>
-                    )}
+
+                      <button
+                        type="button"
+                        class="delete-guidebook-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 border border-rose-500/20 text-xs font-medium transition-colors cursor-pointer"
+                        data-id={item.id}
+                        data-nama={item.nama}
+                      >
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        Hapus PDF
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <!-- Right: Form to Upload Guidebook File directly to B2 -->
+              <div class="w-full lg:w-[480px] bg-white/[0.03] border border-white/10 rounded-2xl p-5">
+                <form 
+                  class="upload-guidebook-form space-y-4" 
+                  data-id={item.id}
+                  enctype="multipart/form-data"
+                >
+                  <input type="hidden" name="id" value={item.id} />
+                  
+                  <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-2">
+                      Unggah File Guidebook PDF (Backblaze B2 Storage)
+                    </label>
+                    
+                    <div class="relative">
+                      <input
+                        type="file"
+                        name="guidebook"
+                        accept="application/pdf"
+                        required
+                        class="guidebook-file-input block w-full text-xs text-gray-400 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-400 file:text-black hover:file:bg-amber-300 file:cursor-pointer cursor-pointer border border-white/10 rounded-xl bg-black/40 p-2 focus:outline-none focus:border-amber-400 transition-colors"
+                      />
+                    </div>
+                    
+                    <p class="text-[11px] text-gray-500 mt-2">
+                      Format wajib PDF (.pdf), ukuran maksimal 25MB. File akan diunggah dan tersinkronisasi otomatis.
+                    </p>
+                  </div>
+
+                  <div class="flex items-center justify-between pt-1">
+                    <span class="file-name-indicator text-[11px] text-gray-400 truncate max-w-[200px] italic">
+                      Belum ada file dipilih
+                    </span>
 
                     <button
                       type="submit"
-                      class="submit-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-bold shadow-md shadow-amber-500/20 hover:shadow-amber-500/35 transition-all cursor-pointer disabled:opacity-50"
+                      class="submit-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-bold shadow-md shadow-amber-500/20 hover:shadow-amber-500/35 transition-all cursor-pointer disabled:opacity-50"
                     >
-                      <span>Simpan URL</span>
-                      <svg class="w-3.5 h-3.5 loading-spinner hidden animate-spin" fill="none" viewBox="0 0 24 24">
+                      <svg class="w-4 h-4 upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                      </svg>
+                      <svg class="w-4 h-4 loading-spinner hidden animate-spin" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                       </svg>
+                      <span class="btn-text">Unggah PDF</span>
                     </button>
                   </div>
                 </form>
@@ -227,53 +254,136 @@ const unconfiguredCount = peminatanList.length - configuredCount;
 
     toastMsg.textContent = message;
     toastIcon.innerHTML = isError
-      ? `<svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`
-      : `<svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+      ? `<svg class="w-5 h-5 text-rose-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`
+      : `<svg class="w-5 h-5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
 
     toast.classList.remove('translate-y-20', 'opacity-0');
     setTimeout(() => {
       toast.classList.add('translate-y-20', 'opacity-0');
-    }, 3500);
+    }, 4000);
   }
 
-  document.querySelectorAll<HTMLFormElement>('.update-guidebook-form').forEach((form) => {
+  // Update indikator nama file saat dipilih
+  document.querySelectorAll<HTMLInputElement>('.guidebook-file-input').forEach((input) => {
+    input.addEventListener('change', () => {
+      const form = input.closest('form');
+      const indicator = form?.querySelector<HTMLElement>('.file-name-indicator');
+      if (!indicator) return;
+
+      if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        indicator.textContent = `${file.name} (${sizeMb} MB)`;
+        indicator.classList.remove('italic', 'text-gray-400');
+        indicator.classList.add('text-amber-300', 'font-medium');
+      } else {
+        indicator.textContent = 'Belum ada file dipilih';
+        indicator.classList.add('italic', 'text-gray-400');
+        indicator.classList.remove('text-amber-300', 'font-medium');
+      }
+    });
+  });
+
+  // Handle Form Submit (Upload File PDF)
+  document.querySelectorAll<HTMLFormElement>('.upload-guidebook-form').forEach((form) => {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const peminatanId = Number(form.getAttribute('data-id'));
-      const input = form.querySelector<HTMLInputElement>('input[name="guidebookUrl"]');
+      const peminatanId = form.getAttribute('data-id');
+      const input = form.querySelector<HTMLInputElement>('input[name="guidebook"]');
       const submitBtn = form.querySelector<HTMLButtonElement>('.submit-btn');
+      const btnText = form.querySelector<HTMLElement>('.btn-text');
+      const uploadIcon = form.querySelector<SVGSVGElement>('.upload-icon');
       const spinner = form.querySelector<SVGSVGElement>('.loading-spinner');
 
-      if (!input || !submitBtn) return;
-      const guidebookUrl = input.value.trim();
+      if (!input || !submitBtn || !btnText) return;
+
+      const file = input.files?.[0];
+      if (!file) {
+        showToast('Pilih file PDF terlebih dahulu.', true);
+        return;
+      }
+
+      if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
+        showToast('Berkas harus berupa file PDF.', true);
+        return;
+      }
 
       submitBtn.disabled = true;
+      uploadIcon?.classList.add('hidden');
       spinner?.classList.remove('hidden');
+      btnText.textContent = 'Mengunggah ke B2...';
 
       try {
+        const formData = new FormData();
+        formData.append('id', String(peminatanId));
+        formData.append('guidebook', file);
+
         const res = await fetch('/api/admin/peminatan', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: peminatanId,
-            guidebookUrl: guidebookUrl,
-          }),
+          method: 'POST',
+          body: formData,
         });
 
         const data = await res.json();
         if (!res.ok || !data.success) {
-          showToast(data.message || 'Gagal memperbarui guidebook.', true);
+          showToast(data.message || 'Gagal mengunggah guidebook.', true);
+          submitBtn.disabled = false;
+          uploadIcon?.classList.remove('hidden');
+          spinner?.classList.add('hidden');
+          btnText.textContent = 'Unggah PDF';
         } else {
-          showToast('Guidebook Peminatan berhasil disimpan!');
+          showToast('Guidebook PDF berhasil diunggah ke B2!');
+          setTimeout(() => {
+            window.location.reload();
+          }, 900);
+        }
+      } catch (err) {
+        showToast('Terjadi kendala jaringan saat mengunggah.', true);
+        submitBtn.disabled = false;
+        uploadIcon?.classList.remove('hidden');
+        spinner?.classList.add('hidden');
+        btnText.textContent = 'Unggah PDF';
+      }
+    });
+  });
+
+  // Handle Delete Guidebook
+  document.querySelectorAll<HTMLButtonElement>('.delete-guidebook-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-id');
+      const nama = btn.getAttribute('data-nama');
+
+      if (!confirm(`Hapus berkas Guidebook untuk peminatan "${nama}"? Calon peserta tidak akan dapat mengunduh guidebook ini lagi.`)) {
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Menghapus...';
+
+      try {
+        const formData = new FormData();
+        formData.append('id', String(id));
+        formData.append('action', 'delete');
+
+        const res = await fetch('/api/admin/peminatan', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          showToast(data.message || 'Gagal menghapus guidebook.', true);
+          btn.disabled = false;
+          btn.textContent = 'Hapus PDF';
+        } else {
+          showToast('Guidebook berhasil dihapus.');
           setTimeout(() => {
             window.location.reload();
           }, 800);
         }
-      } catch (err) {
+      } catch {
         showToast('Terjadi kesalahan jaringan.', true);
-      } finally {
-        submitBtn.disabled = false;
-        spinner?.classList.add('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Hapus PDF';
       }
     });
   });
