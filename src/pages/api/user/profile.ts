@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { createDb } from '../../../db';
-import { cagens } from '../../../db/schema';
+import { cagens, berkasCagens } from '../../../db/schema';
 import { eq } from 'drizzle-orm';
 import type { AuthUser } from '../../../lib/auth';
 import { FAKULTAS_PRODI_MAP } from '../../../lib/constants/academic';
@@ -9,7 +9,7 @@ export const prerender = false;
 
 /**
  * GET /api/user/profile
- * Mengambil data profil lengkap calon anggota yang sedang login (kecuali hash kata sandi).
+ * Mengambil data profil lengkap calon anggota yang sedang login (termasuk peminatan).
  */
 export const GET: APIRoute = async ({ locals }) => {
   const user = locals.user as AuthUser | null | undefined;
@@ -36,6 +36,7 @@ export const GET: APIRoute = async ({ locals }) => {
         fakultas: cagens.fakultas,
         jurusan: cagens.jurusan,
         angkatan: cagens.angkatan,
+        peminatan: cagens.peminatan,
         nomorRegistrasi: cagens.nomorRegistrasi,
         statusPendaftaran: cagens.statusPendaftaran,
         isVerified: cagens.isVerified,
@@ -54,10 +55,26 @@ export const GET: APIRoute = async ({ locals }) => {
       );
     }
 
+    // Jika peminatan di tabel cagens masih kosong, coba ambil fallback dari berkas_cagens
+    let resolvedPeminatan = cagen.peminatan;
+    if (!resolvedPeminatan) {
+      const [berkas] = await db
+        .select({ peminatan: berkasCagens.peminatan })
+        .from(berkasCagens)
+        .where(eq(berkasCagens.cagenId, user.id))
+        .limit(1);
+      if (berkas?.peminatan) {
+        resolvedPeminatan = berkas.peminatan;
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
-        data: cagen,
+        data: {
+          ...cagen,
+          peminatan: resolvedPeminatan || '',
+        },
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
@@ -75,7 +92,7 @@ export const GET: APIRoute = async ({ locals }) => {
 
 /**
  * PUT /api/user/profile
- * Memperbarui data diri calon anggota (Nama, Nama Panggilan, No WA, Fakultas, Program Studi, Angkatan).
+ * Memperbarui data diri calon anggota (Nama, Nama Panggilan, No WA, Fakultas, Program Studi, Angkatan, Peminatan).
  * CATATAN KEAMANAN: NIM, Email, dan Kata Sandi TIDAK DAPAT diubah melalui endpoint ini.
  */
 export const PUT: APIRoute = async ({ request, locals }) => {
@@ -110,6 +127,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
     fakultas,
     jurusan,
     angkatan,
+    peminatan,
   } = body || {};
 
   // Validasi kelengkapan field
@@ -129,6 +147,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   const cleanFakultas = String(fakultas).trim();
   const cleanJurusan = String(jurusan).trim();
   const cleanAngkatan = String(angkatan).trim();
+  const cleanPeminatan = peminatan ? String(peminatan).trim() : '';
 
   if (cleanNamaLengkap.length < 2) {
     return new Response(
@@ -175,6 +194,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   try {
     const db = createDb();
 
+    // 1. Perbarui tabel cagens
     await db
       .update(cagens)
       .set({
@@ -184,8 +204,25 @@ export const PUT: APIRoute = async ({ request, locals }) => {
         fakultas: cleanFakultas,
         jurusan: cleanJurusan,
         angkatan: cleanAngkatan,
+        ...(cleanPeminatan ? { peminatan: cleanPeminatan } : {}),
       })
       .where(eq(cagens.id, user.id));
+
+    // 2. Sinkronisasi ke tabel berkas_cagens jika record berkas sudah ada
+    if (cleanPeminatan) {
+      const [existingBerkas] = await db
+        .select({ id: berkasCagens.id })
+        .from(berkasCagens)
+        .where(eq(berkasCagens.cagenId, user.id))
+        .limit(1);
+
+      if (existingBerkas) {
+        await db
+          .update(berkasCagens)
+          .set({ peminatan: cleanPeminatan as any })
+          .where(eq(berkasCagens.cagenId, user.id));
+      }
+    }
 
     return new Response(
       JSON.stringify({
@@ -198,6 +235,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
           fakultas: cleanFakultas,
           jurusan: cleanJurusan,
           angkatan: cleanAngkatan,
+          peminatan: cleanPeminatan,
         },
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }

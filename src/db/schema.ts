@@ -88,6 +88,9 @@ export const cagens = sqliteTable('cagens', {
 
   verificationToken: text('verification_token'),
 
+  // Peminatan / Pilihan Divisi Calon Anggota
+  peminatan: text('peminatan'),
+
   createdAt: integer('created_at', { mode: 'timestamp' })
     .notNull()
     .default(sql`(unixepoch())`),
