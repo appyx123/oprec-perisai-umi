@@ -88,7 +88,7 @@ export const cagens = sqliteTable('cagens', {
 
   verificationToken: text('verification_token'),
 
-  // Peminatan / Pilihan Divisi Calon Anggota
+  // Pilihan Peminatan Calon Anggota
   peminatan: text('peminatan'),
 
   createdAt: integer('created_at', { mode: 'timestamp' })
@@ -216,6 +216,31 @@ export const publicQna = sqliteTable('public_qna', {
 });
 
 // ============================================================
+// TABLE: peminatan (Daftar Pilihan Peminatan & Guidebook PDF)
+// ============================================================
+export const peminatan = sqliteTable('peminatan', {
+  id: integer('id', { mode: 'number' })
+    .primaryKey({ autoIncrement: true }),
+
+  nama: text('nama')
+    .notNull()
+    .unique(),
+
+  deskripsi: text('deskripsi')
+    .notNull(),
+
+  guidebookUrl: text('guidebook_url'),
+
+  isActive: integer('is_active', { mode: 'boolean' })
+    .notNull()
+    .default(true),
+
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// ============================================================
 // RELATIONS — Untuk Drizzle relational query API
 // ============================================================
 
@@ -244,6 +269,7 @@ export type BerkasCagen = typeof berkasCagens.$inferSelect;
 export type SystemSetting = typeof systemSettings.$inferSelect;
 export type TimelineEvent = typeof timelineEvents.$inferSelect;
 export type PublicQna = typeof publicQna.$inferSelect;
+export type PeminatanItem = typeof peminatan.$inferSelect;
 
 // Types untuk INSERT (menulis data ke DB)
 export type NewAdmin = typeof admins.$inferInsert;
@@ -252,6 +278,8 @@ export type NewBerkasCagen = typeof berkasCagens.$inferInsert;
 export type NewSystemSetting = typeof systemSettings.$inferInsert;
 export type NewTimelineEvent = typeof timelineEvents.$inferInsert;
 export type NewPublicQna = typeof publicQna.$inferInsert;
+export type NewPeminatanItem = typeof peminatan.$inferInsert;
+
 
 
 

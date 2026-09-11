@@ -2,7 +2,7 @@
 import MainLayout from '../../layouts/MainLayout.astro';
 import type { AuthUser } from '../../lib/auth';
 import { createDb } from '../../db';
-import { cagens, berkasCagens, systemSettings } from '../../db/schema';
+import { cagens, berkasCagens, systemSettings, peminatan as peminatanTable } from '../../db/schema';
 import { eq } from 'drizzle-orm';
 
 const user = Astro.locals.user as AuthUser | null | undefined;
@@ -13,6 +13,7 @@ if (!user || user.role !== 'user') {
 let cagenData: any = null;
 let berkasData: any = null;
 let settingData: any = null;
+let peminatanDetail: any = null;
 let dbError: string | null = null;
 
 try {
@@ -44,13 +45,31 @@ try {
     .limit(1);
 
   settingData = settingRow || null;
+
+  // 4. Ambil detail Guidebook Peminatan jika peserta telah memilih peminatan
+  const resolvedPeminatan = cagenData?.peminatan || berkasData?.peminatan || null;
+  if (resolvedPeminatan) {
+    const allPeminatan = await db
+      .select()
+      .from(peminatanTable)
+      .where(eq(peminatanTable.isActive, true));
+
+    peminatanDetail =
+      allPeminatan.find((p) => p.nama.toLowerCase() === resolvedPeminatan.toLowerCase()) ||
+      allPeminatan.find(
+        (p) =>
+          p.nama.toLowerCase().replace(/[^a-z0-9]/g, '') ===
+          resolvedPeminatan.toLowerCase().replace(/[^a-z0-9]/g, '')
+      ) ||
+      null;
+  }
 } catch (err) {
   console.error('Error fetching applicant dashboard data:', err);
   dbError = 'Gagal memuat sebagian data profil. Silakan muat ulang halaman.';
 }
 
 const statusPendaftaran = cagenData?.statusPendaftaran || 'Belum Melengkapi';
-const peminatan = berkasData?.peminatan || null;
+const peminatan = cagenData?.peminatan || berkasData?.peminatan || null;
 
 let cleanWa = (settingData?.waNumber || '081234567890').replace(/\D/g, '');
 if (cleanWa.startsWith('0')) cleanWa = '62' + cleanWa.slice(1);
@@ -202,6 +221,85 @@ if (statusPendaftaran === 'Belum Melengkapi') {
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
         <span>{dbError}</span>
+      </div>
+    )}
+
+    <!-- Prominent Guidebook & Peminatan Card -->
+    {peminatan ? (
+      <div class="bg-gradient-to-r from-[#171722] via-[#1a1a26] to-[#121217] border border-amber-400/30 rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden mb-8">
+        <div class="absolute -right-12 -top-12 w-56 h-56 bg-amber-500/10 rounded-full blur-[80px] pointer-events-none"></div>
+
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
+          <div class="space-y-2 max-w-2xl">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-400 text-xs font-semibold">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+              Bidang Peminatan Pilihan Anda
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-3">
+              <span>{peminatan}</span>
+            </h2>
+            <p class="text-xs sm:text-sm text-gray-300 leading-relaxed">
+              {peminatanDetail?.deskripsi || 'Persiapkan berkas dan karya inovatif Anda sesuai dengan ketentuan resmi yang tertuang di dalam Guidebook peminatan Anda.'}
+            </p>
+          </div>
+
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto flex-shrink-0">
+            {peminatanDetail?.guidebookUrl ? (
+              <a
+                href={peminatanDetail.guidebookUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-sm shadow-lg shadow-amber-500/20 hover:shadow-amber-500/35 transition-all duration-200 group/btn"
+              >
+                <svg class="w-5 h-5 text-black flex-shrink-0 group-hover/btn:translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <span>Unduh Guidebook Peminatan Anda</span>
+              </a>
+            ) : (
+              <button
+                type="button"
+                disabled
+                class="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-white/5 border border-white/10 text-gray-500 text-sm font-semibold cursor-not-allowed"
+              >
+                <svg class="w-5 h-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>Guidebook Segera Hadir</span>
+              </button>
+            )}
+
+            <a
+              href="/dashboard/settings"
+              class="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white text-sm font-semibold transition-colors"
+            >
+              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+              </svg>
+              Ubah Peminatan
+            </a>
+          </div>
+        </div>
+      </div>
+    ) : (
+      <div class="bg-[#14141b] border border-amber-400/20 rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden mb-8">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-400 text-xs font-semibold mb-2">
+              Perhatian Pendaftaran
+            </div>
+            <h2 class="text-xl font-bold text-white">Anda Belum Memilih Bidang Peminatan</h2>
+            <p class="text-xs sm:text-sm text-gray-400 mt-1 max-w-xl">
+              Pilihlah bidang peminatan Anda agar Anda dapat mengunduh guidebook resmi dan mengunggah berkas karya yang sesuai.
+            </p>
+          </div>
+          <a
+            href="/dashboard/settings"
+            class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs sm:text-sm transition-all shadow-md shadow-amber-500/20 flex-shrink-0"
+          >
+            Pilih Peminatan Sekarang
+          </a>
+        </div>
       </div>
     )}
 

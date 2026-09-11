@@ -67,13 +67,11 @@ export const FAKULTAS_PRODI_MAP: Record<string, string[]> = {
 export const ANGKATAN_OPTIONS = ['2023', '2024', '2025', '2026'];
 
 export const PEMINATAN_OPTIONS = [
-  'Divisi Riset',
-  'Divisi Public Relations',
-  'Divisi HRD',
-  'KTI/ESSAY',
+  'KTI / Essay',
   'Business Plan',
   'Debat',
   'Poster',
   'Video Graph',
+  'Riset',
 ];
 

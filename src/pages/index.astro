@@ -4,7 +4,7 @@ import { Image } from 'astro:assets';
 import maskotImg from '../assets/img/maskot.webp';
 import type { AuthUser } from '../lib/auth';
 import { createDb } from '../db';
-import { systemSettings, timelineEvents, publicQna } from '../db/schema';
+import { systemSettings, timelineEvents, publicQna, peminatan } from '../db/schema';
 import { eq, asc } from 'drizzle-orm';
 
 const user = Astro.locals.user as AuthUser | null | undefined;
@@ -18,6 +18,7 @@ let registrationConfig = {
 
 let timelineList: any[] = [];
 let qnaPublishedList: any[] = [];
+let peminatanList: any[] = [];
 
 try {
   const db = createDb();
@@ -45,8 +46,50 @@ try {
     .from(publicQna)
     .where(eq(publicQna.isPublished, true))
     .orderBy(asc(publicQna.id));
+
+  peminatanList = await db
+    .select()
+    .from(peminatan)
+    .where(eq(peminatan.isActive, true))
+    .orderBy(asc(peminatan.id));
 } catch (err) {
-  console.error('Error loading settings, timeline, or QnA on homepage:', err);
+  console.error('Error loading settings, timeline, QnA, or peminatan on homepage:', err);
+}
+
+// Fallback jika database belum memiliki data peminatan
+if (peminatanList.length === 0) {
+  peminatanList = [
+    {
+      id: 1,
+      nama: 'KTI / Essay',
+      deskripsi: 'Pengembangan kemampuan penulisan karya tulis ilmiah, esai kritis, serta perumusan gagasan solutif berbasis riset metodologis.',
+      guidebookUrl: 'https://oprec.perisai.site/docs/guidebook-kti-essay.pdf',
+    },
+    {
+      id: 2,
+      nama: 'Business Plan',
+      deskripsi: 'Penyusunan model bisnis inovatif, studi kelayakan pasar, perancangan proposal usaha rintisan berdaya saing tinggi.',
+      guidebookUrl: 'https://oprec.perisai.site/docs/guidebook-business-plan.pdf',
+    },
+    {
+      id: 3,
+      nama: 'Debat',
+      deskripsi: 'Asah ketajaman berpikir kritis, retorika argumentasi logis, dan penguasaan isu-isu strategis nasional maupun global.',
+      guidebookUrl: 'https://oprec.perisai.site/docs/guidebook-debat.pdf',
+    },
+    {
+      id: 4,
+      nama: 'Poster',
+      deskripsi: 'Visualisasi komunikasi data dan gagasan ilmiah ke dalam media grafis yang komunikatif, estetis, dan informatif.',
+      guidebookUrl: 'https://oprec.perisai.site/docs/guidebook-poster.pdf',
+    },
+    {
+      id: 5,
+      nama: 'Video Graph',
+      deskripsi: 'Eksplorasi sinematografi, storytelling visual, serta produksi video edukasi dan dokumenter berbobot ilmiah.',
+      guidebookUrl: 'https://oprec.perisai.site/docs/guidebook-videograph.pdf',
+    },
+  ];
 }
 
 
@@ -214,31 +257,120 @@ function formatTimelineDate(startDate: Date | null | undefined, endDate: Date | 
     </div>
   </section>
 
-  <!-- Peminatan Bidang Section -->
-  <section class="py-16 bg-[#0f0f13] border-y border-white/5">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center max-w-3xl mx-auto mb-12">
-        <h2 class="text-xs uppercase tracking-widest text-amber-400 font-bold mb-2">5 Bidang Peminatan</h2>
-        <h3 class="text-2xl sm:text-3xl font-extrabold text-white">Temukan Potensi Terbaikmu</h3>
+  <!-- Pilihan Peminatan Section -->
+  <section class="py-20 bg-[#0f0f14] border-y border-white/5 relative overflow-hidden">
+    <!-- Ambient Lighting Glows -->
+    <div class="absolute top-0 right-1/4 w-96 h-96 bg-amber-500/5 rounded-full blur-[140px] pointer-events-none"></div>
+    <div class="absolute bottom-0 left-1/4 w-96 h-96 bg-yellow-600/5 rounded-full blur-[140px] pointer-events-none"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      
+      <!-- Section Header -->
+      <div class="text-center max-w-3xl mx-auto mb-14">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-400 text-xs font-semibold uppercase tracking-wider mb-3">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+          Pilihan Peminatan
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-black text-white tracking-tight">
+          Eksplorasi Bidang Peminatan & Guidebook
+        </h2>
+        <p class="text-sm sm:text-base text-gray-400 mt-2.5 leading-relaxed">
+          Pilih bidang peminatan sesuai minat dan keahlian Anda. Pelajari panduan dan ketentuan karya melalui Guidebook resmi di bawah ini sebelum mendaftar.
+        </p>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {[
-          { title: 'KTI / Essay', desc: 'Karya tulis ilmiah & gagasan solutif untuk isu terkini' },
-          { title: 'Business Plan', desc: 'Inovasi kewirausahaan & rencana bisnis berdaya saing' },
-          { title: 'Debat', desc: 'Ketajaman argumentasi, logika kritis, dan wawasan global' },
-          { title: 'Poster', desc: 'Visualisasi pesan ilmiah yang informatif dan estetik' },
-          { title: 'Video Graph', desc: 'Kreativitas videografi & media edukasi berdampak luas' },
-        ].map((item) => (
-          <div class="bg-[#15151b] border border-white/5 hover:border-amber-400/40 rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-500/5">
-            <div class="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400 font-bold mb-4">
-              ★
+      <!-- CSS Grid of Peminatan Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+        {peminatanList.map((item: any) => {
+          const isKTI = item.nama.toLowerCase().includes('kti') || item.nama.toLowerCase().includes('essay');
+          const isBusiness = item.nama.toLowerCase().includes('business');
+          const isDebat = item.nama.toLowerCase().includes('debat');
+          const isPoster = item.nama.toLowerCase().includes('poster');
+          const isVideo = item.nama.toLowerCase().includes('video');
+
+          return (
+            <div class="bg-[#14141b] border border-white/10 hover:border-amber-400/40 rounded-3xl p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-amber-500/10 group relative overflow-hidden">
+              
+              <!-- Top Glow Bar on Hover -->
+              <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+              <div>
+                <!-- Icon Badge -->
+                <div class="w-12 h-12 rounded-2xl bg-amber-400/10 border border-amber-400/25 flex items-center justify-center text-amber-400 font-bold mb-5 group-hover:scale-110 group-hover:bg-amber-400/20 transition-all duration-300">
+                  {isKTI && (
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
+                  )}
+                  {isBusiness && (
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                  )}
+                  {isDebat && (
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                    </svg>
+                  )}
+                  {isPoster && (
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                  )}
+                  {isVideo && (
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                  )}
+                  {!isKTI && !isBusiness && !isDebat && !isPoster && !isVideo && (
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                    </svg>
+                  )}
+                </div>
+
+                <h3 class="font-bold text-xl text-white group-hover:text-amber-300 transition-colors tracking-tight mb-2.5">
+                  {item.nama}
+                </h3>
+                
+                <p class="text-xs sm:text-sm text-gray-400 leading-relaxed mb-6">
+                  {item.deskripsi}
+                </p>
+              </div>
+
+              <!-- Action Button: Download Guidebook -->
+              <div class="pt-4 border-t border-white/5">
+                {item.guidebookUrl ? (
+                  <a
+                    href={item.guidebookUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs shadow-md shadow-amber-500/15 hover:shadow-amber-500/30 transition-all duration-200 group/btn"
+                  >
+                    <svg class="w-4 h-4 text-black flex-shrink-0 group-hover/btn:translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <span>Unduh Guidebook (PDF)</span>
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-gray-500 text-xs font-semibold cursor-not-allowed"
+                  >
+                    <svg class="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span>Guidebook Segera Hadir</span>
+                  </button>
+                )}
+              </div>
+
             </div>
-            <h4 class="font-bold text-lg text-white mb-2">{item.title}</h4>
-            <p class="text-xs text-gray-400 leading-relaxed">{item.desc}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
+
     </div>
   </section>
 
