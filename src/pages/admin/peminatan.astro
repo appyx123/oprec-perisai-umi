@@ -149,7 +149,7 @@ const unconfiguredCount = peminatanList.length - configuredCount;
 
                     <div class="flex items-center gap-3 pt-1">
                       <a
-                        href={item.guidebookUrl}
+                        href={`/api/guidebook?id=${item.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 text-xs font-medium transition-colors"
