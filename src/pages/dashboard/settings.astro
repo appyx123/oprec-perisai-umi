@@ -57,7 +57,7 @@ const fakultasList = Object.keys(FAKULTAS_PRODI_MAP);
 ---
 
 <MainLayout title="Pengaturan Profil & Keamanan - PERISAI UMI">
-  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <div class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
     
     <!-- Top Breadcrumb & Navigation -->
     <div class="flex items-center gap-2 text-xs font-medium text-gray-400 mb-6">
@@ -378,32 +378,34 @@ const fakultasList = Object.keys(FAKULTAS_PRODI_MAP);
             </div>
           </div>
 
-          <div class="max-w-md">
-            <label for="peminatan" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
-              Peminatan *
-            </label>
-            <select
-              id="peminatan"
-              name="peminatan"
-              required
-              class="w-full px-4 py-3 rounded-xl bg-[#1c1c24] border border-white/10 text-white focus:outline-none focus:border-amber-400 text-sm transition-colors cursor-pointer"
-            >
-              <option value="" disabled selected={!cagenData?.peminatan} class="bg-[#1c1c24] text-gray-400">
-                Pilih Bidang Peminatan
-              </option>
-              {PEMINATAN_OPTIONS.map((opt) => (
-                <option
-                  value={opt}
-                  selected={cagenData?.peminatan === opt}
-                  class="bg-[#1c1c24] text-white"
-                >
-                  {opt}
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label for="peminatan" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                Peminatan *
+              </label>
+              <select
+                id="peminatan"
+                name="peminatan"
+                required
+                class="w-full px-4 py-3 rounded-xl bg-[#1c1c24] border border-white/10 text-white focus:outline-none focus:border-amber-400 text-sm transition-colors cursor-pointer"
+              >
+                <option value="" disabled selected={!cagenData?.peminatan} class="bg-[#1c1c24] text-gray-400">
+                  Pilih Bidang Peminatan
                 </option>
-              ))}
-            </select>
-            <p class="text-[11px] text-gray-500 mt-2">
-              Pilihan peminatan ini dapat Anda sesuaikan kapan saja dan akan disinkronkan dengan berkas seleksi Anda.
-            </p>
+                {PEMINATAN_OPTIONS.map((opt) => (
+                  <option
+                    value={opt}
+                    selected={cagenData?.peminatan === opt}
+                    class="bg-[#1c1c24] text-white"
+                  >
+                    {opt}
+                  </option>
+                ))}
+              </select>
+              <p class="text-[11px] text-gray-500 mt-2">
+                Pilihan peminatan ini dapat Anda sesuaikan kapan saja dan akan disinkronkan dengan berkas seleksi Anda.
+              </p>
+            </div>
           </div>
         </div>
 

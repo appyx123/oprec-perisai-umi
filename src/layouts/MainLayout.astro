@@ -45,7 +45,7 @@ const user = Astro.locals.user as AuthUser | null | undefined;
 
     <!-- Navigation Header -->
     <header class="sticky top-0 z-50 w-full bg-[#121216]/85 backdrop-blur-md border-b border-amber-500/20 shadow-lg shadow-black/40">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-20">
           
           <!-- Logo & Brand -->
@@ -172,13 +172,13 @@ const user = Astro.locals.user as AuthUser | null | undefined;
     </header>
 
     <!-- Page Content Container -->
-    <main class="flex-1">
+    <main class="flex-1 w-full">
       <slot />
     </main>
 
     <!-- Global Footer -->
     <footer class="border-t border-white/10 bg-[#0d0d10] py-10 mt-16 text-center text-sm text-gray-400">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
         <div class="flex items-center gap-3">
           <Image
             src={logoPerisai}
