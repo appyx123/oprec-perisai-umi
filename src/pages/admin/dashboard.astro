@@ -225,20 +225,26 @@ const isFiltered = Boolean(search || (statusFilter && statusFilter !== 'SEMUA'))
         </div>
 
         <!-- Filter & Search Toolbar -->
-        <form method="GET" action="/admin/dashboard" class="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <form id="search-filter-form" method="GET" action="/admin/dashboard" class="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           
-          <!-- Search Input -->
-          <div class="relative min-w-[240px] flex-1">
+          <!-- Search Input with Debounce & Loading Spinner -->
+          <div class="relative min-w-[260px] flex-1">
             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg id="search-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+              <svg id="search-spinner" class="hidden w-4 h-4 animate-spin text-amber-400" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
             </div>
             <input
               type="text"
+              id="search-applicants"
               name="search"
               value={search}
-              placeholder="Cari nama, NIM, jurusan..."
+              placeholder="Cari nama, NIM, no. registrasi..."
+              autocomplete="off"
               class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#1a1a22] border border-white/10 text-white placeholder-gray-500 text-xs focus:outline-none focus:border-amber-400 transition-colors"
             />
           </div>
@@ -246,6 +252,7 @@ const isFiltered = Boolean(search || (statusFilter && statusFilter !== 'SEMUA'))
           <!-- Status Filter Dropdown -->
           <div class="relative">
             <select
+              id="status-filter"
               name="status"
               class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#1a1a22] border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400 transition-colors cursor-pointer appearance-none pr-8"
             >
@@ -272,6 +279,7 @@ const isFiltered = Boolean(search || (statusFilter && statusFilter !== 'SEMUA'))
           <!-- Reset Filter Button -->
           {isFiltered && (
             <a
+              id="reset-filter-btn"
               href="/admin/dashboard"
               class="px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white text-xs font-semibold transition-colors flex items-center justify-center gap-1"
               title="Hapus Filter"
@@ -285,91 +293,295 @@ const isFiltered = Boolean(search || (statusFilter && statusFilter !== 'SEMUA'))
       <!-- Result Count Strip -->
       <div class="flex items-center justify-between pt-4 pb-2 text-xs text-gray-400 font-mono">
         <div>
-          Menampilkan: <span class="text-amber-400 font-bold">{applicantList.length}</span> peserta
-          {isFiltered && <span class="text-gray-500 ml-1">(tersaring)</span>}
+          Menampilkan: <span id="applicant-count" class="text-amber-400 font-bold">{applicantList.length}</span> peserta
+          <span id="filtered-indicator" class="text-gray-500 ml-1" style={isFiltered ? '' : 'display: none;'}>
+            (tersaring)
+          </span>
         </div>
       </div>
 
-      {applicantList.length === 0 ? (
-        <div class="text-center py-14 text-gray-400 text-sm">
-          <div class="w-12 h-12 rounded-full bg-white/5 mx-auto mb-3 flex items-center justify-center text-gray-500">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-          </div>
-          {isFiltered ? (
-            <p>Tidak ada calon anggota yang cocok dengan kriteria pencarian.</p>
-          ) : (
-            <p>Belum ada calon anggota yang mendaftar di sistem.</p>
-          )}
+      <!-- Empty State Container -->
+      <div
+        id="empty-state"
+        class={`text-center py-14 text-gray-400 text-sm ${applicantList.length === 0 ? '' : 'hidden'}`}
+      >
+        <div class="w-12 h-12 rounded-full bg-white/5 mx-auto mb-3 flex items-center justify-center text-gray-500">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
         </div>
-      ) : (
-        <div class="overflow-x-auto mt-4">
-          <table class="w-full text-left border-collapse text-sm">
-            <thead>
-              <tr class="border-b border-white/10 text-gray-400 text-xs uppercase tracking-wider">
-                <th class="py-3.5 px-4 w-24">No. Reg</th>
-                <th class="py-3.5 px-4">Calon Anggota</th>
-                <th class="py-3.5 px-4">Fakultas & Program Studi</th>
-                <th class="py-3.5 px-4">Peminatan</th>
-                <th class="py-3.5 px-4">Status Seleksi</th>
-                <th class="py-3.5 px-4 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-white/5">
-              {applicantList.map((cagen) => {
-                let badgeColor = 'bg-gray-800 text-gray-300 border-gray-700';
-                if (cagen.statusPendaftaran === 'Review Berkas') {
-                  badgeColor = 'bg-amber-500/15 text-amber-300 border-amber-500/30';
-                } else if (cagen.statusPendaftaran === 'Berkas Diterima') {
-                  badgeColor = 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
-                } else if (cagen.statusPendaftaran === 'Lulus') {
-                  badgeColor = 'bg-blue-500/15 text-blue-300 border-blue-500/30';
-                } else if (cagen.statusPendaftaran === 'Tidak Lulus') {
-                  badgeColor = 'bg-rose-500/15 text-rose-300 border-rose-500/30';
-                }
+        <p id="empty-state-text">
+          {isFiltered ? 'Tidak ada calon anggota yang cocok dengan kriteria pencarian.' : 'Belum ada calon anggota yang mendaftar di sistem.'}
+        </p>
+      </div>
 
-                return (
-                  <tr class="hover:bg-white/[0.02] transition-colors">
-                    <td class="py-4 px-4 font-mono font-bold text-amber-400 text-xs tracking-wider">#{cagen.nomorRegistrasi || cagen.id}</td>
-                    <td class="py-4 px-4">
-                      <div class="font-bold text-white">{cagen.namaLengkap}</div>
-                      <div class="font-mono text-xs text-amber-400/90 mt-0.5">{cagen.nim}</div>
-                    </td>
-                    <td class="py-4 px-4 text-xs text-gray-300">
-                      <span class="block font-medium text-gray-200">{cagen.jurusan}</span>
-                      <span class="text-gray-500">{cagen.fakultas}</span>
-                    </td>
-                    <td class="py-4 px-4">
-                      {cagen.peminatan ? (
-                        <span class="inline-block px-2.5 py-1 rounded-lg bg-amber-400/10 border border-amber-400/20 text-amber-300 text-xs font-medium">
-                          {cagen.peminatan}
-                        </span>
-                      ) : (
-                        <span class="text-xs text-gray-500 italic">Belum Dipilih</span>
-                      )}
-                    </td>
-                    <td class="py-4 px-4">
-                      <span class={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold border ${badgeColor}`}>
-                        {cagen.statusPendaftaran}
+      <!-- Table Container -->
+      <div id="table-container" class={`overflow-x-auto mt-4 ${applicantList.length === 0 ? 'hidden' : ''}`}>
+        <table class="w-full text-left border-collapse text-sm">
+          <thead>
+            <tr class="border-b border-white/10 text-gray-400 text-xs uppercase tracking-wider">
+              <th class="py-3.5 px-4 w-24">No. Reg</th>
+              <th class="py-3.5 px-4">Calon Anggota</th>
+              <th class="py-3.5 px-4">Fakultas & Program Studi</th>
+              <th class="py-3.5 px-4">Peminatan</th>
+              <th class="py-3.5 px-4">Status Seleksi</th>
+              <th class="py-3.5 px-4 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="applicants-table-body" class="divide-y divide-white/5">
+            {applicantList.map((cagen) => {
+              let badgeColor = 'bg-gray-800 text-gray-300 border-gray-700';
+              if (cagen.statusPendaftaran === 'Review Berkas') {
+                badgeColor = 'bg-amber-500/15 text-amber-300 border-amber-500/30';
+              } else if (cagen.statusPendaftaran === 'Berkas Diterima') {
+                badgeColor = 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
+              } else if (cagen.statusPendaftaran === 'Lulus') {
+                badgeColor = 'bg-blue-500/15 text-blue-300 border-blue-500/30';
+              } else if (cagen.statusPendaftaran === 'Tidak Lulus') {
+                badgeColor = 'bg-rose-500/15 text-rose-300 border-rose-500/30';
+              }
+
+              return (
+                <tr class="hover:bg-white/[0.02] transition-colors">
+                  <td class="py-4 px-4 font-mono font-bold text-amber-400 text-xs tracking-wider">#{cagen.nomorRegistrasi || cagen.id}</td>
+                  <td class="py-4 px-4">
+                    <div class="font-bold text-white">{cagen.namaLengkap}</div>
+                    <div class="font-mono text-xs text-amber-400/90 mt-0.5">{cagen.nim}</div>
+                  </td>
+                  <td class="py-4 px-4 text-xs text-gray-300">
+                    <span class="block font-medium text-gray-200">{cagen.jurusan}</span>
+                    <span class="text-gray-500">{cagen.fakultas}</span>
+                  </td>
+                  <td class="py-4 px-4">
+                    {cagen.peminatan ? (
+                      <span class="inline-block px-2.5 py-1 rounded-lg bg-amber-400/10 border border-amber-400/20 text-amber-300 text-xs font-medium">
+                        {cagen.peminatan}
                       </span>
-                    </td>
-                    <td class="py-4 px-4 text-right">
-                      <a
-                        href={`/admin/peserta/${cagen.id}`}
-                        class="inline-flex items-center px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-amber-400 hover:text-black border border-white/10 hover:border-amber-400 text-gray-200 text-xs font-semibold transition-all shadow-sm"
-                      >
-                        Detail
-                      </a>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                    ) : (
+                      <span class="text-xs text-gray-500 italic">Belum Dipilih</span>
+                    )}
+                  </td>
+                  <td class="py-4 px-4">
+                    <span class={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold border ${badgeColor}`}>
+                      {cagen.statusPendaftaran}
+                    </span>
+                  </td>
+                  <td class="py-4 px-4 text-right">
+                    <a
+                      href={`/admin/peserta/${cagen.id}`}
+                      class="inline-flex items-center px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-amber-400 hover:text-black border border-white/10 hover:border-amber-400 text-gray-200 text-xs font-semibold transition-all shadow-sm"
+                    >
+                      Detail
+                    </a>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
 
   </div>
+
+  <!-- Lightning-Fast Debounced Client-Side Search Script -->
+  <script is:inline>
+    // 1. Debounce wrapper function (300ms default)
+    function debounce(func, delay = 300) {
+      let timeoutId;
+      return function (...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          func.apply(this, args);
+        }, delay);
+      };
+    }
+
+    // 2. Helper to escape HTML characters (XSS Prevention)
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // 3. Status Badge Color Mapper
+    function getBadgeClass(status) {
+      switch (status) {
+        case 'Review Berkas':
+          return 'bg-amber-500/15 text-amber-300 border-amber-500/30';
+        case 'Berkas Diterima':
+          return 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
+        case 'Lulus':
+          return 'bg-blue-500/15 text-blue-300 border-blue-500/30';
+        case 'Tidak Lulus':
+          return 'bg-rose-500/15 text-rose-300 border-rose-500/30';
+        default:
+          return 'bg-gray-800 text-gray-300 border-gray-700';
+      }
+    }
+
+    // 4. Render Table Row HTML string
+    function renderApplicantRow(cagen) {
+      const regNo = escapeHtml(cagen.nomorRegistrasi || cagen.id);
+      const nama = escapeHtml(cagen.namaLengkap);
+      const nim = escapeHtml(cagen.nim);
+      const jurusan = escapeHtml(cagen.jurusan);
+      const fakultas = escapeHtml(cagen.fakultas);
+      const peminatan = cagen.peminatan
+        ? `<span class="inline-block px-2.5 py-1 rounded-lg bg-amber-400/10 border border-amber-400/20 text-amber-300 text-xs font-medium">${escapeHtml(cagen.peminatan)}</span>`
+        : `<span class="text-xs text-gray-500 italic">Belum Dipilih</span>`;
+      const badgeClass = getBadgeClass(cagen.statusPendaftaran);
+      const status = escapeHtml(cagen.statusPendaftaran);
+
+      return `
+        <tr class="hover:bg-white/[0.02] transition-colors">
+          <td class="py-4 px-4 font-mono font-bold text-amber-400 text-xs tracking-wider">#${regNo}</td>
+          <td class="py-4 px-4">
+            <div class="font-bold text-white">${nama}</div>
+            <div class="font-mono text-xs text-amber-400/90 mt-0.5">${nim}</div>
+          </td>
+          <td class="py-4 px-4 text-xs text-gray-300">
+            <span class="block font-medium text-gray-200">${jurusan}</span>
+            <span class="text-gray-500">${fakultas}</span>
+          </td>
+          <td class="py-4 px-4">
+            ${peminatan}
+          </td>
+          <td class="py-4 px-4">
+            <span class="inline-block px-2.5 py-1 rounded-full text-xs font-semibold border ${badgeClass}">
+              ${status}
+            </span>
+          </td>
+          <td class="py-4 px-4 text-right">
+            <a
+              href="/admin/peserta/${cagen.id}"
+              class="inline-flex items-center px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-amber-400 hover:text-black border border-white/10 hover:border-amber-400 text-gray-200 text-xs font-semibold transition-all shadow-sm"
+            >
+              Detail
+            </a>
+          </td>
+        </tr>
+      `;
+    }
+
+    // 5. Search Controller with AbortController to prevent race conditions
+    let searchAbortController = null;
+
+    async function performSearch(searchTerm) {
+      if (searchAbortController) {
+        searchAbortController.abort();
+      }
+      searchAbortController = new AbortController();
+
+      const searchIcon = document.getElementById('search-icon');
+      const searchSpinner = document.getElementById('search-spinner');
+      const statusSelect = document.getElementById('status-filter');
+      const tableContainer = document.getElementById('table-container');
+      const tbody = document.getElementById('applicants-table-body');
+      const emptyState = document.getElementById('empty-state');
+      const emptyStateText = document.getElementById('empty-state-text');
+      const countSpan = document.getElementById('applicant-count');
+      const filteredIndicator = document.getElementById('filtered-indicator');
+
+      const statusVal = statusSelect ? statusSelect.value : '';
+
+      if (searchIcon && searchSpinner) {
+        searchIcon.classList.add('hidden');
+        searchSpinner.classList.remove('hidden');
+      }
+
+      try {
+        const params = new URLSearchParams();
+        if (searchTerm) params.set('q', searchTerm);
+        if (statusVal && statusVal !== 'SEMUA') params.set('status', statusVal);
+
+        const res = await fetch(`/api/admin/search-applicants?${params.toString()}`, {
+          signal: searchAbortController.signal,
+          headers: { 'Accept': 'application/json' },
+        });
+
+        if (!res.ok) throw new Error('Search failed');
+
+        const json = await res.json();
+        if (!json.success || !Array.isArray(json.data)) return;
+
+        const data = json.data;
+
+        // Update count numbers
+        if (countSpan) countSpan.textContent = String(data.length);
+        if (filteredIndicator) {
+          if (searchTerm || (statusVal && statusVal !== 'SEMUA')) {
+            filteredIndicator.textContent = '(tersaring)';
+            filteredIndicator.style.display = 'inline';
+          } else {
+            filteredIndicator.textContent = '';
+            filteredIndicator.style.display = 'none';
+          }
+        }
+
+        // Update DOM Table or Empty State
+        if (data.length === 0) {
+          if (tbody) tbody.innerHTML = '';
+          if (tableContainer) tableContainer.classList.add('hidden');
+          if (emptyState) {
+            emptyState.classList.remove('hidden');
+            if (emptyStateText) {
+              emptyStateText.textContent = searchTerm
+                ? `Tidak ada calon anggota yang cocok dengan kata kunci "${searchTerm}".`
+                : 'Tidak ada calon anggota dengan kriteria yang dipilih.';
+            }
+          }
+        } else {
+          if (emptyState) emptyState.classList.add('hidden');
+          if (tableContainer) tableContainer.classList.remove('hidden');
+          if (tbody) {
+            tbody.innerHTML = data.map(renderApplicantRow).join('');
+          }
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        console.error('Search error:', err);
+      } finally {
+        if (searchIcon && searchSpinner) {
+          searchSpinner.classList.add('hidden');
+          searchIcon.classList.remove('hidden');
+        }
+      }
+    }
+
+    // 6. Initialize Event Listeners
+    document.addEventListener('DOMContentLoaded', () => {
+      const searchInput = document.getElementById('search-applicants');
+      const statusSelect = document.getElementById('status-filter');
+      const searchForm = document.getElementById('search-filter-form');
+
+      if (searchInput) {
+        // Debounce input listener with 300ms delay
+        const handleSearchDebounced = debounce((e) => {
+          performSearch(e.target.value.trim());
+        }, 300);
+
+        searchInput.addEventListener('input', handleSearchDebounced);
+      }
+
+      if (statusSelect) {
+        statusSelect.addEventListener('change', () => {
+          const q = searchInput ? searchInput.value.trim() : '';
+          performSearch(q);
+        });
+      }
+
+      if (searchForm) {
+        searchForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const q = searchInput ? searchInput.value.trim() : '';
+          performSearch(q);
+        });
+      }
+    });
+  </script>
 </MainLayout>
