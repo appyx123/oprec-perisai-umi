@@ -111,10 +111,10 @@ const isFiltered = Boolean(search || (statusFilter && statusFilter !== 'SEMUA'))
 ---
 
 <MainLayout title="Dashboard Panitia - Open Recruitment PERISAI UMI">
-  <div class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
+  <div class="max-w-7xl mx-auto w-full px-3 sm:px-6 lg:px-8 py-6 md:py-10">
     
     <!-- Admin Header Card -->
-    <div class="bg-gradient-to-r from-[#1b1912] via-[#201c13] to-[#121217] border border-amber-500/30 rounded-3xl p-8 sm:p-10 shadow-xl relative overflow-hidden mb-8">
+    <div class="bg-gradient-to-r from-[#1b1912] via-[#201c13] to-[#121217] border border-amber-500/30 rounded-3xl p-6 sm:p-10 shadow-xl relative overflow-hidden mb-8">
       <div class="absolute -right-16 -top-16 w-64 h-64 bg-amber-500/15 rounded-full blur-[90px] pointer-events-none"></div>
 
       <div class="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6 relative z-10">
@@ -123,10 +123,10 @@ const isFiltered = Boolean(search || (statusFilter && statusFilter !== 'SEMUA'))
             <span class="w-2 h-2 rounded-full bg-amber-400"></span>
             Panel Administrator (Panitia OPREC)
           </div>
-          <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">
+          <h1 class="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight">
             Dashboard Panitia: <span class="text-amber-400">{user.name}</span>
           </h1>
-          <p class="text-sm sm:text-base text-gray-400 mt-2 max-w-2xl">
+          <p class="text-xs sm:text-sm md:text-base text-gray-400 mt-2 max-w-2xl">
             Selamat bertugas, <span class="text-white font-semibold">@{user.username || 'admin'}</span>. Kelola pendaftaran calon anggota dan pengumuman seleksi di sini.
           </p>
         </div>
@@ -326,7 +326,7 @@ const isFiltered = Boolean(search || (statusFilter && statusFilter !== 'SEMUA'))
       </div>
 
       <!-- Table Container -->
-      <div id="table-container" class={`overflow-x-auto mt-4 ${applicantList.length === 0 ? 'hidden' : ''}`}>
+      <div id="table-container" class={`overflow-x-auto w-full mt-4 ${applicantList.length === 0 ? 'hidden' : ''}`}>
         <table class="w-full text-left border-collapse text-sm">
           <thead>
             <tr class="border-b border-white/10 text-gray-400 text-xs uppercase tracking-wider">
