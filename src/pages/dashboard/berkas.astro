@@ -555,115 +555,146 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
     <div id="tab-section-karya" class="tab-content hidden space-y-6">
       <div class="bg-[#121217] border border-amber-500/20 rounded-3xl p-6 sm:p-8">
         
-        <!-- Header & Peminatan Selector -->
+        <!-- Header & Peminatan Badge -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/10 mb-6">
           <div>
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-400 text-xs font-semibold mb-2">
-              Bagian 3 · Karya Spesifik
+              Bagian 3 · Penugasan Karya
             </div>
             <h2 class="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-              Karya Berdasarkan Peminatan Anda
+              Karya Peminatan
             </h2>
             <p class="text-xs sm:text-sm text-gray-400 mt-1">
-              Petunjuk dan kriteria di bawah ini berubah secara otomatis mengikuti bidang peminatan yang Anda pilih.
+              Peminatan Pilihan Anda: <span class="text-amber-400 font-bold font-mono">{chosenPeminatan}</span>
             </p>
           </div>
 
-          <!-- Selector Switcher if applicant wants to preview / change track -->
-          <div class="flex items-center gap-3">
-            <label for="select-peminatan" class="text-xs text-gray-400 font-semibold whitespace-nowrap">Peminatan:</label>
-            <select
-              id="select-peminatan"
-              class="bg-[#181824] border border-amber-500/30 rounded-xl px-4 py-2 text-xs sm:text-sm text-amber-400 font-bold focus:outline-none focus:border-amber-400 cursor-pointer"
-            >
-              <option value="KTI/Esai" selected={chosenPeminatan.toLowerCase().includes('kti') || chosenPeminatan.toLowerCase().includes('essay')}>KTI / Esai</option>
-              <option value="Desain Poster" selected={chosenPeminatan.toLowerCase().includes('poster')}>Desain Poster</option>
-              <option value="Debat Ilmiah" selected={chosenPeminatan.toLowerCase().includes('debat')}>Debat Ilmiah</option>
-              <option value="Video Editing" selected={chosenPeminatan.toLowerCase().includes('video')}>Video Editing</option>
-              <option value="Business Plan" selected={chosenPeminatan.toLowerCase().includes('business')}>Business Plan</option>
-            </select>
-          </div>
+          <a
+            href="/#peminatan"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 text-amber-300 hover:text-amber-200 text-xs font-semibold transition-colors"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <span>Unduh Guidebook Peminatan</span>
+          </a>
         </div>
 
-        <!-- DYNAMIC CONTENT BLOCK (Rendered by JS) -->
-        <div id="dynamic-karya-container" class="space-y-6">
-          <!-- Will be injected by script below according to selection -->
+        <!-- Single Generic Notice (Single Source of Truth) -->
+        <div class="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-amber-500/10 via-[#181822] to-amber-500/5 border border-amber-500/30 mb-8 flex items-start gap-4">
+          <div class="w-10 h-10 rounded-xl bg-amber-400/15 border border-amber-400/30 text-amber-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm sm:text-base font-bold text-white mb-1">Panduan Pengunggahan Karya</h3>
+            <p class="text-xs sm:text-sm text-gray-300 leading-relaxed">
+              Silakan unggah berkas penugasan karya Anda di bawah ini. Untuk detail spesifik mengenai tema, format file, dan kriteria penilaian, wajib merujuk pada Guidebook Peminatan yang telah Anda unduh.
+            </p>
+          </div>
         </div>
 
         <!-- UPLOAD SECTION FOR KARYA -->
-        <div class="mt-8 pt-8 border-t border-white/10">
-          <div class="p-6 sm:p-8 rounded-2xl bg-[#161622] border border-amber-500/30 relative">
-            <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
+        <div class="p-6 sm:p-8 rounded-2xl bg-[#161622] border border-amber-500/30 relative">
+          <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
+            <div>
+              <span class="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold">Submission File</span>
+              <h3 class="text-base sm:text-lg font-bold text-white mt-1">Unggah Berkas / Tautan Karya Peminatan</h3>
+              <p class="text-xs text-gray-400 mt-1">
+                Pastikan karya Anda telah memenuhi seluruh ketentuan yang tertera pada Buku Panduan resmi.
+              </p>
+            </div>
+            <div id="badge-fileKarya">
+              {karyaFileKey ? (
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                  Karya Terunggah
+                </span>
+              ) : (
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-400/10 text-amber-400 border border-amber-400/30">
+                  Wajib Diunggah
+                </span>
+              )}
+            </div>
+          </div>
+
+          <!-- Real-time Progress -->
+          <div id="progress-box-fileKarya" class="hidden mb-4 p-4 rounded-xl bg-black/50 border border-amber-500/30">
+            <div class="flex justify-between text-xs font-mono text-amber-300 mb-1">
+              <span id="progress-status-fileKarya">Mengunggah karya ke server Backblaze B2...</span>
+              <span id="progress-percent-fileKarya" class="font-bold">0%</span>
+            </div>
+            <div class="w-full bg-white/10 h-2 rounded-full overflow-hidden">
+              <div id="progress-bar-fileKarya" class="h-full bg-gradient-to-r from-amber-500 to-amber-300 transition-all duration-200" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <div id="error-fileKarya" class="hidden mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs"></div>
+
+          {karyaFileKey && (
+            <div id="current-file-fileKarya" class="mb-4 text-xs font-mono text-gray-300 bg-black/30 p-3 rounded-xl border border-white/10 break-all flex items-center justify-between gap-3">
               <div>
-                <span class="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold">Submission File</span>
-                <h3 class="text-base sm:text-lg font-bold text-white mt-1">Unggah Berkas / Tautan Karya Peminatan</h3>
-                <p class="text-xs text-gray-400 mt-1">
-                  Pastikan karya Anda telah memenuhi seluruh kriteria dan ketentuan spesifik peminatan di atas.
-                </p>
-              </div>
-              <div id="badge-fileKarya">
-                {karyaFileKey ? (
-                  <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
-                    Karya Terunggah
-                  </span>
-                ) : (
-                  <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-400/10 text-amber-400 border border-amber-400/30">
-                    Wajib Diunggah
-                  </span>
-                )}
+                <span class="text-gray-500">Berkas Karya Saat Ini:</span>
+                <span class="text-emerald-400 ml-1 font-bold">{karyaFileKey}</span>
               </div>
             </div>
+          )}
 
-            <!-- Real-time Progress -->
-            <div id="progress-box-fileKarya" class="hidden mb-4 p-4 rounded-xl bg-black/50 border border-amber-500/30">
-              <div class="flex justify-between text-xs font-mono text-amber-300 mb-1">
-                <span id="progress-status-fileKarya">Mengunggah karya ke server Backblaze B2...</span>
-                <span id="progress-percent-fileKarya" class="font-bold">0%</span>
-              </div>
-              <div class="w-full bg-white/10 h-2 rounded-full overflow-hidden">
-                <div id="progress-bar-fileKarya" class="h-full bg-gradient-to-r from-amber-500 to-amber-300 transition-all duration-200" style="width: 0%"></div>
-              </div>
-            </div>
+          <!-- Upload input and triggers -->
+          <div class="flex flex-col sm:flex-row items-center gap-3 pt-2">
+            <input
+              type="file"
+              id="input-fileKarya"
+              class="file-input-trigger hidden"
+              data-category="fileKarya"
+              data-label="Karya Peminatan"
+              data-max-mb="50"
+              accept=".pdf,.zip,.jpg,.jpeg,.png,.mp4"
+            />
+            <button
+              type="button"
+              class="btn-select-file w-full sm:w-auto px-6 py-3 rounded-xl text-xs sm:text-sm font-bold transition-all bg-amber-400 hover:bg-amber-300 text-black shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              data-target="input-fileKarya"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+              </svg>
+              <span>{karyaFileKey ? 'Ganti / Unggah Ulang Berkas Karya' : 'Pilih File Karya'}</span>
+            </button>
 
-            <div id="error-fileKarya" class="hidden mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs"></div>
+            <span class="text-xs text-gray-500 font-mono text-center sm:text-left">
+              Maksimal 50MB (PDF/ZIP/MP4/Gambar)
+            </span>
+          </div>
 
-            {karyaFileKey && (
-              <div id="current-file-fileKarya" class="mb-4 text-xs font-mono text-gray-300 bg-black/30 p-3 rounded-xl border border-white/10 break-all flex items-center justify-between gap-3">
-                <div>
-                  <span class="text-gray-500">Berkas Karya Saat Ini:</span>
-                  <span class="text-emerald-400 ml-1 font-bold">{karyaFileKey}</span>
-                </div>
-              </div>
-            )}
-
-            <!-- Upload input and triggers -->
-            <div class="flex flex-col sm:flex-row items-center gap-3 pt-2">
+          <!-- Optional Video / Drive Link Alternative -->
+          <div class="mt-6 pt-5 border-t border-white/10">
+            <label for="input-karya-link" class="block text-xs font-semibold text-gray-300 mb-1">
+              Atau Lampirkan Tautan Berkas / Video (YouTube / Google Drive Publik)
+            </label>
+            <div class="flex flex-col sm:flex-row gap-2.5 mt-2">
               <input
-                type="file"
-                id="input-fileKarya"
-                class="file-input-trigger hidden"
-                data-category="fileKarya"
-                data-label="Karya Peminatan"
-                data-max-mb="50"
-                accept=".pdf,.zip,.jpg,.jpeg,.png,.mp4"
+                type="url"
+                id="input-karya-link"
+                placeholder="https://drive.google.com/... atau https://youtube.com/..."
+                class="flex-1 bg-black/40 border border-white/15 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
               />
               <button
                 type="button"
-                class="btn-select-file w-full sm:w-auto px-6 py-3 rounded-xl text-xs sm:text-sm font-bold transition-all bg-amber-400 hover:bg-amber-300 text-black shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                data-target="input-fileKarya"
+                id="btn-save-karyalink"
+                class="px-5 py-2.5 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 border border-amber-400/30 font-bold text-xs transition-colors cursor-pointer whitespace-nowrap"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-                </svg>
-                <span>{berkasData?.fileKarya ? 'Ganti / Unggah Ulang Berkas Karya' : 'Unggah File Karya'}</span>
+                Simpan Tautan
               </button>
-
-              <span class="text-xs text-gray-500 font-mono text-center sm:text-left">
-                Maksimal 50MB (PDF/ZIP/MP4/Gambar)
-              </span>
             </div>
+            <p class="text-[11px] text-gray-500 mt-1.5">
+              Gunakan opsi ini jika penugasan karya Anda berupa video resolusi tinggi atau berkas pada cloud storage.
+            </p>
           </div>
+        </div>
         </div>
 
       </div>
@@ -691,7 +722,6 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
   document.addEventListener('DOMContentLoaded', () => {
     const portalContainer = document.querySelector('[data-user-nim]') as HTMLElement | null;
     const userNim = portalContainer?.getAttribute('data-user-nim') || 'user';
-    const initialPeminatan = portalContainer?.getAttribute('data-chosen-peminatan') || 'KTI/Esai';
 
     // 1. TAB SWITCHER LOGIC
     const tabButtons = document.querySelectorAll<HTMLButtonElement>('.tab-btn');
@@ -725,203 +755,40 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
       });
     });
 
-    // 2. DYNAMIC "KARYA PEMINATAN" CRITERIA
-    const karyaContainer = document.getElementById('dynamic-karya-container');
-    const peminatanSelect = document.getElementById('select-peminatan') as HTMLSelectElement | null;
-
-    const KARYA_DATA: Record<string, {
-      title: string;
-      theme: string;
-      criteria: string[];
-      format: string;
-      maxSize: string;
-      assets?: { label: string; url: string };
-      videoOption?: boolean;
-    }> = {
-      'KTI/Esai': {
-        title: 'Karya Tulis Ilmiah / Esai Ilmiah',
-        theme: 'Triple Burden of Malnutrition',
-        criteria: [
-          'Tema: "Triple Burden of Malnutrition" (Beban Ganda/Tiga Malnutrisi di Indonesia).',
-          'Jumlah kata: Minimal 700 kata (tidak termasuk daftar pustaka).',
-          'Sistem Sitasi & Referensi: Wajib menggunakan Harvard Referencing Style.',
-          'Format penulisan: Font Times New Roman 12pt, Spasi 1.5, Margin 4-4-3-3.',
-          'Format unggahan: Berkas PDF (.pdf).',
-        ],
-        format: 'PDF',
-        maxSize: '10 MB',
-      },
-      'Desain Poster': {
-        title: 'Desain Poster Ilmiah / Publik',
-        theme: 'Pesona Nusantara',
-        criteria: [
-          'Tema: "Pesona Nusantara" (Eksplorasi kekayaan budaya, keanekaragaman hayati, atau inovasi daerah).',
-          'Dimensi & Rasio: 1080 x 1350 piksel (Aspek Rasio 4:5 vertikal).',
-          'Kewajiban Logo: Wajib mencantumkan Logo Resmi UMI & Logo Resmi PERISAI di bagian atas.',
-          'Format & Ukuran: Format JPG/PNG/PDF dengan resolusi tajam, ukuran file maksimal 5 MB.',
-          'Karya harus orisinal dan belum pernah memenangkan kompetisi lain.',
-        ],
-        format: 'JPG / PNG / PDF',
-        maxSize: '5 MB',
-        assets: {
-          label: 'Unduh Logo Resmi UMI & PERISAI',
-          url: 'https://bit.ly/4cp4mML',
-        },
-      },
-      'Debat Ilmiah': {
-        title: 'Debat Ilmiah (Monolog Argumentasi)',
-        theme: 'Isu Inflasi Nilai Akademik',
-        criteria: [
-          'Mosi / Tema: "Isu Inflasi Nilai Akademik di Perguruan Tinggi".',
-          'Format Penampilan: Monolog argumentatif individu (membahas latar belakang, argumen afirmasi/oposisi, solusi).',
-          'Durasi Video: Minimal 5 menit, maksimal 7 menit.',
-          'Ketentuan Video: Wajah dan suara terdengar jelas, pencahayaan memadai, tanpa suntingan jeda yang memutus argumen.',
-          'Metode Pengumpulan: Unggah berkas MP4 langsung atau tautkan link Google Drive/YouTube publik.',
-        ],
-        format: 'MP4 / Tautan Video (Min. 5 Menit)',
-        maxSize: '50 MB',
-        videoOption: true,
-      },
-      'Video Editing': {
-        title: 'Video Editing & Videography',
-        theme: 'Sosial, Kesehatan, Pendidikan, atau Kebudayaan',
-        criteria: [
-          'Pilihan Tema: Pilih salah satu tema (Sosial Kemasyarakatan, Kesehatan, Pendidikan, atau Budaya Lokal).',
-          'Durasi Video: Maksimal 3 menit (termasuk bumper opening & closing).',
-          'Kreativitas: Penilaian mencakup visual storytelling, color grading, pacing audio, dan pesan inovatif.',
-          'Hak Cipta Audio: Disarankan menggunakan backsound no-copyright / creative commons.',
-          'Format Pengumpulan: Unggah berkas MP4 atau tautkan link YouTube/Google Drive.',
-        ],
-        format: 'MP4 / Tautan Video (Maks. 3 Menit)',
-        maxSize: '50 MB',
-        videoOption: true,
-      },
-      'Business Plan': {
-        title: 'Business Plan (Proposal Rencana Bisnis)',
-        theme: 'Inovasi Wirausaha Berkelanjutan',
-        criteria: [
-          'Komponen Wajib 1: BMC (Business Model Canvas) lengkap 9 blok bangunan bisnis.',
-          'Komponen Wajib 2: RAB (Rencana Anggaran Biaya) dan proyeksi cash-flow 1 tahun pertama.',
-          'Standar Sampul: Cover proposal wajib memuat nama tim/individu, logo usaha, dan logo PERISAI.',
-          'Format Dokumen: Proposal terstruktur format PDF (.pdf).',
-          'Lampiran: Analisis SWOT dan strategi pemasaran digital.',
-        ],
-        format: 'PDF (BMC + RAB Lengkap)',
-        maxSize: '15 MB',
-      },
-    };
-
-    function renderKaryaCriteria(selectedKey: string) {
-      if (!karyaContainer) return;
-
-      // Normalisasi nama peminatan
-      let key = 'KTI/Esai';
-      const clean = selectedKey.toLowerCase();
-      if (clean.includes('poster')) key = 'Desain Poster';
-      else if (clean.includes('debat')) key = 'Debat Ilmiah';
-      else if (clean.includes('video')) key = 'Video Editing';
-      else if (clean.includes('business')) key = 'Business Plan';
-
-      const data = KARYA_DATA[key] || KARYA_DATA['KTI/Esai'];
-
-      karyaContainer.innerHTML = `
-        <div class="p-6 rounded-2xl bg-[#161622] border border-amber-500/20 shadow-md">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/10 mb-4">
-            <div>
-              <span class="text-xs font-mono uppercase tracking-wider text-amber-400 font-bold">Instruksi Khusus</span>
-              <h3 class="text-base sm:text-lg font-black text-white mt-0.5">${data.title}</h3>
-            </div>
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-400/10 text-amber-300 border border-amber-400/30">
-              Format: ${data.format}
-            </span>
-          </div>
-
-          <!-- Highlight Tema -->
-          <div class="mb-5 p-4 rounded-xl bg-amber-400/10 border border-amber-400/30">
-            <span class="text-[11px] font-mono uppercase tracking-wider text-amber-300 font-bold">Tema Wajib:</span>
-            <div class="text-sm sm:text-base font-black text-white mt-0.5">"${data.theme}"</div>
-          </div>
-
-          <!-- Kriteria Checklist -->
-          <div class="space-y-2.5 mb-6">
-            <span class="text-xs font-bold text-gray-300 uppercase tracking-wider">Ketentuan & Kriteria Penilaian:</span>
-            ${data.criteria.map(c => `
-              <div class="flex items-start gap-2.5 text-xs sm:text-sm text-gray-300">
-                <svg class="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
-                </svg>
-                <span>${c}</span>
-              </div>
-            `).join('')}
-          </div>
-
-          ${data.assets ? `
-            <div class="p-4 rounded-xl bg-black/40 border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div class="text-xs text-gray-300">
-                <span class="font-bold text-white">Logo UMI & PERISAI:</span> Diwajibkan tercantum di dalam karya poster.
-              </div>
-              <a
-                href="${data.assets.url}"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs transition-colors whitespace-nowrap shadow-md shadow-amber-500/15"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                </svg>
-                ${data.assets.label}
-              </a>
-            </div>
-          ` : ''}
-
-          ${data.videoOption ? `
-            <div class="mt-4 p-4 rounded-xl bg-black/40 border border-white/10">
-              <label for="input-karya-videolink" class="block text-xs font-bold text-white mb-1">
-                Atau Lampirkan Tautan Video (YouTube Unlisted / Google Drive):
-              </label>
-              <div class="flex flex-col sm:flex-row gap-2.5 mt-2">
-                <input
-                  type="url"
-                  id="input-karya-videolink"
-                  placeholder="https://youtube.com/watch?v=... atau https://drive.google.com/..."
-                  class="flex-1 bg-black/50 border border-white/15 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
-                />
-                <button
-                  type="button"
-                  id="btn-save-videolink"
-                  class="px-4 py-2 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 border border-amber-400/30 font-bold text-xs transition-colors cursor-pointer whitespace-nowrap"
-                >
-                  Simpan Tautan
-                </button>
-              </div>
-            </div>
-          ` : ''}
-        </div>
-      `;
-
-      // Wire video link button if present
-      const saveVideoBtn = document.getElementById('btn-save-videolink');
-      const videoInput = document.getElementById('input-karya-videolink') as HTMLInputElement | null;
-      if (saveVideoBtn && videoInput) {
-        saveVideoBtn.addEventListener('click', async () => {
-          const url = videoInput.value.trim();
-          if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) {
-            showToast('error', 'Tautan Tidak Valid', 'Silakan masukkan tautan video YouTube atau Google Drive yang valid.');
-            return;
+    // 2. TAUTAN KARYA / VIDEO SAVER
+    const saveKaryaLinkBtn = document.getElementById('btn-save-karyalink');
+    const karyaLinkInput = document.getElementById('input-karya-link') as HTMLInputElement | null;
+    if (saveKaryaLinkBtn && karyaLinkInput) {
+      saveKaryaLinkBtn.addEventListener('click', async () => {
+        const val = karyaLinkInput.value.trim();
+        if (!val || (!val.startsWith('http://') && !val.startsWith('https://'))) {
+          showToast('error', 'Tautan Tidak Valid', 'Silakan masukkan tautan URL yang valid (misal YouTube unlisted atau Google Drive).');
+          return;
+        }
+        try {
+          await confirmUploadedFile('fileKarya', val);
+          showToast('success', 'Tautan Disimpan', 'Tautan karya peminatan berhasil diperbarui.');
+          const badge = document.getElementById('badge-fileKarya');
+          if (badge) {
+            badge.innerHTML = `
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                Karya Terunggah
+              </span>
+            `;
           }
-          await confirmUploadedFile('fileKarya', url);
-        });
-      }
-    }
-
-    // Initial render of dynamic karya
-    renderKaryaCriteria(initialPeminatan);
-
-    // Re-render when selector changes
-    if (peminatanSelect) {
-      peminatanSelect.addEventListener('change', (e) => {
-        const val = (e.target as HTMLSelectElement).value;
-        renderKaryaCriteria(val);
+          const currentBox = document.getElementById('current-file-fileKarya');
+          if (currentBox) {
+            currentBox.innerHTML = `
+              <div>
+                <span class="text-gray-500">Tautan Karya Saat Ini:</span>
+                <span class="text-emerald-400 ml-1 font-bold">${val}</span>
+              </div>
+            `;
+          }
+        } catch (e: any) {
+          showToast('error', 'Gagal Menyimpan', e.message);
+        }
       });
     }
 

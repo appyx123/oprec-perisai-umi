@@ -1,16 +1,16 @@
 # Graph Report - orec-perisai-umi  (2026-09-12)
 
 ## Corpus Check
-- 68 files · ~380,128 words
+- 68 files · ~379,544 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2104 nodes · 2451 edges · 181 communities (27 shown, 152 thin omitted)
+- 2105 nodes · 2452 edges · 182 communities (28 shown, 152 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 2 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d5b66393`
+- Built from commit: `ef1322e7`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -192,6 +192,7 @@
 - CLAUDE.md
 - rules/graphify.md
 - workflows/graphify.md
+- reset-password.ts
 - seed-documents.mjs
 - aws4fetch
 
@@ -222,7 +223,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (181 total, 152 thin omitted)
+## Communities (182 total, 152 thin omitted)
 
 ### Community 0 - "worker-configuration.d.ts"
 Cohesion: 0.00
@@ -241,12 +242,12 @@ Cohesion: 0.08
 Nodes (28): Admin, BerkasCagen, berkasCagensRelations, Cagen, CagenDocument, cagenDocumentsRelations, cagensRelations, DocumentType (+20 more)
 
 ### Community 4 - "index.ts"
-Cohesion: 0.22
+Cohesion: 0.20
 Nodes (7): drizzle-orm, Db, DbEnvConfig, berkasCagens, cagens, systemSettings, AuthUser
 
 ### Community 5 - "auth.ts"
-Cohesion: 0.08
-Nodes (30): bcryptjs, client, seed(), resolveDbCredentials(), admins, AUTH_COOKIE_NAME, clearAuthCookie(), generateNomorRegistrasi() (+22 more)
+Cohesion: 0.12
+Nodes (24): resolveDbCredentials(), admins, AUTH_COOKIE_NAME, clearAuthCookie(), generateNomorRegistrasi(), getAuthToken(), getJwtSecretKey(), JwtSecretOrEnv (+16 more)
 
 ### Community 6 - "createDb"
 Cohesion: 0.20
@@ -332,18 +333,22 @@ Nodes (3): RequestInitCfPropertiesVaryAcceptHeader, RequestInitCfPropertiesVaryA
 Cohesion: 0.40
 Nodes (3): @libsql/client, client, defaultCriteria
 
+### Community 178 - "reset-password.ts"
+Cohesion: 0.22
+Nodes (6): bcryptjs, client, seed(), verifyPasswordResetJwt(), POST(), prerender
+
 ## Knowledge Gaps
 - **1040 isolated node(s):** `name`, `type`, `version`, `node`, `dev` (+1035 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1748 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1749 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **152 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `WorkerEntrypoint` connect `WorkerEntrypoint` to `worker-configuration.d.ts`?**
-  _High betweenness centrality (0.101) - this node is a cross-community bridge._
+- **Why does `WorkerEntrypoint` connect `WorkerEntrypoint` to `worker-configuration.d.ts`, `index.ts`?**
+  _High betweenness centrality (0.100) - this node is a cross-community bridge._
 - **Why does `Performance` connect `Performance` to `worker-configuration.d.ts`?**
-  _High betweenness centrality (0.091) - this node is a cross-community bridge._
+  _High betweenness centrality (0.090) - this node is a cross-community bridge._
 - **Why does `URL` connect `URL` to `worker-configuration.d.ts`?**
   _High betweenness centrality (0.047) - this node is a cross-community bridge._
 - **What connects `name`, `type`, `version` to the rest of the system?**
