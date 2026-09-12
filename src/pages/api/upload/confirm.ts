@@ -101,8 +101,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const body = (await request.json().catch(() => null)) as Record<string, any> | null;
     const finalFileName = (body?.fileKey || body?.finalFileName || '') as string;
     const rawCategory = (body?.category || body?.jenisBerkas || body?.slug || '') as string;
-    const originalFilename = String(body?.originalFilename || body?.fileName || finalFileName.split('/').pop() || finalFileName).trim();
-    const contentType = String(body?.contentType || 'application/octet-stream').trim();
+    const originalFilename = String(body?.originalFilename || body?.fileName || (finalFileName.startsWith('http') ? finalFileName : finalFileName.split('/').pop()) || finalFileName).trim();
+    const contentType = String(body?.contentType || (finalFileName.startsWith('http') ? 'text/url' : 'application/octet-stream')).trim();
 
     if (!body || !finalFileName || !rawCategory) {
       return new Response(
@@ -240,7 +240,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const mandatoryTypes = await db
       .select({ id: documentTypes.id })
       .from(documentTypes)
-      .where(eq(documentTypes.group, 'wajib'));
+      .where(and(eq(documentTypes.group, 'wajib'), eq(documentTypes.isActive, true)));
 
     const userUploadedDocs = await db
       .select({ docTypeId: cagenDocuments.documentTypeId })

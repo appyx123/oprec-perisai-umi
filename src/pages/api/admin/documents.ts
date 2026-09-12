@@ -36,6 +36,7 @@ export const GET: APIRoute = async ({ locals }) => {
         peminatanId: documentTypes.peminatanId,
         peminatanNama: peminatan.nama,
         maxFiles: documentTypes.maxFiles,
+        inputType: documentTypes.inputType,
         acceptMime: documentTypes.acceptMime,
         maxSizeBytes: documentTypes.maxSizeBytes,
         isActive: documentTypes.isActive,
@@ -82,9 +83,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const label = String(body.label || '').trim();
     const group = String(body.group || 'wajib').toLowerCase() as 'wajib' | 'opsional' | 'karya';
     const peminatanId = body.peminatanId ? Number(body.peminatanId) : null;
-    const acceptMime = String(body.acceptMime || 'application/pdf').trim();
-    const maxSizeMB = Number(body.maxSizeMB || 2);
-    const maxSizeBytes = body.maxSizeBytes ? Number(body.maxSizeBytes) : Math.round(maxSizeMB * 1024 * 1024);
+    const inputType = (String(body.inputType || 'file').toLowerCase() === 'link' ? 'link' : 'file') as 'file' | 'link';
+    const acceptMime = inputType === 'link' ? String(body.acceptMime || 'text/uri-list').trim() : String(body.acceptMime || 'application/pdf').trim();
+    const maxSizeMB = inputType === 'link' ? 0 : Number(body.maxSizeMB || 2);
+    const maxSizeBytes = inputType === 'link' ? 0 : (body.maxSizeBytes ? Number(body.maxSizeBytes) : Math.round(maxSizeMB * 1024 * 1024));
     const maxFiles = Math.max(1, Number(body.maxFiles || 1));
     const isActive = body.isActive !== undefined ? Boolean(body.isActive) : true;
 
@@ -129,6 +131,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         group,
         peminatanId,
         maxFiles,
+        inputType,
         acceptMime,
         maxSizeBytes,
         isActive,
@@ -197,6 +200,16 @@ export const PUT: APIRoute = async ({ request, locals }) => {
     }
     if (body.peminatanId !== undefined) {
       updateData.peminatanId = body.peminatanId ? Number(body.peminatanId) : null;
+    }
+    if (body.inputType !== undefined) {
+      const it = String(body.inputType).toLowerCase();
+      if (['file', 'link'].includes(it)) {
+        updateData.inputType = it;
+        if (it === 'link') {
+          if (body.acceptMime === undefined) updateData.acceptMime = 'text/uri-list';
+          if (body.maxSizeMB === undefined && body.maxSizeBytes === undefined) updateData.maxSizeBytes = 0;
+        }
+      }
     }
     if (body.acceptMime !== undefined) {
       updateData.acceptMime = String(body.acceptMime).trim();

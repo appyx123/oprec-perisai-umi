@@ -275,6 +275,12 @@ export const documentTypes = sqliteTable('document_types', {
     .notNull()
     .default(1),
 
+  inputType: text('input_type', {
+    enum: ['file', 'link'],
+  })
+    .notNull()
+    .default('file'),
+
   acceptMime: text('accept_mime')
     .notNull(),
 

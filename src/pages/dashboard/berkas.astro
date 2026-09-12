@@ -2,146 +2,89 @@
 import MainLayout from '../../layouts/MainLayout.astro';
 import type { AuthUser } from '../../lib/auth';
 import { createDb } from '../../db';
-import { cagens, berkasCagens, systemSettings, documentTypes, cagenDocuments } from '../../db/schema';
-import { eq } from 'drizzle-orm';
+import { cagens, berkasCagens, systemSettings, documentTypes, cagenDocuments, peminatan } from '../../db/schema';
+import { eq, asc } from 'drizzle-orm';
 
 const user = Astro.locals.user as AuthUser | null | undefined;
 if (!user || user.role !== 'user') {
   return Astro.redirect('/auth/login');
 }
 
-// Definisi 12 Item Berkas terbagi dalam 3 grup
-const adminDocs = [
-  {
-    id: 'ktm',
-    category: 'ktm',
-    label: 'Kartu Tanda Mahasiswa (KTM)',
-    desc: 'KTM resmi UMI atau Surat Keterangan Aktif Kuliah dari fakultas.',
-    accept: '.pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png',
-    typeHint: 'PDF/JPG/PNG (Maks. 2MB)',
-    maxSizeMB: 2,
-    required: true,
-    fileKey: '',
-    isUploaded: false,
-  },
-  {
-    id: 'transkripNilai',
-    category: 'transkripNilai',
-    label: 'Transkrip Nilai Akademik',
-    desc: 'Transkrip nilai semester terakhir dari portal akademik UMI.',
-    accept: '.pdf,application/pdf',
-    typeHint: 'PDF (Maks. 2MB)',
-    maxSizeMB: 2,
-    required: true,
-    fileKey: '',
-    isUploaded: false,
-  },
-  {
-    id: 'pasFoto',
-    category: 'pasFoto',
-    label: 'Pas Foto Formal Berlatar Merah',
-    desc: 'Pas foto formal terbaru dengan latar belakang merah rapi (rasio 4:6 atau 3:4).',
-    accept: '.jpg,.jpeg,.png,image/jpeg,image/png',
-    typeHint: 'JPG/PNG (Latar Merah, Maks. 2MB)',
-    maxSizeMB: 2,
-    required: true,
-    fileKey: '',
-    isUploaded: false,
-  },
-  {
-    id: 'cv',
-    category: 'cv',
-    label: 'Curriculum Vitae (CV)',
-    desc: 'Daftar riwayat hidup, pengalaman organisasi/kepanitiaan, dan keahlian.',
-    accept: '.pdf,application/pdf',
-    typeHint: 'PDF ATS/Kreatif (Maks. 2MB)',
-    maxSizeMB: 2,
-    required: true,
-    fileKey: '',
-    isUploaded: false,
-  },
-];
-
-const mediaDocs = [
-  {
-    id: 'buktiFollowIG',
-    category: 'buktiFollow',
-    label: 'Bukti Follow Instagram & TikTok',
-    desc: 'Screenshot bukti mengikuti Instagram resmi @perisai.umi dan akun TikTok.',
-    accept: '.jpg,.jpeg,.png,image/jpeg,image/png',
-    typeHint: 'JPG/PNG (Maks. 2MB)',
-    maxSizeMB: 2,
-    required: true,
-    fileKey: '',
-    isUploaded: false,
-  },
-  {
-    id: 'buktiSubscribeYT',
-    category: 'buktiFollow',
-    label: 'Bukti Subscribe YouTube',
-    desc: 'Screenshot bukti berlangganan kanal YouTube resmi UKM PERISAI UMI.',
-    accept: '.jpg,.jpeg,.png,image/jpeg,image/png',
-    typeHint: 'JPG/PNG (Maks. 2MB)',
-    maxSizeMB: 2,
-    required: true,
-    fileKey: '',
-    isUploaded: false,
-  },
-  {
-    id: 'buktiShareWA',
-    category: 'buktiShare',
-    label: 'Bukti Share Pamflet OPREC ke Grup WA',
-    desc: 'Screenshot bukti menyebarkan pamflet OPREC ke minimal 3 grup WA atau status medsos.',
-    accept: '.jpg,.jpeg,.png,image/jpeg,image/png',
-    typeHint: 'JPG/PNG (Maks. 5 Foto, 2MB/foto)',
-    maxSizeMB: 2,
-    required: true,
-    fileKey: '',
-    isUploaded: false,
-  },
-  {
-    id: 'sertifikatPrestasi',
-    category: 'sertifikatPrestasi',
-    label: 'Sertifikat Prestasi / Kejuaraan',
-    desc: 'Piagam penghargaan kompetisi akademik/non-akademik (Opsional).',
-    accept: '.pdf,application/pdf',
-    typeHint: 'PDF (Opsional, Maks. 2MB)',
-    maxSizeMB: 2,
-    required: false,
-    fileKey: '',
-    isUploaded: false,
-  },
-  {
-    id: 'sertifikatBahasa',
-    category: 'sertifikatBahasa',
-    label: 'Sertifikat Kemampuan Bahasa',
-    desc: 'Sertifikat TOEFL, IELTS, atau tes kemampuan bahasa asing lainnya (Opsional).',
-    accept: '.pdf,application/pdf',
-    typeHint: 'PDF (Opsional, Maks. 2MB)',
-    maxSizeMB: 2,
-    required: false,
-    fileKey: '',
-    isUploaded: false,
-  },
-  {
-    id: 'sertifikatOrganisasi',
-    category: 'sertifikatOrganisasi',
-    label: 'Sertifikat Organisasi / Kepanitiaan',
-    desc: 'Bukti partisipasi kepengurusan organisasi kampus atau kepanitiaan (Opsional).',
-    accept: '.pdf,application/pdf',
-    typeHint: 'PDF (Opsional, Maks. 2MB)',
-    maxSizeMB: 2,
-    required: false,
-    fileKey: '',
-    isUploaded: false,
-  },
-];
-
 let cagenData: any = null;
 let berkasData: any = null;
 let settingData: any = null;
-let karyaFileKey = '';
 let dbError: string | null = null;
+let activeDocRequirements: any[] = [];
+let userPeminatanId: number | null = null;
+
+// Metadata default per slug untuk deskripsi & hint format
+const DOC_METADATA: Record<string, { desc: string; typeHint?: string }> = {
+  ktm: {
+    desc: 'KTM resmi UMI atau Surat Keterangan Aktif Kuliah dari fakultas.',
+    typeHint: 'PDF/JPG/PNG (Maks. 2MB)',
+  },
+  transkrip: {
+    desc: 'Transkrip nilai semester terakhir dari portal akademik UMI.',
+    typeHint: 'PDF (Maks. 2MB)',
+  },
+  pas_foto: {
+    desc: 'Pas foto formal terbaru dengan latar belakang merah rapi (rasio 4:6 atau 3:4).',
+    typeHint: 'JPG/PNG (Latar Merah, Maks. 2MB)',
+  },
+  cv: {
+    desc: 'Daftar riwayat hidup, pengalaman organisasi/kepanitiaan, dan keahlian.',
+    typeHint: 'PDF ATS/Kreatif (Maks. 2MB)',
+  },
+  bukti_follow: {
+    desc: 'Screenshot bukti mengikuti Instagram resmi @perisai.umi dan akun TikTok.',
+    typeHint: 'JPG/PNG (Maks. 2MB)',
+  },
+  bukti_subscribe: {
+    desc: 'Screenshot bukti berlangganan kanal YouTube resmi UKM PERISAI UMI.',
+    typeHint: 'JPG/PNG (Maks. 2MB)',
+  },
+  bukti_share: {
+    desc: 'Screenshot bukti menyebarkan pamflet OPREC ke minimal 3 grup WA atau status medsos.',
+    typeHint: 'JPG/PNG (Maks. 5 Foto, 2MB/foto)',
+  },
+  sertifikat_prestasi: {
+    desc: 'Piagam penghargaan kompetisi akademik/non-akademik (Opsional).',
+    typeHint: 'PDF (Opsional, Maks. 2MB)',
+  },
+  sertifikat_bahasa: {
+    desc: 'Sertifikat TOEFL, IELTS, atau tes kemampuan bahasa asing lainnya (Opsional).',
+    typeHint: 'PDF (Opsional, Maks. 2MB)',
+  },
+  sertifikat_organisasi: {
+    desc: 'Bukti partisipasi kepengurusan organisasi kampus atau kepanitiaan (Opsional).',
+    typeHint: 'PDF (Opsional, Maks. 2MB)',
+  },
+  portfolio_linkedin: {
+    desc: 'Cantumkan tautan akun LinkedIn atau portofolio daring (GitHub/Behance/Dribbble/dll) untuk nilai tambah seleksi.',
+    typeHint: 'Tautan URL (Opsional)',
+  },
+};
+
+const LEGACY_COLUMN_FALLBACK: Record<string, string> = {
+  ktm: 'ktm',
+  transkrip: 'transkripNilai',
+  pas_foto: 'pasFoto',
+  cv: 'cv',
+  bukti_follow: 'buktiFollow',
+  bukti_subscribe: 'buktiFollow',
+  bukti_share: 'buktiShare',
+  sertifikat_prestasi: 'sertifikatPrestasi',
+  sertifikat_bahasa: 'sertifikatBahasa',
+  sertifikat_organisasi: 'sertifikatOrganisasi',
+  file_karya: 'fileKarya',
+  karya_kti: 'fileKarya',
+  karya_poster: 'fileKarya',
+  karya_debat: 'fileKarya',
+  karya_videograph: 'fileKarya',
+  karya_business_plan: 'fileKarya',
+};
+
+let docMap = new Map<string, string>();
 
 try {
   const db = createDb();
@@ -159,7 +102,38 @@ try {
     .limit(1);
   berkasData = berkasRow || null;
 
-  // ponytail: Baca dokumen dari skema relasional baru (cagen_documents)
+  // STEP 1: Query strict hanya dokumen aktif (isActive = true)
+  activeDocRequirements = await db
+    .select({
+      id: documentTypes.id,
+      slug: documentTypes.slug,
+      label: documentTypes.label,
+      group: documentTypes.group,
+      peminatanId: documentTypes.peminatanId,
+      maxFiles: documentTypes.maxFiles,
+      inputType: documentTypes.inputType,
+      acceptMime: documentTypes.acceptMime,
+      maxSizeBytes: documentTypes.maxSizeBytes,
+      isActive: documentTypes.isActive,
+    })
+    .from(documentTypes)
+    .where(eq(documentTypes.isActive, true))
+    .orderBy(asc(documentTypes.id));
+
+  // Ambil referensi peminatan untuk matching peminatan peserta
+  const peminatanRows = await db
+    .select({ id: peminatan.id, nama: peminatan.nama })
+    .from(peminatan);
+
+  const candidatePeminatanStr = cagenData?.peminatan || berkasData?.peminatan || 'KTI/ESSAY';
+  const cleanCandPem = candidatePeminatanStr.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const matchedPem = peminatanRows.find(p => {
+    const cleanP = p.nama.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return cleanP === cleanCandPem || cleanCandPem.includes(cleanP) || cleanP.includes(cleanCandPem);
+  });
+  userPeminatanId = matchedPem?.id || null;
+
+  // Baca dokumen peserta dari skema relasional baru (cagen_documents)
   const relDocs = await db
     .select({
       slug: documentTypes.slug,
@@ -169,7 +143,7 @@ try {
     .innerJoin(documentTypes, eq(cagenDocuments.documentTypeId, documentTypes.id))
     .where(eq(cagenDocuments.cagenId, user.id));
 
-  const docMap = new Map(relDocs.map((d) => [d.slug, d.s3Key]));
+  docMap = new Map(relDocs.map((d) => [d.slug, d.s3Key]));
 
   const [settingRow] = await db
     .select({ waNumber: systemSettings.waNumber, waMessage: systemSettings.waMessage })
@@ -177,30 +151,6 @@ try {
     .where(eq(systemSettings.id, 1))
     .limit(1);
   settingData = settingRow || null;
-
-  // Helper resolusi fileKey (prioritaskan relasional baru, fallback ke berkasCagens)
-  const resolveKey = (slug: string, fallbackKey: string | null | undefined) => 
-    docMap.get(slug) || (fallbackKey && fallbackKey.trim()) || '';
-
-  // Update fileKey mapping
-  (adminDocs as any)[0].fileKey = resolveKey('ktm', berkasData?.ktm);
-  (adminDocs as any)[1].fileKey = resolveKey('transkrip', berkasData?.transkripNilai);
-  (adminDocs as any)[2].fileKey = resolveKey('pas_foto', berkasData?.pasFoto);
-  (adminDocs as any)[3].fileKey = resolveKey('cv', berkasData?.cv);
-
-  (mediaDocs as any)[0].fileKey = resolveKey('bukti_follow', berkasData?.buktiFollow);
-  (mediaDocs as any)[1].fileKey = resolveKey('bukti_subscribe', berkasData?.buktiFollow);
-  (mediaDocs as any)[2].fileKey = resolveKey('bukti_share', berkasData?.buktiShare);
-  (mediaDocs as any)[3].fileKey = resolveKey('sertifikat_prestasi', berkasData?.sertifikatPrestasi);
-  (mediaDocs as any)[4].fileKey = resolveKey('sertifikat_bahasa', berkasData?.sertifikatBahasa);
-  (mediaDocs as any)[5].fileKey = resolveKey('sertifikat_organisasi', berkasData?.sertifikatOrganisasi);
-
-  for (const d of [...adminDocs, ...mediaDocs]) {
-    d.isUploaded = Boolean(d.fileKey && d.fileKey.trim().length > 0);
-  }
-
-  const karyaDoc = relDocs.find((d) => d.slug.startsWith('karya_') || d.slug === 'file_karya');
-  karyaFileKey = karyaDoc?.s3Key || (berkasData?.fileKarya && berkasData.fileKarya.trim()) || '';
 } catch (err: any) {
   console.error('Error fetching berkas portal data:', err);
   dbError = 'Gagal memuat sebagian data profil/berkas. Silakan muat ulang halaman.';
@@ -209,19 +159,88 @@ try {
 const userNim = cagenData?.nim || user.nim || String(user.id);
 const chosenPeminatan = cagenData?.peminatan || berkasData?.peminatan || 'KTI/Esai';
 
+// Helper resolusi key berkas
+function resolveFileKey(slug: string): string {
+  if (docMap.has(slug)) return docMap.get(slug)!;
+  const legacyCol = LEGACY_COLUMN_FALLBACK[slug];
+  if (legacyCol && berkasData && berkasData[legacyCol]) {
+    return String(berkasData[legacyCol]).trim();
+  }
+  return '';
+}
+
+// Format dokumen aktif menjadi view-model
+const formattedDocs = activeDocRequirements.map((d) => {
+  const fileKey = resolveFileKey(d.slug);
+  const isUploaded = Boolean(fileKey && fileKey.trim().length > 0);
+  const maxSizeMB = Math.round(d.maxSizeBytes / (1024 * 1024)) || 2;
+  const meta = DOC_METADATA[d.slug];
+  const desc = meta?.desc || (d.inputType === 'link' ? 'Cantumkan tautan URL sesuai ketentuan penugasan.' : `Unggah berkas persyaratan ${d.label}.`);
+  
+  let typeHint = '';
+  if (d.inputType === 'link') {
+    typeHint = 'Tautan / URL (Google Drive, YouTube, dll)';
+  } else if (meta?.typeHint) {
+    typeHint = meta.typeHint;
+  } else {
+    let fmt = 'Berkas';
+    if (d.acceptMime.includes('pdf')) fmt = 'PDF';
+    else if (d.acceptMime.includes('jpeg') || d.acceptMime.includes('png')) fmt = 'JPG/PNG';
+    else if (d.acceptMime.includes('zip')) fmt = 'ZIP';
+    else if (d.acceptMime.includes('mp4')) fmt = 'MP4';
+    typeHint = `${fmt} (Maks. ${maxSizeMB}MB)`;
+  }
+
+  return {
+    id: d.id,
+    slug: d.slug,
+    label: d.label,
+    group: d.group,
+    peminatanId: d.peminatanId,
+    inputType: (d.inputType || 'file') as 'file' | 'link',
+    acceptMime: d.acceptMime,
+    maxSizeMB,
+    desc,
+    typeHint,
+    fileKey,
+    isUploaded,
+    isRequired: d.group === 'wajib',
+  };
+});
+
+// Pembagian ke dalam 3 Tab:
+// 1. Administrasi Utama: wajib, bukan bukti medsos, dan peminatanId null
+const adminDocsList = formattedDocs.filter((d) => 
+  d.group === 'wajib' && 
+  !d.slug.startsWith('bukti_') && 
+  d.peminatanId === null
+);
+
+// 2. Media Sosial & Opsional: bukti medsos ATAU group opsional
+const mediaDocsList = formattedDocs.filter((d) => 
+  d.slug.startsWith('bukti_') || 
+  d.group === 'opsional'
+);
+
+// 3. Karya Peminatan: group karya & (peminatanId null atau cocok dengan peminatan peserta)
+const karyaDocsList = formattedDocs.filter((d) => 
+  d.group === 'karya' && 
+  (d.peminatanId === null || d.peminatanId === userPeminatanId)
+);
+
+// Perhitungan progress kelengkapan berkas wajib
+const mandatoryDocs = formattedDocs.filter((d) => 
+  d.group === 'wajib' && 
+  (d.peminatanId === null || d.peminatanId === userPeminatanId)
+);
+const totalMandatory = mandatoryDocs.length;
+const currentMandatoryUploaded = mandatoryDocs.filter((d) => d.isUploaded).length;
+const progressPercent = totalMandatory > 0 ? Math.min(100, Math.round((currentMandatoryUploaded / totalMandatory) * 100)) : 100;
+
 let cleanWa = (settingData?.waNumber || '081234567890').replace(/\D/g, '');
 if (cleanWa.startsWith('0')) cleanWa = '62' + cleanWa.slice(1);
 else if (cleanWa.startsWith('8')) cleanWa = '62' + cleanWa;
 const waHelpUrl = `https://wa.me/${cleanWa}?text=${encodeURIComponent('Halo Panitia OPREC PERISAI UMI, saya butuh bantuan pada upload berkas.')}`;
-
-const totalMandatory = adminDocs.length + 3 + 1; // 4 admin + 3 medsos + 1 karya
-const currentMandatoryUploaded = 
-  adminDocs.filter(d => d.isUploaded).length +
-  (mediaDocs.find(d => d.id === 'buktiFollowIG')?.isUploaded ? 1 : 0) +
-  (mediaDocs.find(d => d.id === 'buktiSubscribeYT')?.isUploaded ? 1 : 0) +
-  (mediaDocs.find(d => d.id === 'buktiShareWA')?.isUploaded ? 1 : 0) +
-  (karyaFileKey ? 1 : 0);
-const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / totalMandatory) * 100));
 ---
 
 <MainLayout title="Pusat Unggah Berkas Pendaftaran - PERISAI UMI">
@@ -240,7 +259,7 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
           Pusat Unggah Dokumen Pendaftaran
         </h1>
         <p class="text-xs sm:text-sm text-gray-400 mt-1 max-w-2xl">
-          Unggah 12 berkas persyaratan yang terbagi ke dalam 3 tahapan terstruktur. Instruksi karya peminatan ditampilkan secara dinamis sesuai pilihan Anda.
+          Lengkapi seluruh dokumen persyaratan administrasi, interaksi media sosial, serta penugasan karya sesuai pilihan peminatan Anda.
         </p>
       </div>
 
@@ -273,9 +292,9 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
       <div class="absolute -right-16 -top-16 w-48 h-48 bg-amber-500/5 blur-3xl rounded-full pointer-events-none"></div>
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
         <div>
-          <span class="text-xs font-mono uppercase tracking-wider text-amber-400 font-bold">Status Kelengkapan</span>
+          <span class="text-xs font-mono uppercase tracking-wider text-amber-400 font-bold">Status Kelengkapan Berkas Wajib</span>
           <h2 class="text-lg font-bold text-white mt-0.5">
-            {progressPercent === 100 ? 'Semua Berkas Wajib Lengkap 🎉' : `${currentMandatoryUploaded} dari ${totalMandatory} Berkas Wajib Diunggah`}
+            {progressPercent === 100 && totalMandatory > 0 ? 'Semua Berkas Wajib Lengkap 🎉' : `${currentMandatoryUploaded} dari ${totalMandatory} Berkas Wajib Dilengkapi`}
           </h2>
         </div>
         <div class="text-right">
@@ -300,7 +319,7 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
       </div>
     )}
 
-    <!-- STEP 1: TAB NAVIGATION BUTTONS -->
+    <!-- TAB NAVIGATION BUTTONS -->
     <div class="flex flex-wrap items-center gap-2 sm:gap-3 border-b border-white/10 pb-4 mb-8">
       <button
         id="tab-btn-admin"
@@ -310,7 +329,7 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
       >
         <span class="tab-num w-5 h-5 rounded-full bg-black/20 text-black flex items-center justify-center text-xs font-black transition-colors">1</span>
         <span>Administrasi Utama</span>
-        <span class="tab-pill ml-1 text-[10px] px-2 py-0.5 rounded-full bg-black/15 text-black font-mono transition-colors">4 File</span>
+        <span class="tab-pill ml-1 text-[10px] px-2 py-0.5 rounded-full bg-black/15 text-black font-mono transition-colors">{adminDocsList.length} Item</span>
       </button>
 
       <button
@@ -321,7 +340,7 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
       >
         <span class="tab-num w-5 h-5 rounded-full bg-gray-800 text-gray-200 border border-white/10 flex items-center justify-center text-xs font-black transition-colors">2</span>
         <span>Media Sosial & Opsional</span>
-        <span class="tab-pill ml-1 text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-gray-400 font-mono transition-colors">6 Item</span>
+        <span class="tab-pill ml-1 text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-gray-400 font-mono transition-colors">{mediaDocsList.length} Item</span>
       </button>
 
       <button
@@ -332,7 +351,7 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
       >
         <span class="tab-num w-5 h-5 rounded-full bg-gray-800 text-gray-200 border border-white/10 flex items-center justify-center text-xs font-black transition-colors">3</span>
         <span>Karya Peminatan</span>
-        <span class="tab-pill ml-1 text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-gray-400 font-mono transition-colors">Dinamis</span>
+        <span class="tab-pill ml-1 text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-gray-400 font-mono transition-colors">{karyaDocsList.length > 0 ? `${karyaDocsList.length} Tugas` : 'Dinamis'}</span>
       </button>
     </div>
 
@@ -351,78 +370,132 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {adminDocs.map((doc) => (
-            <div 
-              id={`card-${doc.id}`} 
-              class={`p-6 rounded-2xl border transition-all flex flex-col justify-between ${
-                doc.isUploaded ? 'bg-[#121c15]/60 border-emerald-500/30' : 'bg-[#161620] border-white/10 hover:border-amber-500/30'
-              }`}
-            >
-              <div>
-                <div class="flex items-start justify-between gap-3 mb-3">
-                  <div>
-                    <h3 class="font-bold text-sm sm:text-base text-white">{doc.label}</h3>
-                    <p class="text-xs text-gray-400 mt-0.5">{doc.desc}</p>
-                  </div>
-                  <div id={`badge-${doc.id}`}>
-                    {doc.isUploaded ? (
-                      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
-                        Terunggah
-                      </span>
-                    ) : (
-                      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-400/10 text-amber-400 border border-amber-400/20">
-                        Wajib
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <!-- Progress box -->
-                <div id={`progress-box-${doc.id}`} class="hidden mb-3 p-3 rounded-xl bg-black/40 border border-amber-500/20">
-                  <div class="flex justify-between text-xs font-mono text-amber-300 mb-1">
-                    <span id={`progress-status-${doc.id}`}>Mengunggah...</span>
-                    <span id={`progress-percent-${doc.id}`}>0%</span>
-                  </div>
-                  <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                    <div id={`progress-bar-${doc.id}`} class="h-full bg-amber-400 transition-all duration-200" style="width: 0%"></div>
-                  </div>
-                </div>
-
-                <!-- Error message -->
-                <div id={`error-${doc.id}`} class="hidden mb-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs"></div>
-
-                <!-- Current file preview -->
-                {doc.fileKey && (
-                  <div id={`current-file-${doc.id}`} class="mb-4 text-xs font-mono text-gray-400 bg-black/20 p-2.5 rounded-xl border border-white/5 break-all">
-                    Berkas aktif: <span class="text-emerald-400">{doc.fileKey}</span>
-                  </div>
-                )}
-              </div>
-
-              <div class="pt-4 border-t border-white/5 flex items-center justify-between gap-3">
-                <span class="text-[11px] font-mono text-gray-500">{doc.typeHint}</span>
-                <div class="flex items-center gap-2">
-                  <input
-                    type="file"
-                    id={`input-${doc.id}`}
-                    class="file-input-trigger hidden"
-                    data-category={doc.category}
-                    data-label={doc.label}
-                    data-max-mb={doc.maxSizeMB}
-                    accept={doc.accept}
-                  />
-                  <button
-                    type="button"
-                    class="btn-select-file px-4 py-2 rounded-xl text-xs font-bold transition-all bg-amber-400 hover:bg-amber-300 text-black shadow-md shadow-amber-500/15 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                    data-target={`input-${doc.id}`}
-                  >
-                    <span>{doc.isUploaded ? 'Ganti Berkas' : 'Pilih Berkas'}</span>
-                  </button>
-                </div>
-              </div>
+          {adminDocsList.length === 0 ? (
+            <div class="col-span-2 py-8 text-center text-gray-500 text-xs font-mono">
+              Tidak ada persyaratan administrasi utama yang aktif saat ini.
             </div>
-          ))}
+          ) : (
+            adminDocsList.map((doc) => (
+              <div 
+                id={`card-${doc.id}`} 
+                class={`p-6 rounded-2xl border transition-all flex flex-col justify-between ${
+                  doc.isUploaded ? 'bg-[#121c15]/60 border-emerald-500/30' : 'bg-[#161620] border-white/10 hover:border-amber-500/30'
+                }`}
+              >
+                <div>
+                  <div class="flex items-start justify-between gap-3 mb-3">
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <h3 class="font-bold text-sm sm:text-base text-white">{doc.label}</h3>
+                        {doc.inputType === 'link' && (
+                          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 text-[10px] font-mono">
+                            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                            Tautan
+                          </span>
+                        )}
+                      </div>
+                      <p class="text-xs text-gray-400 mt-0.5">{doc.desc}</p>
+                    </div>
+                    <div id={`badge-${doc.id}`}>
+                      {doc.isUploaded ? (
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                          Terunggah
+                        </span>
+                      ) : doc.isRequired ? (
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-400/10 text-amber-400 border border-amber-400/20">
+                          Wajib
+                        </span>
+                      ) : (
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-white/5 text-gray-400 border border-white/10">
+                          Opsional
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <!-- Progress box for file uploads -->
+                  {doc.inputType === 'file' && (
+                    <div id={`progress-box-${doc.id}`} class="hidden mb-3 p-3 rounded-xl bg-black/40 border border-amber-500/20">
+                      <div class="flex justify-between text-xs font-mono text-amber-300 mb-1">
+                        <span id={`progress-status-${doc.id}`}>Mengunggah...</span>
+                        <span id={`progress-percent-${doc.id}`}>0%</span>
+                      </div>
+                      <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                        <div id={`progress-bar-${doc.id}`} class="h-full bg-amber-400 transition-all duration-200" style="width: 0%"></div>
+                      </div>
+                    </div>
+                  )}
+
+                  <!-- Error message -->
+                  <div id={`error-${doc.id}`} class="hidden mb-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs"></div>
+
+                  <!-- Current file/link preview -->
+                  {doc.fileKey && (
+                    <div id={`current-file-${doc.id}`} class="mb-4 text-xs font-mono text-gray-400 bg-black/20 p-2.5 rounded-xl border border-white/5 break-all">
+                      {doc.inputType === 'link' || doc.fileKey.startsWith('http') ? (
+                        <span>Tautan aktif: <a href={doc.fileKey} target="_blank" rel="noopener noreferrer" class="text-amber-400 underline">{doc.fileKey}</a></span>
+                      ) : (
+                        <span>Berkas aktif: <span class="text-emerald-400">{doc.fileKey}</span></span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div class="pt-4 border-t border-white/5">
+                  {doc.inputType === 'file' ? (
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="text-[11px] font-mono text-gray-500">{doc.typeHint}</span>
+                      <div class="flex items-center gap-2">
+                        <input
+                          type="file"
+                          id={`input-${doc.id}`}
+                          class="file-input-trigger hidden"
+                          data-category={doc.slug}
+                          data-label={doc.label}
+                          data-max-mb={doc.maxSizeMB}
+                          accept={doc.acceptMime}
+                        />
+                        <button
+                          type="button"
+                          class="btn-select-file px-4 py-2 rounded-xl text-xs font-bold transition-all bg-amber-400 hover:bg-amber-300 text-black shadow-md shadow-amber-500/15 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          data-target={`input-${doc.id}`}
+                        >
+                          <span>{doc.isUploaded ? 'Ganti Berkas' : 'Pilih Berkas'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div class="space-y-2">
+                      <div class="flex items-center justify-between text-[11px] font-mono text-gray-500 mb-1">
+                        <span>{doc.typeHint}</span>
+                        {doc.isUploaded && <span class="text-emerald-400 font-sans font-semibold">Tautan Tersimpan</span>}
+                      </div>
+                      <div class="flex flex-col sm:flex-row gap-2">
+                        <input
+                          type="url"
+                          id={`input-link-${doc.id}`}
+                          class="link-input flex-1 bg-black/40 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 font-mono"
+                          placeholder="Masukkan tautan (Misal: https://drive.google.com/...)"
+                          value={doc.fileKey.startsWith('http') ? doc.fileKey : ''}
+                        />
+                        <button
+                          type="button"
+                          class="btn-save-link px-4 py-2 rounded-xl text-xs font-bold transition-all bg-amber-400 hover:bg-amber-300 text-black shadow-md shadow-amber-500/15 flex items-center justify-center gap-1.5 cursor-pointer shrink-0 disabled:opacity-50"
+                          data-target={`input-link-${doc.id}`}
+                          data-category={doc.slug}
+                          data-id={doc.id}
+                          data-label={doc.label}
+                        >
+                          Simpan Tautan
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
@@ -441,110 +514,133 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
           </p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {mediaDocs.map((doc) => (
-            <div 
-              id={`card-${doc.id}`} 
-              class={`p-6 rounded-2xl border transition-all flex flex-col justify-between ${
-                doc.isUploaded ? 'bg-[#121c15]/60 border-emerald-500/30' : 'bg-[#161620] border-white/10 hover:border-amber-500/30'
-              }`}
-            >
-              <div>
-                <div class="flex items-start justify-between gap-3 mb-3">
-                  <div>
-                    <h3 class="font-bold text-sm sm:text-base text-white">{doc.label}</h3>
-                    <p class="text-xs text-gray-400 mt-0.5">{doc.desc}</p>
-                  </div>
-                  <div id={`badge-${doc.id}`}>
-                    {doc.isUploaded ? (
-                      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
-                        Terunggah
-                      </span>
-                    ) : doc.required ? (
-                      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-400/10 text-amber-400 border border-amber-400/20">
-                        Wajib
-                      </span>
-                    ) : (
-                      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-white/5 text-gray-400 border border-white/10">
-                        Opsional
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div id={`progress-box-${doc.id}`} class="hidden mb-3 p-3 rounded-xl bg-black/40 border border-amber-500/20">
-                  <div class="flex justify-between text-xs font-mono text-amber-300 mb-1">
-                    <span id={`progress-status-${doc.id}`}>Mengunggah...</span>
-                    <span id={`progress-percent-${doc.id}`}>0%</span>
-                  </div>
-                  <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                    <div id={`progress-bar-${doc.id}`} class="h-full bg-amber-400 transition-all duration-200" style="width: 0%"></div>
-                  </div>
-                </div>
-
-                <div id={`error-${doc.id}`} class="hidden mb-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs"></div>
-
-                {doc.fileKey && (
-                  <div id={`current-file-${doc.id}`} class="mb-4 text-xs font-mono text-gray-400 bg-black/20 p-2.5 rounded-xl border border-white/5 break-all">
-                    Berkas aktif: <span class="text-emerald-400">{doc.fileKey}</span>
-                  </div>
-                )}
-              </div>
-
-              <div class="pt-4 border-t border-white/5 flex items-center justify-between gap-3">
-                <span class="text-[11px] font-mono text-gray-500">{doc.typeHint}</span>
-                <div class="flex items-center gap-2">
-                  <input
-                    type="file"
-                    id={`input-${doc.id}`}
-                    class="file-input-trigger hidden"
-                    data-category={doc.category}
-                    data-label={doc.label}
-                    data-max-mb={doc.maxSizeMB}
-                    accept={doc.accept}
-                  />
-                  <button
-                    type="button"
-                    class="btn-select-file px-4 py-2 rounded-xl text-xs font-bold transition-all bg-amber-400 hover:bg-amber-300 text-black shadow-md shadow-amber-500/15 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                    data-target={`input-${doc.id}`}
-                  >
-                    <span>{doc.isUploaded ? 'Ganti Berkas' : 'Pilih Berkas'}</span>
-                  </button>
-                </div>
-              </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {mediaDocsList.length === 0 ? (
+            <div class="col-span-2 py-8 text-center text-gray-500 text-xs font-mono">
+              Tidak ada persyaratan media sosial atau berkas opsional yang aktif saat ini.
             </div>
-          ))}
-        </div>
+          ) : (
+            mediaDocsList.map((doc) => (
+              <div 
+                id={`card-${doc.id}`} 
+                class={`p-6 rounded-2xl border transition-all flex flex-col justify-between ${
+                  doc.isUploaded ? 'bg-[#121c15]/60 border-emerald-500/30' : 'bg-[#161620] border-white/10 hover:border-amber-500/30'
+                }`}
+              >
+                <div>
+                  <div class="flex items-start justify-between gap-3 mb-3">
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <h3 class="font-bold text-sm sm:text-base text-white">{doc.label}</h3>
+                        {doc.inputType === 'link' && (
+                          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 text-[10px] font-mono">
+                            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                            Tautan
+                          </span>
+                        )}
+                      </div>
+                      <p class="text-xs text-gray-400 mt-0.5">{doc.desc}</p>
+                    </div>
+                    <div id={`badge-${doc.id}`}>
+                      {doc.isUploaded ? (
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                          Terunggah
+                        </span>
+                      ) : doc.isRequired ? (
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-400/10 text-amber-400 border border-amber-400/20">
+                          Wajib
+                        </span>
+                      ) : (
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-white/5 text-gray-400 border border-white/10">
+                          Opsional
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
-        <!-- Optional Input for LinkedIn / Portfolio Link -->
-        <div class="p-6 rounded-2xl bg-[#161620] border border-white/10">
-          <div class="flex items-center justify-between gap-4 mb-2">
-            <div>
-              <h3 class="font-bold text-sm sm:text-base text-white flex items-center gap-2">
-                <span>Tautan Profil LinkedIn / Portofolio Online</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-gray-400 border border-white/10">Opsional</span>
-              </h3>
-              <p class="text-xs text-gray-400 mt-0.5">
-                Cantumkan tautan akun LinkedIn atau portofolio daring (GitHub/Behance/Dribbble/dll) untuk nilai tambah seleksi.
-              </p>
-            </div>
-          </div>
-          <div class="flex flex-col sm:flex-row gap-3 mt-4">
-            <input
-              type="url"
-              id="input-linkedin-url"
-              placeholder="https://linkedin.com/in/username atau https://portfolio.com"
-              class="flex-1 bg-black/40 border border-white/15 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-amber-400 font-mono"
-            />
-            <button
-              type="button"
-              id="btn-save-linkedin"
-              class="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs transition-colors cursor-pointer"
-            >
-              Simpan Tautan
-            </button>
-          </div>
+                  <!-- Progress box for file uploads -->
+                  {doc.inputType === 'file' && (
+                    <div id={`progress-box-${doc.id}`} class="hidden mb-3 p-3 rounded-xl bg-black/40 border border-amber-500/20">
+                      <div class="flex justify-between text-xs font-mono text-amber-300 mb-1">
+                        <span id={`progress-status-${doc.id}`}>Mengunggah...</span>
+                        <span id={`progress-percent-${doc.id}`}>0%</span>
+                      </div>
+                      <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                        <div id={`progress-bar-${doc.id}`} class="h-full bg-amber-400 transition-all duration-200" style="width: 0%"></div>
+                      </div>
+                    </div>
+                  )}
+
+                  <!-- Error message -->
+                  <div id={`error-${doc.id}`} class="hidden mb-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs"></div>
+
+                  <!-- Current file/link preview -->
+                  {doc.fileKey && (
+                    <div id={`current-file-${doc.id}`} class="mb-4 text-xs font-mono text-gray-400 bg-black/20 p-2.5 rounded-xl border border-white/5 break-all">
+                      {doc.inputType === 'link' || doc.fileKey.startsWith('http') ? (
+                        <span>Tautan aktif: <a href={doc.fileKey} target="_blank" rel="noopener noreferrer" class="text-amber-400 underline">{doc.fileKey}</a></span>
+                      ) : (
+                        <span>Berkas aktif: <span class="text-emerald-400">{doc.fileKey}</span></span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div class="pt-4 border-t border-white/5">
+                  {doc.inputType === 'file' ? (
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="text-[11px] font-mono text-gray-500">{doc.typeHint}</span>
+                      <div class="flex items-center gap-2">
+                        <input
+                          type="file"
+                          id={`input-${doc.id}`}
+                          class="file-input-trigger hidden"
+                          data-category={doc.slug}
+                          data-label={doc.label}
+                          data-max-mb={doc.maxSizeMB}
+                          accept={doc.acceptMime}
+                        />
+                        <button
+                          type="button"
+                          class="btn-select-file px-4 py-2 rounded-xl text-xs font-bold transition-all bg-amber-400 hover:bg-amber-300 text-black shadow-md shadow-amber-500/15 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          data-target={`input-${doc.id}`}
+                        >
+                          <span>{doc.isUploaded ? 'Ganti Berkas' : 'Pilih Berkas'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div class="space-y-2">
+                      <div class="flex items-center justify-between text-[11px] font-mono text-gray-500 mb-1">
+                        <span>{doc.typeHint}</span>
+                        {doc.isUploaded && <span class="text-emerald-400 font-sans font-semibold">Tautan Tersimpan</span>}
+                      </div>
+                      <div class="flex flex-col sm:flex-row gap-2">
+                        <input
+                          type="url"
+                          id={`input-link-${doc.id}`}
+                          class="link-input flex-1 bg-black/40 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 font-mono"
+                          placeholder="Masukkan tautan (Misal: https://drive.google.com/...)"
+                          value={doc.fileKey.startsWith('http') ? doc.fileKey : ''}
+                        />
+                        <button
+                          type="button"
+                          class="btn-save-link px-4 py-2 rounded-xl text-xs font-bold transition-all bg-amber-400 hover:bg-amber-300 text-black shadow-md shadow-amber-500/15 flex items-center justify-center gap-1.5 cursor-pointer shrink-0 disabled:opacity-50"
+                          data-target={`input-link-${doc.id}`}
+                          data-category={doc.slug}
+                          data-id={doc.id}
+                          data-label={doc.label}
+                        >
+                          Simpan Tautan
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
@@ -592,126 +688,139 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
           <div>
             <h3 class="text-sm sm:text-base font-bold text-white mb-1">Panduan Pengunggahan Karya</h3>
             <p class="text-xs sm:text-sm text-gray-300 leading-relaxed">
-              Silakan unggah berkas penugasan karya Anda di bawah ini. Untuk detail spesifik mengenai tema, format file, dan kriteria penilaian, wajib merujuk pada Guidebook Peminatan yang telah Anda unduh.
+              Silakan unggah berkas penugasan karya atau cantumkan tautan URL sesuai arahan pada kartu tugas di bawah ini. Untuk tema, format spesifik, dan rubrik penilaian, pastikan selalu merujuk pada Guidebook Peminatan resmi.
             </p>
           </div>
         </div>
 
-        <!-- Standardized Cards Grid -->
+        <!-- Standardized Cards Grid for Karya -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Card 1: Standard Upload Card for Berkas Karya Peminatan -->
-          <div 
-            id="card-fileKarya" 
-            class={`p-6 rounded-2xl border transition-all flex flex-col justify-between ${
-              karyaFileKey ? 'bg-[#121c15]/60 border-emerald-500/30' : 'bg-[#161620] border-white/10 hover:border-amber-500/30'
-            }`}
-          >
-            <div>
-              <div class="flex items-start justify-between gap-3 mb-3">
+          {karyaDocsList.length === 0 ? (
+            <div class="col-span-2 py-8 text-center text-gray-500 text-xs font-mono">
+              Tidak ada berkas tugas karya yang aktif khusus untuk peminatan {chosenPeminatan}.
+            </div>
+          ) : (
+            karyaDocsList.map((doc) => (
+              <div 
+                id={`card-${doc.id}`} 
+                class={`p-6 rounded-2xl border transition-all flex flex-col justify-between ${
+                  doc.isUploaded ? 'bg-[#121c15]/60 border-emerald-500/30' : 'bg-[#161620] border-white/10 hover:border-amber-500/30'
+                }`}
+              >
                 <div>
-                  <h3 class="font-bold text-sm sm:text-base text-white">Berkas Karya Peminatan</h3>
-                  <p class="text-xs text-gray-400 mt-0.5">
-                    Silakan unggah berkas penugasan karya Anda di sini. Ketentuan format dan kriteria wajib merujuk pada Guidebook.
-                  </p>
+                  <div class="flex items-start justify-between gap-3 mb-3">
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <h3 class="font-bold text-sm sm:text-base text-white">{doc.label}</h3>
+                        {doc.inputType === 'link' && (
+                          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 text-[10px] font-mono">
+                            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                            Tautan
+                          </span>
+                        )}
+                      </div>
+                      <p class="text-xs text-gray-400 mt-0.5">{doc.desc}</p>
+                    </div>
+                    <div id={`badge-${doc.id}`}>
+                      {doc.isUploaded ? (
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                          Terunggah
+                        </span>
+                      ) : doc.isRequired ? (
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-400/10 text-amber-400 border border-amber-400/20">
+                          Wajib
+                        </span>
+                      ) : (
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-white/5 text-gray-400 border border-white/10">
+                          Opsional
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <!-- Progress box for file uploads -->
+                  {doc.inputType === 'file' && (
+                    <div id={`progress-box-${doc.id}`} class="hidden mb-3 p-3 rounded-xl bg-black/40 border border-amber-500/20">
+                      <div class="flex justify-between text-xs font-mono text-amber-300 mb-1">
+                        <span id={`progress-status-${doc.id}`}>Mengunggah...</span>
+                        <span id={`progress-percent-${doc.id}`}>0%</span>
+                      </div>
+                      <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                        <div id={`progress-bar-${doc.id}`} class="h-full bg-amber-400 transition-all duration-200" style="width: 0%"></div>
+                      </div>
+                    </div>
+                  )}
+
+                  <!-- Error message -->
+                  <div id={`error-${doc.id}`} class="hidden mb-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs"></div>
+
+                  <!-- Current file/link preview -->
+                  {doc.fileKey && (
+                    <div id={`current-file-${doc.id}`} class="mb-4 text-xs font-mono text-gray-400 bg-black/20 p-2.5 rounded-xl border border-white/5 break-all">
+                      {doc.inputType === 'link' || doc.fileKey.startsWith('http') ? (
+                        <span>Tautan aktif: <a href={doc.fileKey} target="_blank" rel="noopener noreferrer" class="text-amber-400 underline">{doc.fileKey}</a></span>
+                      ) : (
+                        <span>Berkas aktif: <span class="text-emerald-400">{doc.fileKey}</span></span>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div id="badge-fileKarya">
-                  {karyaFileKey ? (
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
-                      Terunggah
-                    </span>
+
+                <div class="pt-4 border-t border-white/5">
+                  {doc.inputType === 'file' ? (
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="text-[11px] font-mono text-gray-500">{doc.typeHint}</span>
+                      <div class="flex items-center gap-2">
+                        <input
+                          type="file"
+                          id={`input-${doc.id}`}
+                          class="file-input-trigger hidden"
+                          data-category={doc.slug}
+                          data-label={doc.label}
+                          data-max-mb={doc.maxSizeMB}
+                          accept={doc.acceptMime}
+                        />
+                        <button
+                          type="button"
+                          class="btn-select-file px-4 py-2 rounded-xl text-xs font-bold transition-all bg-amber-400 hover:bg-amber-300 text-black shadow-md shadow-amber-500/15 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          data-target={`input-${doc.id}`}
+                        >
+                          <span>{doc.isUploaded ? 'Ganti Berkas' : 'Pilih Berkas'}</span>
+                        </button>
+                      </div>
+                    </div>
                   ) : (
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-400/10 text-amber-400 border border-amber-400/20">
-                      Wajib
-                    </span>
+                    <div class="space-y-2">
+                      <div class="flex items-center justify-between text-[11px] font-mono text-gray-500 mb-1">
+                        <span>{doc.typeHint}</span>
+                        {doc.isUploaded && <span class="text-emerald-400 font-sans font-semibold">Tautan Tersimpan</span>}
+                      </div>
+                      <div class="flex flex-col sm:flex-row gap-2">
+                        <input
+                          type="url"
+                          id={`input-link-${doc.id}`}
+                          class="link-input flex-1 bg-black/40 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 font-mono"
+                          placeholder="Masukkan tautan (Misal: https://drive.google.com/... atau https://youtube.com/...)"
+                          value={doc.fileKey.startsWith('http') ? doc.fileKey : ''}
+                        />
+                        <button
+                          type="button"
+                          class="btn-save-link px-4 py-2 rounded-xl text-xs font-bold transition-all bg-amber-400 hover:bg-amber-300 text-black shadow-md shadow-amber-500/15 flex items-center justify-center gap-1.5 cursor-pointer shrink-0 disabled:opacity-50"
+                          data-target={`input-link-${doc.id}`}
+                          data-category={doc.slug}
+                          data-id={doc.id}
+                          data-label={doc.label}
+                        >
+                          Simpan Tautan
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
-
-              <!-- Progress box -->
-              <div id="progress-box-fileKarya" class="hidden mb-3 p-3 rounded-xl bg-black/40 border border-amber-500/20">
-                <div class="flex justify-between text-xs font-mono text-amber-300 mb-1">
-                  <span id="progress-status-fileKarya">Mengunggah...</span>
-                  <span id="progress-percent-fileKarya">0%</span>
-                </div>
-                <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                  <div id="progress-bar-fileKarya" class="h-full bg-amber-400 transition-all duration-200" style="width: 0%"></div>
-                </div>
-              </div>
-
-              <!-- Error message -->
-              <div id="error-fileKarya" class="hidden mb-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs"></div>
-
-              <!-- Current file preview -->
-              {karyaFileKey && (
-                <div id="current-file-fileKarya" class="mb-4 text-xs font-mono text-gray-400 bg-black/20 p-2.5 rounded-xl border border-white/5 break-all">
-                  Berkas aktif: <span class="text-emerald-400">{karyaFileKey}</span>
-                </div>
-              )}
-            </div>
-
-            <div class="pt-4 border-t border-white/5 flex items-center justify-between gap-3">
-              <span class="text-[11px] font-mono text-gray-500">PDF / ZIP (Maks. 50MB)</span>
-              <div class="flex items-center gap-2">
-                <input
-                  type="file"
-                  id="input-fileKarya"
-                  class="file-input-trigger hidden"
-                  data-category="fileKarya"
-                  data-label="Karya Peminatan"
-                  data-max-mb="50"
-                  accept=".pdf,.zip,.jpg,.jpeg,.png,.mp4"
-                />
-                <button
-                  type="button"
-                  class="btn-select-file px-4 py-2 rounded-xl text-xs font-bold transition-all bg-amber-400 hover:bg-amber-300 text-black shadow-md shadow-amber-500/15 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  data-target="input-fileKarya"
-                >
-                  <span>{karyaFileKey ? 'Ganti Berkas' : 'Pilih Berkas'}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 2: Alternative Cloud Storage / Video Link -->
-          <div class="p-6 rounded-2xl bg-[#161620] border border-white/10 hover:border-amber-500/30 transition-all flex flex-col justify-between">
-            <div>
-              <div class="flex items-start justify-between gap-3 mb-3">
-                <div>
-                  <h3 class="font-bold text-sm sm:text-base text-white">Tautan Karya / Video Cloud</h3>
-                  <p class="text-xs text-gray-400 mt-0.5">
-                    Alternatif tautan jika penugasan karya berupa video YouTube atau berkas pada Google Drive publik.
-                  </p>
-                </div>
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-white/5 text-gray-400 border border-white/10">
-                  Opsional
-                </span>
-              </div>
-
-              <div class="mt-2">
-                <label for="input-karya-link" class="block text-[11px] font-semibold text-gray-400 mb-1.5">
-                  URL YouTube / Google Drive
-                </label>
-                <input
-                  type="url"
-                  id="input-karya-link"
-                  placeholder="https://drive.google.com/... atau https://youtube.com/..."
-                  class="w-full bg-black/40 border border-white/15 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
-                />
-              </div>
-            </div>
-
-            <div class="pt-4 border-t border-white/5 flex items-center justify-between gap-3 mt-4">
-              <span class="text-[11px] font-mono text-gray-500">Google Drive / YouTube Link</span>
-              <button
-                type="button"
-                id="btn-save-karyalink"
-                class="px-4 py-2 rounded-xl text-xs font-bold transition-all bg-white/10 hover:bg-white/15 text-white border border-white/15 cursor-pointer"
-              >
-                Simpan Tautan
-              </button>
-            </div>
-          </div>
+            ))
+          )}
         </div>
 
       </div>
@@ -734,7 +843,7 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
 
 <script>
   // ============================================================
-  // PONYTAIL: Client-Side Dynamic Rendering & Tab Controller
+  // Client-Side Dynamic Controller for Berkas Portal
   // ============================================================
   document.addEventListener('DOMContentLoaded', () => {
     const portalContainer = document.querySelector('[data-user-nim]') as HTMLElement | null;
@@ -792,25 +901,62 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
       });
     });
 
-    // 2. TAUTAN KARYA / VIDEO SAVER
-    const saveKaryaLinkBtn = document.getElementById('btn-save-karyalink');
-    const karyaLinkInput = document.getElementById('input-karya-link') as HTMLInputElement | null;
-    if (saveKaryaLinkBtn && karyaLinkInput) {
-      saveKaryaLinkBtn.addEventListener('click', async () => {
-        const val = karyaLinkInput.value.trim();
+    // Toast helper
+    function showToast(type: 'success' | 'error', title: string, message: string) {
+      const toast = document.getElementById('portal-toast');
+      const toastIcon = document.getElementById('portal-toast-icon');
+      const toastTitle = document.getElementById('portal-toast-title');
+      const toastMsg = document.getElementById('portal-toast-message');
+      if (!toast || !toastIcon || !toastTitle || !toastMsg) return;
+
+      toastTitle.textContent = title;
+      toastMsg.textContent = message;
+
+      if (type === 'success') {
+        toast.className = 'fixed bottom-6 right-6 z-50 max-w-md p-4 rounded-2xl shadow-2xl border transition-all duration-300 text-xs flex items-center gap-3 bg-[#121f17] border-emerald-500/40 text-emerald-300';
+        toastIcon.innerHTML = `<svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>`;
+      } else {
+        toast.className = 'fixed bottom-6 right-6 z-50 max-w-md p-4 rounded-2xl shadow-2xl border transition-all duration-300 text-xs flex items-center gap-3 bg-[#261317] border-rose-500/40 text-rose-300';
+        toastIcon.innerHTML = `<svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
+      }
+
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 5000);
+    }
+
+    // 2. TAUTAN / URL SAVER (DIRECT CONFIRM WITHOUT S3 PRESIGN - STEP 4)
+    const linkSaveButtons = document.querySelectorAll<HTMLButtonElement>('.btn-save-link');
+    linkSaveButtons.forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const targetInputId = btn.getAttribute('data-target');
+        const category = btn.getAttribute('data-category') || '';
+        const docId = btn.getAttribute('data-id') || '';
+        const label = btn.getAttribute('data-label') || 'Tautan';
+        const input = document.getElementById(targetInputId || '') as HTMLInputElement | null;
+        if (!input) return;
+
+        const val = input.value.trim();
         if (!val || (!val.startsWith('http://') && !val.startsWith('https://'))) {
-          showToast('error', 'Tautan Tidak Valid', 'Silakan masukkan tautan URL yang valid (misal YouTube unlisted atau Google Drive).');
+          showToast('error', 'Tautan Tidak Valid', 'Silakan masukkan tautan URL yang valid (harus diawali http:// atau https://).');
           return;
         }
+
+        btn.disabled = true;
+        const originalText = btn.textContent;
+        btn.textContent = 'Menyimpan...';
+
         try {
-          await confirmUploadedFile('fileKarya', val);
-          showToast('success', 'Tautan Disimpan', 'Tautan karya peminatan berhasil diperbarui.');
-          const card = document.getElementById('card-fileKarya');
+          // STEP 4: SKIP Backblaze B2 presign process entirely.
+          // Simply send URL string directly to POST /api/upload/confirm with contentType: 'text/url'
+          await confirmUploadedFile(category, val, val, 'text/url');
+          showToast('success', 'Tautan Disimpan', `${label} berhasil diperbarui.`);
+
+          const card = document.getElementById(`card-${docId}`);
           if (card) {
             card.classList.remove('bg-[#161620]', 'border-white/10', 'hover:border-amber-500/30');
             card.classList.add('bg-[#121c15]/60', 'border-emerald-500/30');
           }
-          const badge = document.getElementById('badge-fileKarya');
+          const badge = document.getElementById(`badge-${docId}`);
           if (badge) {
             badge.innerHTML = `
               <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
@@ -819,27 +965,30 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
               </span>
             `;
           }
-          let currentBox = document.getElementById('current-file-fileKarya');
+          let currentBox = document.getElementById(`current-file-${docId}`);
           if (!currentBox) {
             currentBox = document.createElement('div');
-            currentBox.id = 'current-file-fileKarya';
+            currentBox.id = `current-file-${docId}`;
             currentBox.className = 'mb-4 text-xs font-mono text-gray-400 bg-black/20 p-2.5 rounded-xl border border-white/5 break-all';
-            const progressBox = document.getElementById('progress-box-fileKarya');
-            if (progressBox && progressBox.parentElement) {
-              progressBox.parentElement.appendChild(currentBox);
+            const errBox = document.getElementById(`error-${docId}`);
+            if (errBox && errBox.parentElement) {
+              errBox.parentElement.insertBefore(currentBox, errBox);
             }
           }
           if (currentBox) {
-            currentBox.innerHTML = `Berkas aktif: <span class="text-emerald-400">${val}</span>`;
+            currentBox.innerHTML = `Tautan aktif: <a href="${val}" target="_blank" rel="noopener noreferrer" class="text-amber-400 underline break-all">${val}</a>`;
             currentBox.classList.remove('hidden');
           }
         } catch (e: any) {
-          showToast('error', 'Gagal Menyimpan', e.message);
+          showToast('error', 'Gagal Menyimpan', e.message || 'Terjadi kesalahan saat menyimpan tautan.');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = originalText || 'Simpan Tautan';
         }
       });
-    }
+    });
 
-    // 3. UPLOAD DISPATCHER & HANDLERS
+    // 3. UPLOAD DISPATCHER & HANDLERS (FILE UPLOAD)
     const triggerButtons = document.querySelectorAll<HTMLButtonElement>('.btn-select-file');
     triggerButtons.forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -863,29 +1012,6 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
         input.value = ''; // Reset input
       });
     });
-
-    // Toast helper
-    function showToast(type: 'success' | 'error', title: string, message: string) {
-      const toast = document.getElementById('portal-toast');
-      const toastIcon = document.getElementById('portal-toast-icon');
-      const toastTitle = document.getElementById('portal-toast-title');
-      const toastMsg = document.getElementById('portal-toast-message');
-      if (!toast || !toastIcon || !toastTitle || !toastMsg) return;
-
-      toastTitle.textContent = title;
-      toastMsg.textContent = message;
-
-      if (type === 'success') {
-        toast.className = 'fixed bottom-6 right-6 z-50 max-w-md p-4 rounded-2xl shadow-2xl border transition-all duration-300 text-xs flex items-center gap-3 bg-[#121f17] border-emerald-500/40 text-emerald-300';
-        toastIcon.innerHTML = `<svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>`;
-      } else {
-        toast.className = 'fixed bottom-6 right-6 z-50 max-w-md p-4 rounded-2xl shadow-2xl border transition-all duration-300 text-xs flex items-center gap-3 bg-[#261317] border-rose-500/40 text-rose-300';
-        toastIcon.innerHTML = `<svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
-      }
-
-      toast.classList.remove('hidden');
-      setTimeout(() => toast.classList.add('hidden'), 5000);
-    }
 
     // XHR direct S3 upload with progress bar
     function uploadWithXHR(url: string, file: File, onProgress: (pct: number) => void): Promise<void> {
@@ -1035,25 +1161,6 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
       if (!confirmRes.ok || !confirmData.success) {
         throw new Error(confirmData.message || 'Gagal memperbarui catatan database.');
       }
-    }
-
-    // LinkedIn URL save handler
-    const saveLinkedInBtn = document.getElementById('btn-save-linkedin');
-    const linkedInInput = document.getElementById('input-linkedin-url') as HTMLInputElement | null;
-    if (saveLinkedInBtn && linkedInInput) {
-      saveLinkedInBtn.addEventListener('click', async () => {
-        const val = linkedInInput.value.trim();
-        if (!val || (!val.startsWith('http://') && !val.startsWith('https://'))) {
-          showToast('error', 'Tautan Tidak Valid', 'Silakan masukkan tautan profil LinkedIn atau portofolio yang valid.');
-          return;
-        }
-        try {
-          await confirmUploadedFile('sertifikatOrganisasi', val);
-          showToast('success', 'Tautan Disimpan', 'Tautan profil berhasil diperbarui.');
-        } catch (e: any) {
-          showToast('error', 'Gagal Menyimpan', e.message);
-        }
-      });
     }
   });
 </script>

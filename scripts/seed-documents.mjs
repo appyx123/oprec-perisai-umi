@@ -53,6 +53,7 @@ async function seedDocumentTypes() {
       max_files INTEGER DEFAULT 1 NOT NULL,
       accept_mime TEXT NOT NULL,
       max_size_bytes INTEGER DEFAULT 2097152 NOT NULL,
+      input_type TEXT DEFAULT 'file' NOT NULL,
       is_active INTEGER DEFAULT 1 NOT NULL,
       created_at INTEGER DEFAULT (unixepoch()) NOT NULL
     );
@@ -188,6 +189,7 @@ async function seedDocumentTypes() {
       group: 'opsional',
       peminatan_id: null,
       max_files: 1,
+      input_type: 'link',
       accept_mime: 'text/plain,text/uri-list',
       max_size_bytes: 1 * 1024 * 1024, // 1MB
     },
@@ -252,13 +254,14 @@ async function seedDocumentTypes() {
   console.log('🌱 Menyemai data master document_types...');
   for (const item of docTypes) {
     await client.execute({
-      sql: `INSERT INTO document_types (slug, label, [group], peminatan_id, max_files, accept_mime, max_size_bytes, is_active)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+      sql: `INSERT INTO document_types (slug, label, [group], peminatan_id, max_files, input_type, accept_mime, max_size_bytes, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
             ON CONFLICT(slug) DO UPDATE SET
               label = excluded.label,
               [group] = excluded.[group],
               peminatan_id = excluded.peminatan_id,
               max_files = excluded.max_files,
+              input_type = excluded.input_type,
               accept_mime = excluded.accept_mime,
               max_size_bytes = excluded.max_size_bytes,
               is_active = excluded.is_active;`,
@@ -268,6 +271,7 @@ async function seedDocumentTypes() {
         item.group,
         item.peminatan_id,
         item.max_files,
+        item.input_type || 'file',
         item.accept_mime,
         item.max_size_bytes,
       ],

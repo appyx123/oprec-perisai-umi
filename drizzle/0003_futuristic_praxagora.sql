@@ -1,0 +1,1 @@
+ALTER TABLE `document_types` ADD `input_type` text DEFAULT 'file' NOT NULL;
