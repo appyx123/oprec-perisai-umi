@@ -84,8 +84,14 @@ export const GET: APIRoute = async ({ locals }) => {
     );
   } catch (error: any) {
     console.error('[API /api/admin/documents GET Error]:', error);
+    const details = error instanceof Error ? error.message : String(error);
     return new Response(
-      JSON.stringify({ success: false, message: String(error?.message || error || 'Gagal memuat daftar jenis dokumen.') }),
+      JSON.stringify({
+        success: false,
+        error: 'Internal Server Error',
+        details,
+        message: details || 'Gagal memuat daftar jenis dokumen.',
+      }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
@@ -99,52 +105,73 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (!user || !isAdmin) {
       return new Response(
-        JSON.stringify({ success: false, message: 'Akses ditolak.' }),
+        JSON.stringify({ success: false, error: 'Forbidden', message: 'Akses ditolak.' }),
         { status: 403, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
     // Wrap body parsing strictly in try/catch
-    let body: Record<string, any> | null = null;
+    let data: Record<string, any>;
     try {
-      body = (await request.json()) as Record<string, any>;
+      data = (await request.json()) as Record<string, any>;
     } catch (parseError: any) {
+      const details = parseError instanceof Error ? parseError.message : String(parseError);
       return new Response(
         JSON.stringify({
           success: false,
-          message: 'Payload JSON tidak valid atau body kosong: ' + String(parseError?.message || parseError),
+          error: 'Bad Request',
+          details,
+          message: 'Payload JSON tidak valid atau body kosong: ' + details,
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    if (!body || typeof body !== 'object') {
+    if (!data || typeof data !== 'object') {
       return new Response(
-        JSON.stringify({ success: false, message: 'Payload JSON tidak valid atau kosong.' }),
+        JSON.stringify({
+          success: false,
+          error: 'Bad Request',
+          details: 'Data payload bukan object JSON yang valid.',
+          message: 'Payload JSON tidak valid atau kosong.',
+        }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    const label = String(body.label || '').trim();
-    const group = String(body.group || 'wajib').toLowerCase() as 'wajib' | 'opsional' | 'karya';
-    const peminatanId = body.peminatanId ? Number(body.peminatanId) : null;
-    const inputType = (String(body.inputType || 'file').toLowerCase() === 'link' ? 'link' : 'file') as 'file' | 'link';
-    const acceptMime = inputType === 'link' ? String(body.acceptMime || 'text/uri-list').trim() : String(body.acceptMime || 'application/pdf').trim();
-    const maxSizeMB = inputType === 'link' ? 0 : Number(body.maxSizeMB || 2);
-    const maxSizeBytes = inputType === 'link' ? 0 : (body.maxSizeBytes ? Number(body.maxSizeBytes) : Math.round(maxSizeMB * 1024 * 1024));
-    const maxFiles = Math.max(1, Number(body.maxFiles || 1));
-    const isActive = body.isActive !== undefined ? Boolean(body.isActive) : true;
+    const label = String(data.label || '').trim();
+    const group = String(data.group || 'wajib').toLowerCase().trim() as 'wajib' | 'opsional' | 'karya';
+    const peminatanId = data.peminatanId ? Number(data.peminatanId) : null;
+    const inputType = (String(data.inputType || 'file').toLowerCase() === 'link' ? 'link' : 'file') as 'file' | 'link';
+    const acceptMime = inputType === 'link'
+      ? (String(data.acceptMime || 'text/uri-list').trim() || 'text/uri-list')
+      : (String(data.acceptMime || 'application/pdf').trim() || 'application/pdf');
+    const maxSizeMB = inputType === 'link' ? 0 : Number(data.maxSizeMB || 2);
+    const maxSizeBytes = inputType === 'link' ? 0 : (data.maxSizeBytes ? Number(data.maxSizeBytes) : Math.round(maxSizeMB * 1024 * 1024));
+    const maxFiles = Math.max(1, Number(data.maxFiles || 1));
+    const isActive = data.isActive !== undefined ? Boolean(data.isActive) : true;
 
+    // Fallback validasi field wajib
     if (!label) {
       return new Response(
-        JSON.stringify({ success: false, message: 'Nama dokumen (label) wajib diisi.' }),
+        JSON.stringify({
+          success: false,
+          error: 'Validation Error',
+          details: 'Field "label" (nama dokumen) wajib diisi.',
+          message: 'Nama dokumen (label) wajib diisi.',
+        }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
     if (!['wajib', 'opsional', 'karya'].includes(group)) {
       return new Response(
-        JSON.stringify({ success: false, message: 'Kelompok dokumen harus bernilai wajib, opsional, atau karya.' }),
+        JSON.stringify({
+          success: false,
+          error: 'Validation Error',
+          details: 'Field "group" harus salah satu dari: wajib, opsional, karya.',
+          message: 'Kelompok dokumen harus bernilai wajib, opsional, atau karya.',
+        }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
@@ -152,7 +179,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const db = createDb((locals as any)?.runtime?.env);
 
     // Buat slug unik dengan loop terbatas (maks 10 iterasi) untuk menghindari timeout hang
-    let baseSlug = body.slug ? generateSlug(String(body.slug)) : generateSlug(label);
+    let baseSlug = data.slug ? generateSlug(String(data.slug)) : generateSlug(label);
     if (!baseSlug) baseSlug = 'dokumen_' + Date.now();
     let finalSlug = baseSlug;
 
@@ -221,8 +248,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     );
   } catch (error: any) {
     console.error('[API /api/admin/documents POST Error]:', error);
+    const details = error instanceof Error ? error.message : String(error);
     return new Response(
-      JSON.stringify({ success: false, message: String(error?.message || error || 'Gagal menambahkan jenis dokumen.') }),
+      JSON.stringify({
+        success: false,
+        error: 'Internal Server Error',
+        details,
+        message: details || 'Gagal menambahkan jenis dokumen.',
+      }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
@@ -236,36 +269,49 @@ export const PUT: APIRoute = async ({ request, locals }) => {
 
     if (!user || !isAdmin) {
       return new Response(
-        JSON.stringify({ success: false, message: 'Akses ditolak.' }),
+        JSON.stringify({ success: false, error: 'Forbidden', message: 'Akses ditolak.' }),
         { status: 403, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
     // Wrap body parsing strictly in try/catch
-    let body: Record<string, any> | null = null;
+    let data: Record<string, any>;
     try {
-      body = (await request.json()) as Record<string, any>;
+      data = (await request.json()) as Record<string, any>;
     } catch (parseError: any) {
+      const details = parseError instanceof Error ? parseError.message : String(parseError);
       return new Response(
         JSON.stringify({
           success: false,
-          message: 'Payload JSON tidak valid atau body kosong: ' + String(parseError?.message || parseError),
+          error: 'Bad Request',
+          details,
+          message: 'Payload JSON tidak valid atau body kosong: ' + details,
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    if (!body || !body.id) {
+    if (!data || typeof data !== 'object') {
       return new Response(
-        JSON.stringify({ success: false, message: 'ID Dokumen wajib disertakan.' }),
+        JSON.stringify({
+          success: false,
+          error: 'Bad Request',
+          details: 'Data payload bukan object JSON yang valid.',
+          message: 'Payload JSON tidak valid atau kosong.',
+        }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    const id = Number(body.id);
+    const id = Number(data.id);
     if (!id || isNaN(id)) {
       return new Response(
-        JSON.stringify({ success: false, message: 'ID Dokumen harus berupa angka yang valid.' }),
+        JSON.stringify({
+          success: false,
+          error: 'Validation Error',
+          details: 'Field "id" Dokumen wajib disertakan dan harus berupa angka yang valid.',
+          message: 'ID Dokumen harus berupa angka yang valid.',
+        }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
@@ -280,43 +326,51 @@ export const PUT: APIRoute = async ({ request, locals }) => {
 
     if (!existing) {
       return new Response(
-        JSON.stringify({ success: false, message: 'Jenis dokumen tidak ditemukan.' }),
+        JSON.stringify({
+          success: false,
+          error: 'Not Found',
+          details: `Dokumen dengan ID ${id} tidak ditemukan.`,
+          message: 'Jenis dokumen tidak ditemukan.',
+        }),
         { status: 404, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
     const updateData: Record<string, any> = {};
 
-    if (body.label !== undefined) updateData.label = String(body.label).trim();
-    if (body.group !== undefined && ['wajib', 'opsional', 'karya'].includes(String(body.group).toLowerCase())) {
-      updateData.group = String(body.group).toLowerCase();
+    if (data.label !== undefined) updateData.label = String(data.label).trim();
+    if (data.group !== undefined) {
+      const g = String(data.group).trim().toLowerCase();
+      if (['wajib', 'opsional', 'karya'].includes(g)) {
+        updateData.group = g;
+      }
     }
-    if (body.peminatanId !== undefined) {
-      updateData.peminatanId = body.peminatanId ? Number(body.peminatanId) : null;
+    if (data.peminatanId !== undefined) {
+      updateData.peminatanId = data.peminatanId ? Number(data.peminatanId) : null;
     }
-    if (body.inputType !== undefined) {
-      const it = String(body.inputType).toLowerCase();
+    if (data.inputType !== undefined) {
+      const it = String(data.inputType).toLowerCase();
       if (['file', 'link'].includes(it)) {
         updateData.inputType = it;
         if (it === 'link') {
-          if (body.acceptMime === undefined) updateData.acceptMime = 'text/uri-list';
-          if (body.maxSizeMB === undefined && body.maxSizeBytes === undefined) updateData.maxSizeBytes = 0;
+          if (data.acceptMime === undefined) updateData.acceptMime = 'text/uri-list';
+          if (data.maxSizeMB === undefined && data.maxSizeBytes === undefined) updateData.maxSizeBytes = 0;
         }
       }
     }
-    if (body.acceptMime !== undefined) {
-      updateData.acceptMime = String(body.acceptMime).trim();
+    if (data.acceptMime !== undefined) {
+      updateData.acceptMime = String(data.acceptMime).trim();
     }
-    if (body.maxSizeMB !== undefined) {
-      updateData.maxSizeBytes = Math.round(Number(body.maxSizeMB) * 1024 * 1024);
-    } else if (body.maxSizeBytes !== undefined) {
-      updateData.maxSizeBytes = Number(body.maxSizeBytes);
+    if (data.maxSizeMB !== undefined) {
+      updateData.maxSizeBytes = Math.round(Number(data.maxSizeMB) * 1024 * 1024);
+    } else if (data.maxSizeBytes !== undefined) {
+      updateData.maxSizeBytes = Number(data.maxSizeBytes);
     }
-    if (body.maxFiles !== undefined) {
-      updateData.maxFiles = Math.max(1, Number(body.maxFiles));
+    if (data.maxFiles !== undefined) {
+      updateData.maxFiles = Math.max(1, Number(data.maxFiles));
     }
-    if (body.isActive !== undefined) {
-      updateData.isActive = Boolean(body.isActive);
+    if (data.isActive !== undefined) {
+      updateData.isActive = Boolean(data.isActive);
     }
 
     let updated: any = null;
@@ -355,8 +409,14 @@ export const PUT: APIRoute = async ({ request, locals }) => {
     );
   } catch (error: any) {
     console.error('[API /api/admin/documents PUT Error]:', error);
+    const details = error instanceof Error ? error.message : String(error);
     return new Response(
-      JSON.stringify({ success: false, message: String(error?.message || error || 'Gagal memperbarui jenis dokumen.') }),
+      JSON.stringify({
+        success: false,
+        error: 'Internal Server Error',
+        details,
+        message: details || 'Gagal memperbarui jenis dokumen.',
+      }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
@@ -370,28 +430,33 @@ export const DELETE: APIRoute = async ({ request, url, locals }) => {
 
     if (!user || !isAdmin) {
       return new Response(
-        JSON.stringify({ success: false, message: 'Akses ditolak.' }),
+        JSON.stringify({ success: false, error: 'Forbidden', message: 'Akses ditolak.' }),
         { status: 403, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
     // Safely parse body if sent, otherwise fallback to url param
-    let body: Record<string, any> | null = null;
+    let data: Record<string, any> | null = null;
     try {
       const text = await request.text();
       if (text && text.trim().length > 0) {
-        body = JSON.parse(text) as Record<string, any>;
+        data = JSON.parse(text) as Record<string, any>;
       }
     } catch {
-      body = null;
+      data = null;
     }
 
     const idParam = url.searchParams.get('id');
-    const id = Number(body?.id || idParam);
+    const id = Number(data?.id || idParam);
 
     if (!id || isNaN(id)) {
       return new Response(
-        JSON.stringify({ success: false, message: 'ID Dokumen wajib disertakan dan berupa angka.' }),
+        JSON.stringify({
+          success: false,
+          error: 'Validation Error',
+          details: 'ID Dokumen wajib disertakan dan berupa angka.',
+          message: 'ID Dokumen wajib disertakan dan berupa angka.',
+        }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
@@ -405,7 +470,12 @@ export const DELETE: APIRoute = async ({ request, url, locals }) => {
 
     if (!existing) {
       return new Response(
-        JSON.stringify({ success: false, message: 'Jenis dokumen tidak ditemukan.' }),
+        JSON.stringify({
+          success: false,
+          error: 'Not Found',
+          details: `Dokumen dengan ID ${id} tidak ditemukan.`,
+          message: 'Jenis dokumen tidak ditemukan.',
+        }),
         { status: 404, headers: { 'Content-Type': 'application/json' } }
       );
     }
@@ -425,8 +495,14 @@ export const DELETE: APIRoute = async ({ request, url, locals }) => {
     );
   } catch (error: any) {
     console.error('[API /api/admin/documents DELETE Error]:', error);
+    const details = error instanceof Error ? error.message : String(error);
     return new Response(
-      JSON.stringify({ success: false, message: String(error?.message || error || 'Gagal menonaktifkan dokumen.') }),
+      JSON.stringify({
+        success: false,
+        error: 'Internal Server Error',
+        details,
+        message: details || 'Gagal menonaktifkan dokumen.',
+      }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }

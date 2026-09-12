@@ -760,7 +760,7 @@ const karyaDocs = docList.filter((d) => d.group === 'karya').length;
             body: JSON.stringify({ id, isActive: newActive }),
           });
           const data = await res.json() as any;
-          if (!res.ok || !data.success) throw new Error(data.message || 'Gagal mengubah status');
+          if (!res.ok || !data.success) throw new Error(data.details || data.message || data.error || 'Gagal mengubah status');
 
           showToast('success', 'Status Diperbarui', `Dokumen berhasil ${newActive ? 'diaktifkan' : 'dinonaktifkan'}.`);
           setTimeout(() => window.location.reload(), 1000);
@@ -832,7 +832,7 @@ const karyaDocs = docList.filter((d) => d.group === 'karya').length;
 
           const data = await res.json() as any;
           if (!res.ok || !data.success) {
-            throw new Error(data.message || 'Gagal menyimpan data persyaratan.');
+            throw new Error(data.details || data.message || data.error || 'Gagal menyimpan data persyaratan.');
           }
 
           showToast('success', 'Berhasil', data.message || 'Persyaratan berkas berhasil disimpan.');
