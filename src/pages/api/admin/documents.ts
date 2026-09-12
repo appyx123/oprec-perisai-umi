@@ -28,7 +28,7 @@ export const GET: APIRoute = async ({ locals }) => {
       );
     }
 
-    const db = createDb((locals as any)?.runtime?.env);
+    const db = createDb();
     let list: any[] = [];
 
     try {
@@ -176,7 +176,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
 
-    const db = createDb((locals as any)?.runtime?.env);
+    const db = createDb();
 
     // Buat slug unik dengan loop terbatas (maks 10 iterasi) untuk menghindari timeout hang
     let baseSlug = data.slug ? generateSlug(String(data.slug)) : generateSlug(label);
@@ -316,7 +316,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
       );
     }
 
-    const db = createDb((locals as any)?.runtime?.env);
+    const db = createDb();
 
     const [existing] = await db
       .select()
@@ -461,7 +461,7 @@ export const DELETE: APIRoute = async ({ request, url, locals }) => {
       );
     }
 
-    const db = createDb((locals as any)?.runtime?.env);
+    const db = createDb();
     const [existing] = await db
       .select()
       .from(documentTypes)
