@@ -1,16 +1,16 @@
 # Graph Report - orec-perisai-umi  (2026-09-13)
 
 ## Corpus Check
-- 72 files · ~387,157 words
+- 72 files · ~387,756 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2121 nodes · 2494 edges · 182 communities (28 shown, 152 thin omitted)
+- 2122 nodes · 2497 edges · 182 communities (28 shown, 152 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 5 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e6942d91`
+- Built from commit: `c2c3f085`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -242,8 +242,8 @@ Cohesion: 0.08
 Nodes (27): Admin, BerkasCagen, berkasCagensRelations, Cagen, CagenDocument, cagenDocumentsRelations, cagensRelations, DocumentType (+19 more)
 
 ### Community 4 - "index.ts"
-Cohesion: 0.20
-Nodes (8): drizzle-orm, Db, DbEnvConfig, berkasCagens, cagens, STATUS_PENDAFTARAN, systemSettings, AuthUser
+Cohesion: 0.18
+Nodes (9): drizzle-orm, Db, DbEnvConfig, berkasCagens, cagenDocuments, cagens, STATUS_PENDAFTARAN, systemSettings (+1 more)
 
 ### Community 5 - "auth.ts"
 Cohesion: 0.10
@@ -254,8 +254,8 @@ Cohesion: 0.13
 Nodes (20): createDb(), PublicQna, DELETE(), generateSlug(), GET(), POST(), prerender, PUT() (+12 more)
 
 ### Community 7 - "astro"
-Cohesion: 0.14
-Nodes (21): astro, aws4fetch, cagenDocuments, documentTypes, createPresignedGetUrl(), createPresignedPutUrl(), deleteS3Object(), extractS3Key() (+13 more)
+Cohesion: 0.15
+Nodes (20): astro, aws4fetch, documentTypes, createPresignedGetUrl(), createPresignedPutUrl(), deleteS3Object(), extractS3Key(), getAwsClient() (+12 more)
 
 ### Community 8 - "dashboard/settings.astro"
 Cohesion: 0.09
@@ -339,17 +339,17 @@ Nodes (5): Peminatan, closeModal(), openAddModal(), openEditModal(), toggleInput
 
 ## Knowledge Gaps
 - **1041 isolated node(s):** `name`, `type`, `version`, `node`, `dev` (+1036 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1752 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1753 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **152 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `Console` connect `Console` to `worker-configuration.d.ts`, `admin/berkas.astro`?**
-  _High betweenness centrality (0.070) - this node is a cross-community bridge._
+  _High betweenness centrality (0.068) - this node is a cross-community bridge._
+- **Why does `Performance` connect `Performance` to `worker-configuration.d.ts`?**
+  _High betweenness centrality (0.056) - this node is a cross-community bridge._
 - **Why does `ErrorEvent` connect `Event` to `worker-configuration.d.ts`?**
-  _High betweenness centrality (0.058) - this node is a cross-community bridge._
-- **Why does `WorkerEntrypoint` connect `WorkerEntrypoint` to `worker-configuration.d.ts`?**
   _High betweenness centrality (0.055) - this node is a cross-community bridge._
 - **What connects `name`, `type`, `version` to the rest of the system?**
   _1041 weakly-connected nodes found - possible documentation gaps or missing edges._
