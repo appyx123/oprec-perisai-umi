@@ -204,16 +204,16 @@
     "semantic_hash": "e0098fd253d7608517842d0f412ecbf6"
   },
   "src/pages/api/auth/register.ts": {
-    "mtime": 1789103571.716928,
-    "seen": 1789215834.591717,
-    "ast_hash": "3b131b88aae6c0eb44719adaa444bd0d",
-    "semantic_hash": "3b131b88aae6c0eb44719adaa444bd0d"
+    "mtime": 1789236693.1467195,
+    "seen": 1789236815.0036023,
+    "ast_hash": "9fca378c918c688c44e50e4dda9c258c",
+    "semantic_hash": ""
   },
   "src/pages/api/auth/request-reset.ts": {
-    "mtime": 1789108839.0087597,
-    "seen": 1789215834.591717,
-    "ast_hash": "ef63434d96ee3286289b0359b61efdba",
-    "semantic_hash": "ef63434d96ee3286289b0359b61efdba"
+    "mtime": 1789236641.4557066,
+    "seen": 1789236815.0036023,
+    "ast_hash": "66a7d427a91909e26ddfc6a602bb6c9d",
+    "semantic_hash": ""
   },
   "src/pages/api/auth/reset-password.ts": {
     "mtime": 1789235326.9271245,
@@ -240,16 +240,16 @@
     "semantic_hash": "e1a4330e24107aec52afe32c93d53396"
   },
   "src/pages/api/upload/confirm.ts": {
-    "mtime": 1789230584.656917,
-    "seen": 1789231008.8710513,
-    "ast_hash": "935b4f39678bdbc6114b0a1f187205f9",
+    "mtime": 1789236710.0086207,
+    "seen": 1789236815.0036023,
+    "ast_hash": "405a48ab1b159794e889b7dc783b843e",
     "semantic_hash": ""
   },
   "src/pages/api/upload/presign.ts": {
-    "mtime": 1788924079.801191,
-    "seen": 1789215834.591717,
-    "ast_hash": "68c73f8a417776bdc0d942c06f54ad8c",
-    "semantic_hash": "68c73f8a417776bdc0d942c06f54ad8c"
+    "mtime": 1789236776.4934855,
+    "seen": 1789236815.0036023,
+    "ast_hash": "ecb25f201e9339847ba10a1f6815c3c1",
+    "semantic_hash": ""
   },
   "src/pages/api/user/profile.ts": {
     "mtime": 1789109459.769719,
@@ -258,9 +258,9 @@
     "semantic_hash": "7a160a03349c48c82dddcd0cb0daf6a7"
   },
   "src/pages/auth/login.astro": {
-    "mtime": 1789235338.878817,
-    "seen": 1789235535.0300975,
-    "ast_hash": "fd78602fa357cd3a7c6b654cb79d0100",
+    "mtime": 1789235968.9607604,
+    "seen": 1789236815.0036023,
+    "ast_hash": "44ffc318d8d2d84b7e3de49fea9eec2a",
     "semantic_hash": ""
   },
   "src/pages/auth/register.astro": {

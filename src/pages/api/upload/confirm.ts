@@ -83,6 +83,11 @@ const LEGACY_COLUMN_MAP: Record<string, keyof typeof berkasCagens.$inferInsert> 
   file_karya: 'fileKarya',
 };
 
+/**
+ * POST /api/upload/confirm
+ * Memvalidasi kepemilikan file unggahan, menyimpan metadata ke skema relasional (cagen_documents)
+ * & tabel legacy (berkas_cagens), serta menghapus file lama dari Backblaze B2 (safe garbage collection).
+ */
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
     // 1. Otentikasi user
@@ -210,6 +215,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .limit(1);
 
       if (existingLegacy) {
+        // Safe garbage collection: Hapus file lama di B2 jika belum dihapus di skema relasional
+        const oldLegacyVal = String((existingLegacy as any)[legacyCol] || '').trim();
+        if (oldLegacyVal && oldLegacyVal !== finalFileName && !oldLegacyVal.startsWith('http')) {
+          try {
+            const cleanOldLegacyKey = extractS3Key(oldLegacyVal);
+            if (cleanOldLegacyKey && !deletedFiles.includes(cleanOldLegacyKey)) {
+              const delLegacyRes = await deleteS3Object(cleanOldLegacyKey);
+              if (delLegacyRes.success) deletedFiles.push(cleanOldLegacyKey);
+            }
+          } catch (delLegacyErr) {
+            console.warn('[LEGACY] Error deleting previous document in S3/B2:', delLegacyErr);
+          }
+        }
+
         await db
           .update(berkasCagens)
           .set({

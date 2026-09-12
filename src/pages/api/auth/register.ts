@@ -1,4 +1,3 @@
-import { env } from 'cloudflare:workers';
 import type { APIRoute } from 'astro';
 import bcrypt from 'bcryptjs';
 import { eq, or } from 'drizzle-orm';
@@ -177,15 +176,13 @@ export const POST: APIRoute = async ({ request }) => {
       });
 
     // 9. Kirim Email Verifikasi via Resend REST API (Native Fetch untuk Cloudflare Edge)
-    const resendApiKey = env.RESEND_API_KEY || getEnvVar('RESEND_API_KEY');
+    const resendApiKey = getEnvVar('RESEND_API_KEY');
     const resendFrom =
-      env.RESEND_FROM_EMAIL ||
       getEnvVar('RESEND_FROM_EMAIL') ||
       'Admin PERISAI UMI <admin@perisai.site>';
     const appBaseUrl =
-      env.APP_URL ||
-      env.PUBLIC_APP_URL ||
       getEnvVar('APP_URL') ||
+      getEnvVar('PUBLIC_APP_URL') ||
       new URL(request.url).origin;
     const verificationUrl = `${appBaseUrl}/verify?token=${verificationToken}`;
 

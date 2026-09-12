@@ -1,7 +1,12 @@
 import type { APIRoute } from 'astro';
 import { AwsClient } from 'aws4fetch';
-import { env } from 'cloudflare:workers';
+import { getEnvVar } from '../../../lib/env';
 
+/**
+ * POST /api/upload/presign
+ * Menghasilkan URL presigned S3/Backblaze B2 bertanda tangan aman (aws4fetch)
+ * dengan masa berlaku 15 menit agar browser dapat langsung mengunggah file.
+ */
 export const POST: APIRoute = async ({ request, locals }) => {
   // 1. Verifikasi status otentikasi user
   const user = locals.user;
@@ -102,34 +107,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   // STEP 4: GENERATE PRESIGNED URL USING aws4fetch & import { env } from 'cloudflare:workers'
   try {
-    const accessKeyId =
-      env.AWS_ACCESS_KEY_ID ||
-      (typeof import.meta !== 'undefined' && import.meta.env?.AWS_ACCESS_KEY_ID) ||
-      (typeof process !== 'undefined' && process.env?.AWS_ACCESS_KEY_ID) ||
-      '';
-
-    const secretAccessKey =
-      env.AWS_SECRET_ACCESS_KEY ||
-      (typeof import.meta !== 'undefined' && import.meta.env?.AWS_SECRET_ACCESS_KEY) ||
-      (typeof process !== 'undefined' && process.env?.AWS_SECRET_ACCESS_KEY) ||
-      '';
-
-    const region =
-      env.S3_REGION ||
-      (typeof import.meta !== 'undefined' && import.meta.env?.S3_REGION) ||
-      (typeof process !== 'undefined' && process.env?.S3_REGION) ||
-      'auto';
-
+    const accessKeyId = getEnvVar('AWS_ACCESS_KEY_ID') || getEnvVar('B2_ACCESS_KEY_ID');
+    const secretAccessKey = getEnvVar('AWS_SECRET_ACCESS_KEY') || getEnvVar('B2_SECRET_ACCESS_KEY');
+    const region = getEnvVar('S3_REGION') || getEnvVar('B2_REGION') || 'auto';
     let endpoint =
-      env.S3_ENDPOINT ||
-      (typeof import.meta !== 'undefined' && import.meta.env?.S3_ENDPOINT) ||
-      (typeof process !== 'undefined' && process.env?.S3_ENDPOINT) ||
+      getEnvVar('S3_ENDPOINT') ||
+      getEnvVar('B2_ENDPOINT') ||
       'https://s3.eu-central-003.backblazeb2.com';
-
     const bucketName =
-      env.S3_BUCKET_NAME ||
-      (typeof import.meta !== 'undefined' && import.meta.env?.S3_BUCKET_NAME) ||
-      (typeof process !== 'undefined' && process.env?.S3_BUCKET_NAME) ||
+      getEnvVar('S3_BUCKET_NAME') ||
+      getEnvVar('B2_BUCKET_NAME') ||
       'oprec-perisai';
 
     if (!accessKeyId || !secretAccessKey) {

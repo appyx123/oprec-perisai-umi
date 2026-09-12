@@ -1,5 +1,4 @@
 import type { APIRoute } from 'astro';
-import { env } from 'cloudflare:workers';
 import { createDb } from '../../../db';
 import { cagens } from '../../../db/schema';
 import { eq } from 'drizzle-orm';
@@ -77,16 +76,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // 2. Siapkan URL reset password
     const appBaseUrl =
-      env.APP_URL ||
-      env.PUBLIC_APP_URL ||
       getEnvVar('APP_URL') ||
+      getEnvVar('PUBLIC_APP_URL') ||
       'https://oprec.perisai.site';
     const resetUrl = `${appBaseUrl.replace(/\/$/, '')}/auth/reset-password?token=${encodeURIComponent(resetToken)}`;
 
     // 3. Konfigurasi Resend API
-    const resendApiKey = env.RESEND_API_KEY || getEnvVar('RESEND_API_KEY');
+    const resendApiKey = getEnvVar('RESEND_API_KEY');
     const resendFrom =
-      env.RESEND_FROM_EMAIL ||
       getEnvVar('RESEND_FROM_EMAIL') ||
       'PERISAI UMI <noreply@perisai.site>';
 
