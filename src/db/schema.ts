@@ -98,6 +98,8 @@ export const cagens = sqliteTable('cagens', {
 
 // ============================================================
 // TABLE: berkas_cagens (Berkas/Dokumen yang Diupload Peserta)
+// DEPRECATED: Gunakan cagen_documents dan document_types untuk skema relasional baru.
+// Tetap dipertahankan untuk backward compatibility.
 // ============================================================
 export const berkasCagens = sqliteTable('berkas_cagens', {
   id: integer('id', { mode: 'number' })
@@ -241,20 +243,118 @@ export const peminatan = sqliteTable('peminatan', {
 });
 
 // ============================================================
+// TABLE: document_types (Master Jenis Dokumen Persyaratan)
+// ============================================================
+export const documentTypes = sqliteTable('document_types', {
+  id: integer('id', { mode: 'number' })
+    .primaryKey({ autoIncrement: true }),
+
+  // Identifier unik (e.g. 'ktm', 'transkrip', 'pas_foto', 'karya_kti')
+  slug: text('slug')
+    .notNull()
+    .unique(),
+
+  // Label nama dokumen (e.g. 'Kartu Tanda Mahasiswa (KTM)')
+  label: text('label')
+    .notNull(),
+
+  // Kelompok dokumen: wajib administrasi/medsos, opsional, atau karya peminatan
+  group: text('group', {
+    enum: ['wajib', 'opsional', 'karya'],
+  }).notNull(),
+
+  // FK ke peminatan.id jika dokumen spesifik peminatan tertentu
+  peminatanId: integer('peminatan_id', { mode: 'number' })
+    .references(() => peminatan.id, { onDelete: 'set null' }),
+
+  maxFiles: integer('max_files', { mode: 'number' })
+    .notNull()
+    .default(1),
+
+  acceptMime: text('accept_mime')
+    .notNull(),
+
+  maxSizeBytes: integer('max_size_bytes', { mode: 'number' })
+    .notNull()
+    .default(2097152),
+
+  isActive: integer('is_active', { mode: 'boolean' })
+    .notNull()
+    .default(true),
+
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// ============================================================
+// TABLE: cagen_documents (Relational Dokumen yang Diunggah Peserta)
+// ============================================================
+export const cagenDocuments = sqliteTable('cagen_documents', {
+  id: integer('id', { mode: 'number' })
+    .primaryKey({ autoIncrement: true }),
+
+  cagenId: integer('cagen_id', { mode: 'number' })
+    .notNull()
+    .references(() => cagens.id, { onDelete: 'cascade' }),
+
+  documentTypeId: integer('document_type_id', { mode: 'number' })
+    .notNull()
+    .references(() => documentTypes.id, { onDelete: 'cascade' }),
+
+  s3Key: text('s3_key')
+    .notNull(),
+
+  originalFilename: text('original_filename')
+    .notNull(),
+
+  contentType: text('content_type')
+    .notNull(),
+
+  uploadedAt: integer('uploaded_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// ============================================================
 // RELATIONS — Untuk Drizzle relational query API
 // ============================================================
 
-export const cagensRelations = relations(cagens, ({ one }) => ({
+export const cagensRelations = relations(cagens, ({ one, many }) => ({
   berkas: one(berkasCagens, {
     fields: [cagens.id],
     references: [berkasCagens.cagenId],
   }),
+  documents: many(cagenDocuments),
 }));
 
 export const berkasCagensRelations = relations(berkasCagens, ({ one }) => ({
   cagen: one(cagens, {
     fields: [berkasCagens.cagenId],
     references: [cagens.id],
+  }),
+}));
+
+export const peminatanRelations = relations(peminatan, ({ many }) => ({
+  documentTypes: many(documentTypes),
+}));
+
+export const documentTypesRelations = relations(documentTypes, ({ one, many }) => ({
+  peminatan: one(peminatan, {
+    fields: [documentTypes.peminatanId],
+    references: [peminatan.id],
+  }),
+  documents: many(cagenDocuments),
+}));
+
+export const cagenDocumentsRelations = relations(cagenDocuments, ({ one }) => ({
+  cagen: one(cagens, {
+    fields: [cagenDocuments.cagenId],
+    references: [cagens.id],
+  }),
+  documentType: one(documentTypes, {
+    fields: [cagenDocuments.documentTypeId],
+    references: [documentTypes.id],
   }),
 }));
 
@@ -270,6 +370,8 @@ export type SystemSetting = typeof systemSettings.$inferSelect;
 export type TimelineEvent = typeof timelineEvents.$inferSelect;
 export type PublicQna = typeof publicQna.$inferSelect;
 export type PeminatanItem = typeof peminatan.$inferSelect;
+export type DocumentType = typeof documentTypes.$inferSelect;
+export type CagenDocument = typeof cagenDocuments.$inferSelect;
 
 // Types untuk INSERT (menulis data ke DB)
 export type NewAdmin = typeof admins.$inferInsert;
@@ -279,6 +381,8 @@ export type NewSystemSetting = typeof systemSettings.$inferInsert;
 export type NewTimelineEvent = typeof timelineEvents.$inferInsert;
 export type NewPublicQna = typeof publicQna.$inferInsert;
 export type NewPeminatanItem = typeof peminatan.$inferInsert;
+export type NewDocumentType = typeof documentTypes.$inferInsert;
+export type NewCagenDocument = typeof cagenDocuments.$inferInsert;
 
 
 

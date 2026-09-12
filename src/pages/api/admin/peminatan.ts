@@ -175,7 +175,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     // 2. Fallback JSON Payload Update
-    const body = await request.json().catch(() => ({}));
+    const body = (await request.json().catch(() => ({}))) as Record<string, any>;
     const { id, guidebookUrl, deskripsi, isActive } = body;
 
     if (!id || typeof id !== 'number') {

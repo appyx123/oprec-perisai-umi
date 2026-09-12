@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { eq, or, like } from 'drizzle-orm';
+import { eq, like } from 'drizzle-orm';
 import { createDb } from '../../db';
 import { peminatan } from '../../db/schema';
 import { getAwsClient, createPresignedGetUrl, extractS3Key } from '../../lib/s3';

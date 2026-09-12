@@ -8,6 +8,13 @@
       "when": 1788875122864,
       "tag": "0000_unusual_slayback",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1789216988905,
+      "tag": "0001_complete_eddie_brock",
+      "breakpoints": true
     }
   ]
 }

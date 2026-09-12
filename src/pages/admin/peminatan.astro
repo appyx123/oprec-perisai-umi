@@ -305,7 +305,7 @@ const unconfiguredCount = peminatanList.length - configuredCount;
           body: formData,
         });
 
-        const data = await res.json();
+        const data = (await res.json()) as any;
         if (!res.ok || !data.success) {
           showToast(data.message || 'Gagal mengunggah guidebook.', true);
           submitBtn.disabled = false;
@@ -351,7 +351,7 @@ const unconfiguredCount = peminatanList.length - configuredCount;
           body: formData,
         });
 
-        const data = await res.json();
+        const data = (await res.json()) as any;
         if (!res.ok || !data.success) {
           showToast(data.message || 'Gagal menghapus guidebook.', true);
           btn.disabled = false;
