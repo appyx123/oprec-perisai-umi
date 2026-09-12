@@ -18,6 +18,8 @@ let settings = {
   registrationEnd: null as Date | null,
   waNumber: '',
   waMessage: '',
+  kriteriaUmum: '',
+  teksSumpahIntegritas: '',
 };
 
 let dbError: string | null = null;
@@ -37,6 +39,8 @@ try {
       registrationEnd: row.registrationEnd,
       waNumber: row.waNumber || '',
       waMessage: row.waMessage || '',
+      kriteriaUmum: row.kriteriaUmum || '',
+      teksSumpahIntegritas: row.teksSumpahIntegritas || '',
     };
   }
 } catch (err) {
@@ -317,6 +321,58 @@ const isCurrentlyActive = settings.isRegistrationOpen && isWithinWindow;
           </div>
         </div>
 
+        <!-- Kualifikasi Inovator & Integritas Pendaftaran Section -->
+        <div class="bg-[#121217] border border-white/10 rounded-2xl p-6 mb-6">
+          <div class="flex items-center gap-3 mb-6 pb-4 border-b border-white/10">
+            <div class="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-400">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-white tracking-tight">Kualifikasi Inovator & Sumpah Integritas</h3>
+              <p class="text-xs text-gray-400">Kelola kriteria pendaftaran di Landing Page dan teks checkbox integritas pada form pendaftaran.</p>
+            </div>
+          </div>
+
+          <!-- Kriteria Umum Textarea -->
+          <div class="mb-5">
+            <div class="flex items-center justify-between mb-2">
+              <label for="kriteria-umum" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                Kriteria Umum Pendaftaran (Landing Page)
+              </label>
+              <span class="text-[11px] text-amber-400 font-mono">Format: JSON Array atau 1 Kriteria Per Baris</span>
+            </div>
+            <textarea
+              id="kriteria-umum"
+              name="kriteriaUmum"
+              rows="6"
+              placeholder={`Contoh format baris:\nMahasiswa Aktif UMI (Angkatan 2024 atau 2025)\nAkademik Cemerlang (IPK Minimal 3.25)\nRekam Jejak Bersih (Bebas Sanksi Kampus)\n\nAtau format JSON lengkap.`}
+              class="w-full px-4 py-3 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-colors text-xs font-mono leading-relaxed"
+            >{settings.kriteriaUmum}</textarea>
+            <p class="text-[11px] text-gray-500 mt-1.5">
+              Data ini otomatis merender kartu di seksi "Kualifikasi Inovator" pada halaman utama (Landing Page).
+            </p>
+          </div>
+
+          <!-- Teks Sumpah Integritas Textarea -->
+          <div>
+            <label for="teks-sumpah" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+              Teks Sumpah Integritas (Checkbox Wajib di Form Registrasi) *
+            </label>
+            <textarea
+              id="teks-sumpah"
+              name="teksSumpahIntegritas"
+              rows="3"
+              placeholder="Saya menyatakan bahwa saya adalah mahasiswa aktif UMI angkatan 2024/2025, memiliki IPK minimal 3.25, dan bersedia mematuhi seluruh kriteria OREC PERISAI UMI."
+              class="w-full px-4 py-3 rounded-xl bg-[#1c1c24] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-colors text-xs leading-relaxed"
+            >{settings.teksSumpahIntegritas}</textarea>
+            <p class="text-[11px] text-gray-500 mt-1.5">
+              Label pernyataan integritas yang wajib dicentang calon pendaftar sebelum tombol "Daftar Sekarang" aktif.
+            </p>
+          </div>
+        </div>
+
         <!-- Note info -->
         <div class="p-4 rounded-xl bg-amber-400/5 border border-amber-400/20 text-amber-300 text-xs flex items-start gap-2.5">
           <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -368,6 +424,8 @@ const isCurrentlyActive = settings.isRegistrationOpen && isWithinWindow;
     const waMessageInput = document.getElementById('wa-message') as HTMLTextAreaElement | null;
     const waPreviewText = document.getElementById('wa-preview-text') as HTMLSpanElement | null;
     const waTestLink = document.getElementById('wa-test-link') as HTMLAnchorElement | null;
+    const kriteriaUmumInput = document.getElementById('kriteria-umum') as HTMLTextAreaElement | null;
+    const teksSumpahInput = document.getElementById('teks-sumpah') as HTMLTextAreaElement | null;
 
     function updateWaPreview() {
       const rawNum = waNumberInput?.value?.trim() || '';
@@ -437,6 +495,8 @@ const isCurrentlyActive = settings.isRegistrationOpen && isWithinWindow;
         const registrationEnd = toWITAISO(endInput?.value || null);
         const waNumber = waNumberInput?.value?.trim() || '';
         const waMessage = waMessageInput?.value?.trim() || '';
+        const kriteriaUmum = kriteriaUmumInput?.value?.trim() || '';
+        const teksSumpahIntegritas = teksSumpahInput?.value?.trim() || '';
 
         if (registrationStart && registrationEnd) {
           if (new Date(registrationStart).getTime() > new Date(registrationEnd).getTime()) {
@@ -461,6 +521,8 @@ const isCurrentlyActive = settings.isRegistrationOpen && isWithinWindow;
               registrationEnd,
               waNumber,
               waMessage,
+              kriteriaUmum,
+              teksSumpahIntegritas,
             }),
           });
 

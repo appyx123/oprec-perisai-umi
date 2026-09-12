@@ -13,14 +13,16 @@ if (user) {
 
 let isRegistrationAllowed = false;
 let closedMessage = '';
+let settings: any = null;
 
 try {
   const db = createDb();
-  const [settings] = await db
+  const [row] = await db
     .select()
     .from(systemSettings)
     .where(eq(systemSettings.id, 1))
     .limit(1);
+  settings = row || null;
 
   const now = new Date();
   const isOpen = settings?.isRegistrationOpen ?? false;
@@ -47,6 +49,12 @@ try {
   console.error('Error checking registration window:', err);
   closedMessage = 'Layanan pendaftaran sedang dalam pemeliharaan sistem.';
 }
+
+// ponytail: Teks sumpah integritas dinamis dari tabel system_settings
+const defaultTeksSumpah = 'Saya menyatakan bahwa saya adalah mahasiswa aktif UMI angkatan 2024/2025, memiliki IPK minimal 3.25, dan bersedia mematuhi seluruh kriteria OREC PERISAI UMI.';
+const teksSumpahIntegritas = (settings?.teksSumpahIntegritas && settings.teksSumpahIntegritas.trim().length > 0)
+  ? settings.teksSumpahIntegritas.trim()
+  : defaultTeksSumpah;
 ---
 
 <MainLayout title="Daftar Calon Anggota - PERISAI UMI">
@@ -308,13 +316,13 @@ try {
                 </div>
               </div>
 
-              <!-- Persyaratan & Ketentuan Checklist Section -->
-              <div class="p-4 sm:p-5 rounded-2xl bg-[#171720]/90 border border-white/10 hover:border-amber-500/30 transition-all">
-                <div class="flex items-center gap-2 mb-3 text-white font-bold text-xs uppercase tracking-wider">
+              <!-- Persyaratan & Ketentuan (Sumpah Integritas) -->
+              <div class="p-4 sm:p-5 rounded-2xl bg-[#14141c] border border-amber-500/30 shadow-lg shadow-black/20 hover:border-amber-400/60 transition-all">
+                <div class="flex items-center gap-2 mb-2.5 text-white font-bold text-xs uppercase tracking-wider">
                   <svg class="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                   </svg>
-                  <span>Persyaratan & Ketentuan</span>
+                  <span class="text-amber-400">Persyaratan & Ketentuan</span>
                 </div>
                 
                 <label class="flex items-start gap-3 cursor-pointer group select-none">
@@ -324,11 +332,12 @@ try {
                       id="agree-terms"
                       name="agreeTerms"
                       required
+                      onchange="const btn = document.getElementById('submit-btn'); if (btn) btn.disabled = !this.checked;"
                       class="w-4 h-4 rounded bg-[#1c1c24] border-white/20 text-amber-400 focus:ring-amber-400/30 focus:ring-2 focus:ring-offset-0 transition-colors cursor-pointer accent-amber-400"
                     />
                   </div>
                   <span class="text-xs text-gray-300 leading-relaxed group-hover:text-white transition-colors">
-                    Saya menyatakan bahwa seluruh data yang saya masukkan adalah benar, dan saya bersedia mematuhi seluruh kriteria serta persyaratan OREC PERISAI UMI.
+                    {teksSumpahIntegritas}
                   </span>
                 </label>
               </div>

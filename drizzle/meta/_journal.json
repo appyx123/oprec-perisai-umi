@@ -15,6 +15,13 @@
       "when": 1789216988905,
       "tag": "0001_complete_eddie_brock",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789219422373,
+      "tag": "0002_loving_white_tiger",
+      "breakpoints": true
     }
   ]
 }

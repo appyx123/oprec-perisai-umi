@@ -68,6 +68,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     let registrationEndRaw: any = null;
     let waNumberRaw: string | undefined = undefined;
     let waMessageRaw: string | undefined = undefined;
+    let kriteriaUmumRaw: string | undefined = undefined;
+    let teksSumpahIntegritasRaw: string | undefined = undefined;
 
     const contentType = request.headers.get('content-type') || '';
     if (contentType.includes('application/json')) {
@@ -78,6 +80,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
         registrationEndRaw = body.registrationEnd;
         if (body.waNumber !== undefined) waNumberRaw = String(body.waNumber).trim();
         if (body.waMessage !== undefined) waMessageRaw = String(body.waMessage).trim();
+        if (body.kriteriaUmum !== undefined) kriteriaUmumRaw = String(body.kriteriaUmum).trim();
+        if (body.teksSumpahIntegritas !== undefined) teksSumpahIntegritasRaw = String(body.teksSumpahIntegritas).trim();
       }
     } else {
       const formData = await request.formData().catch(() => null);
@@ -87,6 +91,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
         registrationEndRaw = formData.get('registrationEnd');
         if (formData.has('waNumber')) waNumberRaw = String(formData.get('waNumber') || '').trim();
         if (formData.has('waMessage')) waMessageRaw = String(formData.get('waMessage') || '').trim();
+        if (formData.has('kriteriaUmum')) kriteriaUmumRaw = String(formData.get('kriteriaUmum') || '').trim();
+        if (formData.has('teksSumpahIntegritas')) teksSumpahIntegritasRaw = String(formData.get('teksSumpahIntegritas') || '').trim();
       }
     }
 
@@ -131,6 +137,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     };
     if (waNumberRaw !== undefined) updatePayload.waNumber = waNumberRaw;
     if (waMessageRaw !== undefined) updatePayload.waMessage = waMessageRaw;
+    if (kriteriaUmumRaw !== undefined) updatePayload.kriteriaUmum = kriteriaUmumRaw;
+    if (teksSumpahIntegritasRaw !== undefined) updatePayload.teksSumpahIntegritas = teksSumpahIntegritasRaw;
 
     if (existing) {
       await db
@@ -145,6 +153,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
         registrationEnd: endDate,
         waNumber: waNumberRaw || null,
         waMessage: waMessageRaw || null,
+        kriteriaUmum: kriteriaUmumRaw || null,
+        teksSumpahIntegritas: teksSumpahIntegritasRaw || null,
       });
     }
 

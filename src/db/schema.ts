@@ -164,6 +164,10 @@ export const systemSettings = sqliteTable('system_settings', {
   // WhatsApp Call Center
   waNumber: text('wa_number'),
   waMessage: text('wa_message'),
+
+  // ponytail: Kriteria umum pendaftaran & teks sumpah integritas dinamis
+  kriteriaUmum: text('kriteria_umum'),
+  teksSumpahIntegritas: text('teks_sumpah_integritas'),
 });
 
 // ============================================================

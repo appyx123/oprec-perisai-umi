@@ -1,16 +1,16 @@
 # Graph Report - orec-perisai-umi  (2026-09-12)
 
 ## Corpus Check
-- 65 files · ~376,926 words
+- 68 files · ~380,128 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2100 nodes · 2447 edges · 182 communities (26 shown, 154 thin omitted)
+- 2104 nodes · 2451 edges · 181 communities (27 shown, 152 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 2 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `daee9781`
+- Built from commit: `d5b66393`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -148,7 +148,7 @@
 - WorkerStub
 - WorkflowStep
 - WritableStreamDefaultController
-- engines
+- migrate-criteria.mjs
 - AnalyticsEngineDataset
 - __BaseEnv_Env
 - CacheContext
@@ -192,7 +192,6 @@
 - CLAUDE.md
 - rules/graphify.md
 - workflows/graphify.md
-- seed.mjs
 - seed-documents.mjs
 - aws4fetch
 
@@ -223,7 +222,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (182 total, 154 thin omitted)
+## Communities (181 total, 152 thin omitted)
 
 ### Community 0 - "worker-configuration.d.ts"
 Cohesion: 0.00
@@ -239,15 +238,15 @@ Nodes (12): CloseEvent, CustomEvent, EmailEvent, ErrorEvent, Event, ExtendableEv
 
 ### Community 3 - "schema.ts"
 Cohesion: 0.08
-Nodes (27): Admin, BerkasCagen, berkasCagensRelations, Cagen, CagenDocument, cagenDocumentsRelations, cagensRelations, DocumentType (+19 more)
+Nodes (28): Admin, BerkasCagen, berkasCagensRelations, Cagen, CagenDocument, cagenDocumentsRelations, cagensRelations, DocumentType (+20 more)
 
 ### Community 4 - "index.ts"
-Cohesion: 0.21
-Nodes (8): drizzle-orm, Db, DbEnvConfig, berkasCagens, cagens, STATUS_PENDAFTARAN, systemSettings, AuthUser
+Cohesion: 0.22
+Nodes (7): drizzle-orm, Db, DbEnvConfig, berkasCagens, cagens, systemSettings, AuthUser
 
 ### Community 5 - "auth.ts"
-Cohesion: 0.10
-Nodes (28): bcryptjs, resolveDbCredentials(), admins, AUTH_COOKIE_NAME, clearAuthCookie(), generateNomorRegistrasi(), getAuthToken(), getJwtSecretKey() (+20 more)
+Cohesion: 0.08
+Nodes (30): bcryptjs, client, seed(), resolveDbCredentials(), admins, AUTH_COOKIE_NAME, clearAuthCookie(), generateNomorRegistrasi() (+22 more)
 
 ### Community 6 - "createDb"
 Cohesion: 0.20
@@ -267,7 +266,7 @@ Nodes (7): CompressionStream, DecompressionStream, FixedLengthStream, IdentityTr
 
 ### Community 12 - "package.json"
 Cohesion: 0.11
-Nodes (16): allowScripts, esbuild, name, type, version, @astrojs/check, browser-image-compression, cropperjs (+8 more)
+Nodes (17): allowScripts, esbuild, engines, node, name, type, version, @astrojs/check (+9 more)
 
 ### Community 14 - "dependencies"
 Cohesion: 0.13
@@ -329,22 +328,26 @@ Nodes (3): BasicImageTransformations, RequestInitCfPropertiesImage, RequestInitC
 Cohesion: 0.67
 Nodes (3): RequestInitCfPropertiesVaryAcceptHeader, RequestInitCfPropertiesVaryAcceptLanguageHeader, RequestInitCfPropertiesVaryHeader
 
+### Community 133 - "migrate-criteria.mjs"
+Cohesion: 0.40
+Nodes (3): @libsql/client, client, defaultCriteria
+
 ## Knowledge Gaps
-- **1039 isolated node(s):** `name`, `type`, `version`, `node`, `dev` (+1034 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1746 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **154 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **1040 isolated node(s):** `name`, `type`, `version`, `node`, `dev` (+1035 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1748 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **152 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `WorkerEntrypoint` connect `WorkerEntrypoint` to `worker-configuration.d.ts`?**
-  _High betweenness centrality (0.099) - this node is a cross-community bridge._
+  _High betweenness centrality (0.101) - this node is a cross-community bridge._
 - **Why does `Performance` connect `Performance` to `worker-configuration.d.ts`?**
   _High betweenness centrality (0.091) - this node is a cross-community bridge._
 - **Why does `URL` connect `URL` to `worker-configuration.d.ts`?**
   _High betweenness centrality (0.047) - this node is a cross-community bridge._
 - **What connects `name`, `type`, `version` to the rest of the system?**
-  _1039 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1040 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `worker-configuration.d.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.0022471910112359553 - nodes in this community are weakly interconnected._
 - **Should `ServiceWorkerGlobalScope` be split into smaller, more focused modules?**

@@ -30,9 +30,9 @@
     "semantic_hash": "918a658971a114376f8d5753c59a29a3"
   },
   "drizzle/meta/_journal.json": {
-    "mtime": 1789216988.9163945,
-    "seen": 1789217398.5211658,
-    "ast_hash": "ed574c27bed29bfa84eb3c70c1edd6ae",
+    "mtime": 1789219422.3727489,
+    "seen": 1789219839.6684628,
+    "ast_hash": "d0de93be6b85299fc67b907882dec8a4",
     "semantic_hash": ""
   },
   "package.json": {
@@ -72,9 +72,9 @@
     "semantic_hash": "b5b66328d9cdc473065c318fdd43a07b"
   },
   "src/db/schema.ts": {
-    "mtime": 1789216819.8492029,
-    "seen": 1789217398.5211658,
-    "ast_hash": "9eb5594af5d1b5fc5c21da82787ad4c3",
+    "mtime": 1789219371.8836071,
+    "seen": 1789219839.6715436,
+    "ast_hash": "81302bfbc3028c867262c39b1d087033",
     "semantic_hash": ""
   },
   "src/env.d.ts": {
@@ -132,10 +132,10 @@
     "semantic_hash": ""
   },
   "src/pages/admin/pengaturan.astro": {
-    "mtime": 1789113029.8517349,
-    "seen": 1789215834.591717,
-    "ast_hash": "f9233b59a6e6bcdd5c84058755337410",
-    "semantic_hash": "f9233b59a6e6bcdd5c84058755337410"
+    "mtime": 1789219585.2392497,
+    "seen": 1789219839.6715436,
+    "ast_hash": "f57bce86b37d7c2903d18a4bbb8856b4",
+    "semantic_hash": ""
   },
   "src/pages/admin/peserta/[id].astro": {
     "mtime": 1789113136.012308,
@@ -174,10 +174,10 @@
     "semantic_hash": "baae250f39cc3e69b256625dbb0d97c9"
   },
   "src/pages/api/admin/settings.ts": {
-    "mtime": 1788929645.385109,
-    "seen": 1789215834.591717,
-    "ast_hash": "5f0f56810912d67ce1f0f2ce2956001d",
-    "semantic_hash": "5f0f56810912d67ce1f0f2ce2956001d"
+    "mtime": 1789219485.2536793,
+    "seen": 1789219839.6735494,
+    "ast_hash": "3039f8318e9b2355d8de1085bcbb9325",
+    "semantic_hash": ""
   },
   "src/pages/api/admin/status.ts": {
     "mtime": 1789102485.877972,
@@ -264,10 +264,10 @@
     "semantic_hash": "169799d9fd798bbfd70ff7aead5016c0"
   },
   "src/pages/auth/register.astro": {
-    "mtime": 1789135611.1203566,
-    "seen": 1789215834.591717,
-    "ast_hash": "41dd6c98b654fd869108f4fa6c05cca6",
-    "semantic_hash": "41dd6c98b654fd869108f4fa6c05cca6"
+    "mtime": 1789219772.392793,
+    "seen": 1789219839.6735494,
+    "ast_hash": "26c719be9c8ad1116fa9662bf4348ca8",
+    "semantic_hash": ""
   },
   "src/pages/auth/reset-password.astro": {
     "mtime": 1789108991.9756095,
@@ -282,10 +282,10 @@
     "semantic_hash": "b103fbe904522b051e823d2c4697c8c8"
   },
   "src/pages/index.astro": {
-    "mtime": 1789123164.596404,
-    "seen": 1789215834.591717,
-    "ast_hash": "b5a715f14624b4838756f2d844529d98",
-    "semantic_hash": "b5a715f14624b4838756f2d844529d98"
+    "mtime": 1789219677.851688,
+    "seen": 1789219839.6735494,
+    "ast_hash": "3e3a0d094d825c8dc41fbf09f126d874",
+    "semantic_hash": ""
   },
   "src/pages/user/dashboard.astro": {
     "mtime": 1789216382.7490735,
@@ -441,6 +441,18 @@
     "mtime": 1789216843.8675926,
     "seen": 1789217398.5211658,
     "ast_hash": "bebdc2db9eff6eab5903c7b416463c35",
+    "semantic_hash": ""
+  },
+  "drizzle/meta/0002_snapshot.json": {
+    "mtime": 1789219422.3727489,
+    "seen": 1789219839.6684628,
+    "ast_hash": "c1abd7519bcc75ab910b6f1f49474519",
+    "semantic_hash": ""
+  },
+  "scripts/migrate-criteria.mjs": {
+    "mtime": 1789219442.2603102,
+    "seen": 1789219839.6684628,
+    "ast_hash": "fa037b61bb5830f396fc95852383ac70",
     "semantic_hash": ""
   }
 }
