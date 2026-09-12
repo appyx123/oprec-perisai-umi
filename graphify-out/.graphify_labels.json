@@ -3,7 +3,7 @@
   "1": "ServiceWorkerGlobalScope",
   "2": "Event",
   "3": "schema.ts",
-  "4": "index.ts",
+  "4": "drizzle-orm",
   "5": "auth.ts",
   "6": "createDb",
   "7": "astro",
@@ -177,8 +177,8 @@
   "175": "CLAUDE.md",
   "176": "rules/graphify.md",
   "177": "workflows/graphify.md",
-  "178": "reset-password.ts",
+  "178": "seed.mjs",
   "179": "seed-documents.mjs",
-  "180": "aws4fetch",
+  "180": "index.ts",
   "181": "form-daftar.astro"
 }

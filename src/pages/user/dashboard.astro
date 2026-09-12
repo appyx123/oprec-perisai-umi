@@ -197,8 +197,7 @@ if (statusPendaftaran === 'Belum Melengkapi') {
 
         <div class="flex flex-col items-start sm:items-end text-left sm:text-right">
           <span class="text-[11px] text-gray-500 font-mono uppercase tracking-wider">Nomor Registrasi</span>
-          <span class="text-lg font-black text-amber-400 font-mono tracking-wider">#{cagenData?.nomorRegistrasi || user.nomorRegistrasi || user.id}</span>
-          <span class="text-xs text-gray-400 mt-0.5">NIM: {cagenData?.nim || user.nim || '-'}</span>
+          <span class="text-lg font-black text-amber-400 font-mono tracking-wider">#{cagenData?.nomorRegistrasi || user.nomorRegistrasi || '-'}</span>
         </div>
       </div>
     </div>

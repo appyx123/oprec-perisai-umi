@@ -305,34 +305,34 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
       <button
         id="tab-btn-admin"
         type="button"
-        class="tab-btn active flex items-center gap-2.5 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-200 bg-amber-400 text-black shadow-lg shadow-amber-500/20"
+        class="tab-btn active flex items-center gap-2.5 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-200 bg-amber-400 text-black shadow-lg shadow-amber-500/20 cursor-pointer"
         data-target="tab-section-admin"
       >
-        <span class="w-5 h-5 rounded-full bg-black/20 text-black flex items-center justify-center text-xs font-black">1</span>
+        <span class="tab-num w-5 h-5 rounded-full bg-black/20 text-black flex items-center justify-center text-xs font-black transition-colors">1</span>
         <span>Administrasi Utama</span>
-        <span class="ml-1 text-[10px] px-2 py-0.5 rounded-full bg-black/15 font-mono">4 File</span>
+        <span class="tab-pill ml-1 text-[10px] px-2 py-0.5 rounded-full bg-black/15 text-black font-mono transition-colors">4 File</span>
       </button>
 
       <button
         id="tab-btn-media"
         type="button"
-        class="tab-btn flex items-center gap-2.5 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200"
+        class="tab-btn flex items-center gap-2.5 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
         data-target="tab-section-media"
       >
-        <span class="w-5 h-5 rounded-full bg-white/10 text-gray-300 flex items-center justify-center text-xs font-black">2</span>
+        <span class="tab-num w-5 h-5 rounded-full bg-gray-800 text-gray-200 border border-white/10 flex items-center justify-center text-xs font-black transition-colors">2</span>
         <span>Media Sosial & Opsional</span>
-        <span class="ml-1 text-[10px] px-2 py-0.5 rounded-full bg-white/10 font-mono">6 Item</span>
+        <span class="tab-pill ml-1 text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-gray-400 font-mono transition-colors">6 Item</span>
       </button>
 
       <button
         id="tab-btn-karya"
         type="button"
-        class="tab-btn flex items-center gap-2.5 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200 relative"
+        class="tab-btn flex items-center gap-2.5 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200 relative cursor-pointer"
         data-target="tab-section-karya"
       >
-        <span class="w-5 h-5 rounded-full bg-amber-400/20 text-amber-300 flex items-center justify-center text-xs font-black">3</span>
+        <span class="tab-num w-5 h-5 rounded-full bg-gray-800 text-gray-200 border border-white/10 flex items-center justify-center text-xs font-black transition-colors">3</span>
         <span>Karya Peminatan</span>
-        <span class="ml-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-400 border border-amber-400/30 font-mono">Dinamis</span>
+        <span class="tab-pill ml-1 text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-gray-400 font-mono transition-colors">Dinamis</span>
       </button>
     </div>
 
@@ -597,102 +597,120 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
           </div>
         </div>
 
-        <!-- UPLOAD SECTION FOR KARYA -->
-        <div class="p-6 sm:p-8 rounded-2xl bg-[#161622] border border-amber-500/30 relative">
-          <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
+        <!-- Standardized Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Card 1: Standard Upload Card for Berkas Karya Peminatan -->
+          <div 
+            id="card-fileKarya" 
+            class={`p-6 rounded-2xl border transition-all flex flex-col justify-between ${
+              karyaFileKey ? 'bg-[#121c15]/60 border-emerald-500/30' : 'bg-[#161620] border-white/10 hover:border-amber-500/30'
+            }`}
+          >
             <div>
-              <span class="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold">Submission File</span>
-              <h3 class="text-base sm:text-lg font-bold text-white mt-1">Unggah Berkas / Tautan Karya Peminatan</h3>
-              <p class="text-xs text-gray-400 mt-1">
-                Pastikan karya Anda telah memenuhi seluruh ketentuan yang tertera pada Buku Panduan resmi.
-              </p>
-            </div>
-            <div id="badge-fileKarya">
-              {karyaFileKey ? (
-                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
-                  Karya Terunggah
-                </span>
-              ) : (
-                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-400/10 text-amber-400 border border-amber-400/30">
-                  Wajib Diunggah
-                </span>
+              <div class="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <h3 class="font-bold text-sm sm:text-base text-white">Berkas Karya Peminatan</h3>
+                  <p class="text-xs text-gray-400 mt-0.5">
+                    Silakan unggah berkas penugasan karya Anda di sini. Ketentuan format dan kriteria wajib merujuk pada Guidebook.
+                  </p>
+                </div>
+                <div id="badge-fileKarya">
+                  {karyaFileKey ? (
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                      Terunggah
+                    </span>
+                  ) : (
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-400/10 text-amber-400 border border-amber-400/20">
+                      Wajib
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <!-- Progress box -->
+              <div id="progress-box-fileKarya" class="hidden mb-3 p-3 rounded-xl bg-black/40 border border-amber-500/20">
+                <div class="flex justify-between text-xs font-mono text-amber-300 mb-1">
+                  <span id="progress-status-fileKarya">Mengunggah...</span>
+                  <span id="progress-percent-fileKarya">0%</span>
+                </div>
+                <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                  <div id="progress-bar-fileKarya" class="h-full bg-amber-400 transition-all duration-200" style="width: 0%"></div>
+                </div>
+              </div>
+
+              <!-- Error message -->
+              <div id="error-fileKarya" class="hidden mb-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs"></div>
+
+              <!-- Current file preview -->
+              {karyaFileKey && (
+                <div id="current-file-fileKarya" class="mb-4 text-xs font-mono text-gray-400 bg-black/20 p-2.5 rounded-xl border border-white/5 break-all">
+                  Berkas aktif: <span class="text-emerald-400">{karyaFileKey}</span>
+                </div>
               )}
             </div>
-          </div>
 
-          <!-- Real-time Progress -->
-          <div id="progress-box-fileKarya" class="hidden mb-4 p-4 rounded-xl bg-black/50 border border-amber-500/30">
-            <div class="flex justify-between text-xs font-mono text-amber-300 mb-1">
-              <span id="progress-status-fileKarya">Mengunggah karya ke server Backblaze B2...</span>
-              <span id="progress-percent-fileKarya" class="font-bold">0%</span>
-            </div>
-            <div class="w-full bg-white/10 h-2 rounded-full overflow-hidden">
-              <div id="progress-bar-fileKarya" class="h-full bg-gradient-to-r from-amber-500 to-amber-300 transition-all duration-200" style="width: 0%"></div>
-            </div>
-          </div>
-
-          <div id="error-fileKarya" class="hidden mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs"></div>
-
-          {karyaFileKey && (
-            <div id="current-file-fileKarya" class="mb-4 text-xs font-mono text-gray-300 bg-black/30 p-3 rounded-xl border border-white/10 break-all flex items-center justify-between gap-3">
-              <div>
-                <span class="text-gray-500">Berkas Karya Saat Ini:</span>
-                <span class="text-emerald-400 ml-1 font-bold">{karyaFileKey}</span>
+            <div class="pt-4 border-t border-white/5 flex items-center justify-between gap-3">
+              <span class="text-[11px] font-mono text-gray-500">PDF / ZIP (Maks. 50MB)</span>
+              <div class="flex items-center gap-2">
+                <input
+                  type="file"
+                  id="input-fileKarya"
+                  class="file-input-trigger hidden"
+                  data-category="fileKarya"
+                  data-label="Karya Peminatan"
+                  data-max-mb="50"
+                  accept=".pdf,.zip,.jpg,.jpeg,.png,.mp4"
+                />
+                <button
+                  type="button"
+                  class="btn-select-file px-4 py-2 rounded-xl text-xs font-bold transition-all bg-amber-400 hover:bg-amber-300 text-black shadow-md shadow-amber-500/15 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  data-target="input-fileKarya"
+                >
+                  <span>{karyaFileKey ? 'Ganti Berkas' : 'Pilih Berkas'}</span>
+                </button>
               </div>
             </div>
-          )}
-
-          <!-- Upload input and triggers -->
-          <div class="flex flex-col sm:flex-row items-center gap-3 pt-2">
-            <input
-              type="file"
-              id="input-fileKarya"
-              class="file-input-trigger hidden"
-              data-category="fileKarya"
-              data-label="Karya Peminatan"
-              data-max-mb="50"
-              accept=".pdf,.zip,.jpg,.jpeg,.png,.mp4"
-            />
-            <button
-              type="button"
-              class="btn-select-file w-full sm:w-auto px-6 py-3 rounded-xl text-xs sm:text-sm font-bold transition-all bg-amber-400 hover:bg-amber-300 text-black shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-              data-target="input-fileKarya"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-              </svg>
-              <span>{karyaFileKey ? 'Ganti / Unggah Ulang Berkas Karya' : 'Pilih File Karya'}</span>
-            </button>
-
-            <span class="text-xs text-gray-500 font-mono text-center sm:text-left">
-              Maksimal 50MB (PDF/ZIP/MP4/Gambar)
-            </span>
           </div>
 
-          <!-- Optional Video / Drive Link Alternative -->
-          <div class="mt-6 pt-5 border-t border-white/10">
-            <label for="input-karya-link" class="block text-xs font-semibold text-gray-300 mb-1">
-              Atau Lampirkan Tautan Berkas / Video (YouTube / Google Drive Publik)
-            </label>
-            <div class="flex flex-col sm:flex-row gap-2.5 mt-2">
-              <input
-                type="url"
-                id="input-karya-link"
-                placeholder="https://drive.google.com/... atau https://youtube.com/..."
-                class="flex-1 bg-black/40 border border-white/15 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
-              />
+          <!-- Card 2: Alternative Cloud Storage / Video Link -->
+          <div class="p-6 rounded-2xl bg-[#161620] border border-white/10 hover:border-amber-500/30 transition-all flex flex-col justify-between">
+            <div>
+              <div class="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <h3 class="font-bold text-sm sm:text-base text-white">Tautan Karya / Video Cloud</h3>
+                  <p class="text-xs text-gray-400 mt-0.5">
+                    Alternatif tautan jika penugasan karya berupa video YouTube atau berkas pada Google Drive publik.
+                  </p>
+                </div>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-white/5 text-gray-400 border border-white/10">
+                  Opsional
+                </span>
+              </div>
+
+              <div class="mt-2">
+                <label for="input-karya-link" class="block text-[11px] font-semibold text-gray-400 mb-1.5">
+                  URL YouTube / Google Drive
+                </label>
+                <input
+                  type="url"
+                  id="input-karya-link"
+                  placeholder="https://drive.google.com/... atau https://youtube.com/..."
+                  class="w-full bg-black/40 border border-white/15 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
+                />
+              </div>
+            </div>
+
+            <div class="pt-4 border-t border-white/5 flex items-center justify-between gap-3 mt-4">
+              <span class="text-[11px] font-mono text-gray-500">Google Drive / YouTube Link</span>
               <button
                 type="button"
                 id="btn-save-karyalink"
-                class="px-5 py-2.5 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 border border-amber-400/30 font-bold text-xs transition-colors cursor-pointer whitespace-nowrap"
+                class="px-4 py-2 rounded-xl text-xs font-bold transition-all bg-white/10 hover:bg-white/15 text-white border border-white/15 cursor-pointer"
               >
                 Simpan Tautan
               </button>
             </div>
-            <p class="text-[11px] text-gray-500 mt-1.5">
-              Gunakan opsi ini jika penugasan karya Anda berupa video resolusi tinggi atau berkas pada cloud storage.
-            </p>
           </div>
         </div>
 
@@ -726,20 +744,40 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
     const tabButtons = document.querySelectorAll<HTMLButtonElement>('.tab-btn');
     const tabSections = document.querySelectorAll<HTMLElement>('.tab-content');
 
+    function updateTabVisuals(activeBtn: HTMLButtonElement) {
+      tabButtons.forEach((b) => {
+        const isActive = b === activeBtn;
+        const numBadge = b.querySelector('.tab-num');
+        const pillBadge = b.querySelector('.tab-pill');
+
+        if (isActive) {
+          b.classList.add('active', 'bg-amber-400', 'text-black', 'shadow-lg', 'shadow-amber-500/20');
+          b.classList.remove('text-gray-400', 'hover:text-white', 'hover:bg-white/5');
+          if (numBadge) {
+            numBadge.className = 'tab-num w-5 h-5 rounded-full bg-black/20 text-black flex items-center justify-center text-xs font-black transition-colors';
+          }
+          if (pillBadge) {
+            pillBadge.className = 'tab-pill ml-1 text-[10px] px-2 py-0.5 rounded-full bg-black/15 text-black font-mono transition-colors';
+          }
+        } else {
+          b.classList.remove('active', 'bg-amber-400', 'text-black', 'shadow-lg', 'shadow-amber-500/20');
+          b.classList.add('text-gray-400', 'hover:text-white', 'hover:bg-white/5');
+          if (numBadge) {
+            numBadge.className = 'tab-num w-5 h-5 rounded-full bg-gray-800 text-gray-200 border border-white/10 flex items-center justify-center text-xs font-black transition-colors';
+          }
+          if (pillBadge) {
+            pillBadge.className = 'tab-pill ml-1 text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-gray-400 font-mono transition-colors';
+          }
+        }
+      });
+    }
+
     tabButtons.forEach((btn) => {
       btn.addEventListener('click', () => {
         const targetId = btn.getAttribute('data-target');
         if (!targetId) return;
 
-        // Reset all buttons
-        tabButtons.forEach((b) => {
-          b.classList.remove('active', 'bg-amber-400', 'text-black', 'shadow-lg', 'shadow-amber-500/20');
-          b.classList.add('text-gray-400');
-        });
-
-        // Activate clicked button
-        btn.classList.add('active', 'bg-amber-400', 'text-black', 'shadow-lg', 'shadow-amber-500/20');
-        btn.classList.remove('text-gray-400');
+        updateTabVisuals(btn);
 
         // Toggle sections
         tabSections.forEach((sec) => {
@@ -767,23 +805,33 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
         try {
           await confirmUploadedFile('fileKarya', val);
           showToast('success', 'Tautan Disimpan', 'Tautan karya peminatan berhasil diperbarui.');
+          const card = document.getElementById('card-fileKarya');
+          if (card) {
+            card.classList.remove('bg-[#161620]', 'border-white/10', 'hover:border-amber-500/30');
+            card.classList.add('bg-[#121c15]/60', 'border-emerald-500/30');
+          }
           const badge = document.getElementById('badge-fileKarya');
           if (badge) {
             badge.innerHTML = `
-              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
-                Karya Terunggah
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                Terunggah
               </span>
             `;
           }
-          const currentBox = document.getElementById('current-file-fileKarya');
+          let currentBox = document.getElementById('current-file-fileKarya');
+          if (!currentBox) {
+            currentBox = document.createElement('div');
+            currentBox.id = 'current-file-fileKarya';
+            currentBox.className = 'mb-4 text-xs font-mono text-gray-400 bg-black/20 p-2.5 rounded-xl border border-white/5 break-all';
+            const progressBox = document.getElementById('progress-box-fileKarya');
+            if (progressBox && progressBox.parentElement) {
+              progressBox.parentElement.appendChild(currentBox);
+            }
+          }
           if (currentBox) {
-            currentBox.innerHTML = `
-              <div>
-                <span class="text-gray-500">Tautan Karya Saat Ini:</span>
-                <span class="text-emerald-400 ml-1 font-bold">${val}</span>
-              </div>
-            `;
+            currentBox.innerHTML = `Berkas aktif: <span class="text-emerald-400">${val}</span>`;
+            currentBox.classList.remove('hidden');
           }
         } catch (e: any) {
           showToast('error', 'Gagal Menyimpan', e.message);
@@ -927,6 +975,29 @@ const progressPercent = Math.min(100, Math.round((currentMandatoryUploaded / tot
 
         // Success UI Update
         if (progressBox) progressBox.classList.add('hidden');
+        const card = document.getElementById(`card-${fieldId}`);
+        if (card) {
+          card.classList.remove('bg-[#161620]', 'border-white/10', 'hover:border-amber-500/30');
+          card.classList.add('bg-[#121c15]/60', 'border-emerald-500/30');
+        }
+        const triggerBtn = document.querySelector(`[data-target="input-${fieldId}"]`) as HTMLButtonElement | null;
+        if (triggerBtn) {
+          const span = triggerBtn.querySelector('span');
+          if (span) span.textContent = 'Ganti Berkas';
+        }
+        let currentFileBox = document.getElementById(`current-file-${fieldId}`);
+        if (!currentFileBox) {
+          currentFileBox = document.createElement('div');
+          currentFileBox.id = `current-file-${fieldId}`;
+          currentFileBox.className = 'mb-4 text-xs font-mono text-gray-400 bg-black/20 p-2.5 rounded-xl border border-white/5 break-all';
+          if (progressBox && progressBox.parentElement) {
+            progressBox.parentElement.appendChild(currentFileBox);
+          }
+        }
+        if (currentFileBox) {
+          currentFileBox.innerHTML = `Berkas aktif: <span class="text-emerald-400">${fileKey}</span>`;
+          currentFileBox.classList.remove('hidden');
+        }
         if (badge) {
           badge.innerHTML = `
             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">

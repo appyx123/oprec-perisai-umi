@@ -1,16 +1,16 @@
 # Graph Report - orec-perisai-umi  (2026-09-12)
 
 ## Corpus Check
-- 68 files · ~379,543 words
+- 70 files · ~383,983 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2105 nodes · 2452 edges · 182 communities (28 shown, 152 thin omitted)
-- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 2 edges (avg confidence: 0.85)
+- 2118 nodes · 2487 edges · 182 communities (28 shown, 152 thin omitted)
+- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `01a0cfab`
+- Built from commit: `2425b7f5`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -19,7 +19,7 @@
 - ServiceWorkerGlobalScope
 - Event
 - schema.ts
-- index.ts
+- drizzle-orm
 - auth.ts
 - createDb
 - astro
@@ -192,19 +192,19 @@
 - CLAUDE.md
 - rules/graphify.md
 - workflows/graphify.md
-- reset-password.ts
+- seed.mjs
 - seed-documents.mjs
-- aws4fetch
+- index.ts
 
 ## God Nodes (most connected - your core abstractions)
-1. `createDb()` - 50 edges
-2. `drizzle-orm` - 27 edges
+1. `createDb()` - 56 edges
+2. `drizzle-orm` - 29 edges
 3. `Event` - 25 edges
 4. `Console` - 21 edges
-5. `astro` - 19 edges
-6. `URLSearchParams` - 16 edges
-7. `cagens` - 15 edges
-8. `AuthUser` - 15 edges
+5. `astro` - 20 edges
+6. `AuthUser` - 16 edges
+7. `URLSearchParams` - 16 edges
+8. `cagens` - 15 edges
 9. `DurableObjectStorage` - 15 edges
 10. `Container` - 15 edges
 
@@ -212,13 +212,13 @@
 - `GET()` --calls--> `createDb()`  [EXTRACTED]
   src/pages/api/admin/peminatan.ts → src/db/index.ts
 - `GET()` --calls--> `createDb()`  [EXTRACTED]
+  src/pages/api/admin/search-applicants.ts → src/db/index.ts
+- `GET()` --calls--> `createDb()`  [EXTRACTED]
   src/pages/api/user/profile.ts → src/db/index.ts
 - `PUT()` --calls--> `createDb()`  [EXTRACTED]
   src/pages/api/user/profile.ts → src/db/index.ts
-- `POST()` --calls--> `createDb()`  [EXTRACTED]
-  src/pages/api/admin/peminatan.ts → src/db/index.ts
 - `DELETE()` --calls--> `createDb()`  [EXTRACTED]
-  src/pages/api/admin/qna.ts → src/db/index.ts
+  src/pages/api/admin/documents.ts → src/db/index.ts
 
 ## Import Cycles
 - None detected.
@@ -238,24 +238,24 @@ Cohesion: 0.04
 Nodes (12): CloseEvent, CustomEvent, EmailEvent, ErrorEvent, Event, ExtendableEvent, FetchEvent, MessageEvent (+4 more)
 
 ### Community 3 - "schema.ts"
-Cohesion: 0.08
-Nodes (28): Admin, BerkasCagen, berkasCagensRelations, Cagen, CagenDocument, cagenDocumentsRelations, cagensRelations, DocumentType (+20 more)
+Cohesion: 0.07
+Nodes (31): Admin, BerkasCagen, berkasCagens, berkasCagensRelations, Cagen, CagenDocument, cagenDocumentsRelations, cagens (+23 more)
 
-### Community 4 - "index.ts"
-Cohesion: 0.20
-Nodes (7): drizzle-orm, Db, DbEnvConfig, berkasCagens, cagens, systemSettings, AuthUser
+### Community 4 - "drizzle-orm"
+Cohesion: 0.17
+Nodes (6): drizzle-orm, cagenDocuments, Peminatan, systemSettings, AuthUser, closeModal()
 
 ### Community 5 - "auth.ts"
-Cohesion: 0.12
-Nodes (24): resolveDbCredentials(), admins, AUTH_COOKIE_NAME, clearAuthCookie(), generateNomorRegistrasi(), getAuthToken(), getJwtSecretKey(), JwtSecretOrEnv (+16 more)
+Cohesion: 0.14
+Nodes (20): bcryptjs, admins, AUTH_COOKIE_NAME, clearAuthCookie(), getAuthToken(), getJwtSecretKey(), JwtSecretOrEnv, PasswordResetPayload (+12 more)
 
 ### Community 6 - "createDb"
-Cohesion: 0.20
-Nodes (14): createDb(), PublicQna, DELETE(), GET(), PATCH(), GET(), GET(), POST() (+6 more)
+Cohesion: 0.15
+Nodes (19): createDb(), PublicQna, timelineEvents, DELETE(), generateSlug(), GET(), POST(), PUT() (+11 more)
 
 ### Community 7 - "astro"
-Cohesion: 0.16
-Nodes (21): astro, cagenDocuments, documentTypes, Peminatan, createPresignedGetUrl(), createPresignedPutUrl(), deleteS3Object(), extractS3Key() (+13 more)
+Cohesion: 0.15
+Nodes (20): astro, aws4fetch, documentTypes, createPresignedGetUrl(), createPresignedPutUrl(), deleteS3Object(), extractS3Key(), getAwsClient() (+12 more)
 
 ### Community 8 - "dashboard/settings.astro"
 Cohesion: 0.09
@@ -306,8 +306,8 @@ Cohesion: 0.40
 Nodes (4): astro/tsconfigs/strict, exclude, extends, include
 
 ### Community 64 - "index.astro"
-Cohesion: 0.50
-Nodes (7): timelineEvents, applyDiff(), pad(), setActive(), setBeforeStart(), setClosed(), update()
+Cohesion: 0.62
+Nodes (6): applyDiff(), pad(), setActive(), setBeforeStart(), setClosed(), update()
 
 ### Community 65 - "env.d.ts"
 Cohesion: 0.40
@@ -333,24 +333,24 @@ Nodes (3): RequestInitCfPropertiesVaryAcceptHeader, RequestInitCfPropertiesVaryA
 Cohesion: 0.40
 Nodes (3): @libsql/client, client, defaultCriteria
 
-### Community 178 - "reset-password.ts"
-Cohesion: 0.22
-Nodes (6): bcryptjs, client, seed(), verifyPasswordResetJwt(), POST(), prerender
+### Community 180 - "index.ts"
+Cohesion: 0.23
+Nodes (10): Db, DbEnvConfig, resolveDbCredentials(), generateNomorRegistrasi(), signPasswordResetJwt(), AppEnv, getEnvVar(), POST() (+2 more)
 
 ## Knowledge Gaps
 - **1040 isolated node(s):** `name`, `type`, `version`, `node`, `dev` (+1035 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1749 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1753 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **152 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `WorkerEntrypoint` connect `WorkerEntrypoint` to `worker-configuration.d.ts`, `index.ts`?**
-  _High betweenness centrality (0.100) - this node is a cross-community bridge._
+- **Why does `Console` connect `Console` to `worker-configuration.d.ts`?**
+  _High betweenness centrality (0.085) - this node is a cross-community bridge._
+- **Why does `WorkerEntrypoint` connect `WorkerEntrypoint` to `worker-configuration.d.ts`?**
+  _High betweenness centrality (0.070) - this node is a cross-community bridge._
 - **Why does `Performance` connect `Performance` to `worker-configuration.d.ts`?**
-  _High betweenness centrality (0.090) - this node is a cross-community bridge._
-- **Why does `URL` connect `URL` to `worker-configuration.d.ts`?**
-  _High betweenness centrality (0.047) - this node is a cross-community bridge._
+  _High betweenness centrality (0.065) - this node is a cross-community bridge._
 - **What connects `name`, `type`, `version` to the rest of the system?**
   _1040 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `worker-configuration.d.ts` be split into smaller, more focused modules?**
