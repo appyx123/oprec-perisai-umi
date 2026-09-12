@@ -7,6 +7,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
   return handleStatusUpdate(request, locals);
 };
 
+export const PUT: APIRoute = async ({ request, locals }) => {
+  return handleStatusUpdate(request, locals);
+};
+
 export const PATCH: APIRoute = async ({ request, locals }) => {
   return handleStatusUpdate(request, locals);
 };
@@ -30,6 +34,7 @@ async function handleStatusUpdate(request: Request, locals: App.Locals): Promise
     // 2. Parse payload request (mendukung JSON dan FormData)
     let id: number | null = null;
     let statusPendaftaran: string | null = null;
+    let catatanPanitia: string | null = null;
 
     const contentType = request.headers.get('content-type') || '';
     if (contentType.includes('application/json')) {
@@ -37,6 +42,11 @@ async function handleStatusUpdate(request: Request, locals: App.Locals): Promise
       if (body) {
         id = Number(body.id ?? body.cagenId);
         statusPendaftaran = body.statusPendaftaran ?? body.status ?? null;
+        if (typeof body.catatanPanitia !== 'undefined') {
+          catatanPanitia = body.catatanPanitia !== null ? String(body.catatanPanitia).trim() : '';
+        } else if (typeof body.catatan_panitia !== 'undefined') {
+          catatanPanitia = body.catatan_panitia !== null ? String(body.catatan_panitia).trim() : '';
+        }
       }
     } else {
       const formData = await request.formData().catch(() => null);
@@ -45,6 +55,10 @@ async function handleStatusUpdate(request: Request, locals: App.Locals): Promise
         id = rawId ? Number(rawId) : null;
         const rawStatus = formData.get('statusPendaftaran') ?? formData.get('status');
         statusPendaftaran = rawStatus ? String(rawStatus) : null;
+        const rawCatatan = formData.get('catatanPanitia') ?? formData.get('catatan_panitia');
+        if (rawCatatan !== null) {
+          catatanPanitia = String(rawCatatan).trim();
+        }
       }
     }
 
@@ -59,8 +73,8 @@ async function handleStatusUpdate(request: Request, locals: App.Locals): Promise
       );
     }
 
-    // 4. Validasi status seleksi
-    if (!statusPendaftaran || !STATUS_PENDAFTARAN.includes(statusPendaftaran as StatusPendaftaran)) {
+    // 4. Validasi status seleksi jika disertakan
+    if (statusPendaftaran && !STATUS_PENDAFTARAN.includes(statusPendaftaran as StatusPendaftaran)) {
       return new Response(
         JSON.stringify({
           success: false,
@@ -73,7 +87,12 @@ async function handleStatusUpdate(request: Request, locals: App.Locals): Promise
     // 5. Inisialisasi DB dan cek keberadaan pendaftar
     const db = createDb();
     const [existingCagen] = await db
-      .select({ id: cagens.id, namaLengkap: cagens.namaLengkap, statusPendaftaran: cagens.statusPendaftaran })
+      .select({
+        id: cagens.id,
+        namaLengkap: cagens.namaLengkap,
+        statusPendaftaran: cagens.statusPendaftaran,
+        catatanPanitia: cagens.catatanPanitia,
+      })
       .from(cagens)
       .where(eq(cagens.id, id))
       .limit(1);
@@ -88,28 +107,45 @@ async function handleStatusUpdate(request: Request, locals: App.Locals): Promise
       );
     }
 
-    // 6. Update status pendaftaran
+    // 6. Siapkan data update
+    const updateData: Record<string, any> = {};
+    if (statusPendaftaran) {
+      updateData.statusPendaftaran = statusPendaftaran as StatusPendaftaran;
+    }
+    if (catatanPanitia !== null) {
+      updateData.catatanPanitia = catatanPanitia;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: 'Tidak ada data perubahan (status atau catatan_panitia) yang dikirimkan.',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     await db
       .update(cagens)
-      .set({
-        statusPendaftaran: statusPendaftaran as StatusPendaftaran,
-      })
+      .set(updateData)
       .where(eq(cagens.id, id));
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Status seleksi untuk ${existingCagen.namaLengkap} berhasil diubah menjadi "${statusPendaftaran}".`,
+        message: `Data review & status seleksi untuk ${existingCagen.namaLengkap} berhasil diperbarui.`,
         data: {
           id,
           previousStatus: existingCagen.statusPendaftaran,
-          newStatus: statusPendaftaran,
+          newStatus: updateData.statusPendaftaran || existingCagen.statusPendaftaran,
+          catatanPanitia: updateData.catatanPanitia ?? existingCagen.catatanPanitia,
         },
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error updating cagen status:', error);
+    console.error('Error updating cagen status & notes:', error);
     return new Response(
       JSON.stringify({
         success: false,

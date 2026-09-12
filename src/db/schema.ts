@@ -91,6 +91,9 @@ export const cagens = sqliteTable('cagens', {
   // Pilihan Peminatan Calon Anggota
   peminatan: text('peminatan'),
 
+  // Catatan Review Tim Panitia / Reviewer
+  catatanPanitia: text('catatan_panitia'),
+
   createdAt: integer('created_at', { mode: 'timestamp' })
     .notNull()
     .default(sql`(unixepoch())`),

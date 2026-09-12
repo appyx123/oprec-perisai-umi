@@ -15,8 +15,8 @@ export const GET: APIRoute = async ({ url, locals, redirect }) => {
       );
     }
 
-    // 2. Ambil parameter nama file dari query string (mendukung ?name= atau ?fileKey=)
-    const fileName = url.searchParams.get('name') || url.searchParams.get('fileKey');
+    // 2. Ambil parameter nama file dari query string (mendukung ?name=, ?fileKey=, atau ?key=)
+    const fileName = url.searchParams.get('name') || url.searchParams.get('fileKey') || url.searchParams.get('key');
     if (!fileName) {
       return new Response(
         JSON.stringify({
