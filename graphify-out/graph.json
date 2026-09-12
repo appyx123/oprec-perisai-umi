@@ -17239,76 +17239,16 @@
       "source_location": "L616"
     },
     {
-      "id": "src_pages_api_admin_documents_delete",
-      "label": "DELETE()",
+      "id": "worker_configuration_d_console_group",
+      "label": ".group()",
       "_callable": true,
       "_origin": "ast",
       "community": 180,
       "community_name": "admin/berkas.astro",
       "file_type": "code",
-      "norm_label": "delete()",
-      "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L253"
-    },
-    {
-      "id": "src_pages_api_admin_documents_generateslug",
-      "label": "generateSlug()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 180,
-      "community_name": "admin/berkas.astro",
-      "file_type": "code",
-      "norm_label": "generateslug()",
-      "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L6"
-    },
-    {
-      "id": "src_pages_api_admin_documents_get",
-      "label": "GET()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 180,
-      "community_name": "admin/berkas.astro",
-      "file_type": "code",
-      "norm_label": "get()",
-      "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L17"
-    },
-    {
-      "id": "src_pages_api_admin_documents_post",
-      "label": "POST()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 180,
-      "community_name": "admin/berkas.astro",
-      "file_type": "code",
-      "norm_label": "post()",
-      "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L63"
-    },
-    {
-      "id": "src_pages_api_admin_documents_put",
-      "label": "PUT()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 180,
-      "community_name": "admin/berkas.astro",
-      "file_type": "code",
-      "norm_label": "put()",
-      "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L159"
-    },
-    {
-      "id": "src_pages_api_upload_presign_post",
-      "label": "POST()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 182,
-      "community_name": "aws4fetch",
-      "file_type": "code",
-      "norm_label": "post()",
-      "source_file": "src/pages/api/upload/presign.ts",
-      "source_location": "L5"
+      "norm_label": ".group()",
+      "source_file": "worker-configuration.d.ts",
+      "source_location": "L162"
     },
     {
       "id": "worker_configuration_d_headers_append",
@@ -21439,6 +21379,90 @@
       "source_location": "L33"
     },
     {
+      "id": "src_pages_api_admin_documents_all",
+      "label": "ALL()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "createDb",
+      "file_type": "code",
+      "norm_label": "all()",
+      "source_file": "src/pages/api/admin/documents.ts",
+      "source_location": "L448"
+    },
+    {
+      "id": "src_pages_api_admin_documents_delete",
+      "label": "DELETE()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "createDb",
+      "file_type": "code",
+      "norm_label": "delete()",
+      "source_file": "src/pages/api/admin/documents.ts",
+      "source_location": "L366"
+    },
+    {
+      "id": "src_pages_api_admin_documents_generateslug",
+      "label": "generateSlug()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "createDb",
+      "file_type": "code",
+      "norm_label": "generateslug()",
+      "source_file": "src/pages/api/admin/documents.ts",
+      "source_location": "L8"
+    },
+    {
+      "id": "src_pages_api_admin_documents_get",
+      "label": "GET()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "createDb",
+      "file_type": "code",
+      "norm_label": "get()",
+      "source_file": "src/pages/api/admin/documents.ts",
+      "source_location": "L19"
+    },
+    {
+      "id": "src_pages_api_admin_documents_options",
+      "label": "OPTIONS()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "createDb",
+      "file_type": "code",
+      "norm_label": "options()",
+      "source_file": "src/pages/api/admin/documents.ts",
+      "source_location": "L436"
+    },
+    {
+      "id": "src_pages_api_admin_documents_post",
+      "label": "POST()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "createDb",
+      "file_type": "code",
+      "norm_label": "post()",
+      "source_file": "src/pages/api/admin/documents.ts",
+      "source_location": "L95"
+    },
+    {
+      "id": "src_pages_api_admin_documents_put",
+      "label": "PUT()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "createDb",
+      "file_type": "code",
+      "norm_label": "put()",
+      "source_file": "src/pages/api/admin/documents.ts",
+      "source_location": "L232"
+    },
+    {
       "id": "src_pages_api_admin_qna_delete",
       "label": "DELETE()",
       "_callable": true,
@@ -22097,6 +22121,18 @@
       "norm_label": "post()",
       "source_file": "src/pages/api/upload/confirm.ts",
       "source_location": "L86"
+    },
+    {
+      "id": "src_pages_api_upload_presign_post",
+      "label": "POST()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "astro",
+      "file_type": "code",
+      "norm_label": "post()",
+      "source_file": "src/pages/api/upload/presign.ts",
+      "source_location": "L5"
     },
     {
       "id": "worker_configuration_d_forwardableemailmessage_forward",
@@ -23117,18 +23153,6 @@
       "norm_label": ".error()",
       "source_file": "worker-configuration.d.ts",
       "source_location": "L156"
-    },
-    {
-      "id": "worker_configuration_d_console_group",
-      "label": ".group()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "Console",
-      "file_type": "code",
-      "norm_label": ".group()",
-      "source_file": "worker-configuration.d.ts",
-      "source_location": "L162"
     },
     {
       "id": "worker_configuration_d_console_groupcollapsed",
@@ -25029,17 +25053,6 @@
       "source_location": "L40"
     },
     {
-      "id": "src_db_schema_documenttypes",
-      "label": "documentTypes",
-      "_origin": "ast",
-      "community": 180,
-      "community_name": "admin/berkas.astro",
-      "file_type": "code",
-      "norm_label": "documenttypes",
-      "source_file": "src/db/schema.ts",
-      "source_location": "L252"
-    },
-    {
       "id": "src_pages_admin_berkas",
       "label": "admin/berkas.astro",
       "_origin": "ast",
@@ -25048,17 +25061,6 @@
       "file_type": "code",
       "norm_label": "admin/berkas.astro",
       "source_file": "src/pages/admin/berkas.astro",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_pages_api_admin_documents",
-      "label": "documents.ts",
-      "_origin": "ast",
-      "community": 180,
-      "community_name": "admin/berkas.astro",
-      "file_type": "code",
-      "norm_label": "documents.ts",
-      "source_file": "src/pages/api/admin/documents.ts",
       "source_location": "L1"
     },
     {
@@ -25071,28 +25073,6 @@
       "norm_label": "form-daftar.astro",
       "source_file": "src/pages/user/form-daftar.astro",
       "source_location": "L1"
-    },
-    {
-      "id": "src_pages_api_upload_presign",
-      "label": "presign.ts",
-      "_origin": "ast",
-      "community": 182,
-      "community_name": "aws4fetch",
-      "file_type": "code",
-      "norm_label": "presign.ts",
-      "source_file": "src/pages/api/upload/presign.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "ref_aws4fetch",
-      "label": "aws4fetch",
-      "_origin": "ast",
-      "community": 182,
-      "community_name": "aws4fetch",
-      "file_type": "concept",
-      "norm_label": "aws4fetch",
-      "source_file": "package.json",
-      "source_location": "L27"
     },
     {
       "id": "package_scripts",
@@ -25766,6 +25746,28 @@
       "source_location": "L28"
     },
     {
+      "id": "src_pages_api_admin_documents",
+      "label": "documents.ts",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "createDb",
+      "file_type": "code",
+      "norm_label": "documents.ts",
+      "source_file": "src/pages/api/admin/documents.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_pages_api_admin_documents_prerender",
+      "label": "prerender",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "createDb",
+      "file_type": "code",
+      "norm_label": "prerender",
+      "source_file": "src/pages/api/admin/documents.ts",
+      "source_location": "L1"
+    },
+    {
       "id": "src_pages_api_admin_qna",
       "label": "qna.ts",
       "_origin": "ast",
@@ -25986,6 +25988,17 @@
       "source_location": "L303"
     },
     {
+      "id": "src_db_schema_documenttypes",
+      "label": "documentTypes",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "astro",
+      "file_type": "code",
+      "norm_label": "documenttypes",
+      "source_file": "src/db/schema.ts",
+      "source_location": "L252"
+    },
+    {
       "id": "src_lib_s3",
       "label": "s3.ts",
       "_origin": "ast",
@@ -26074,6 +26087,17 @@
       "source_location": "L8"
     },
     {
+      "id": "src_pages_api_upload_presign",
+      "label": "presign.ts",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "astro",
+      "file_type": "code",
+      "norm_label": "presign.ts",
+      "source_file": "src/pages/api/upload/presign.ts",
+      "source_location": "L1"
+    },
+    {
       "id": "ref_astro",
       "label": "astro",
       "_origin": "ast",
@@ -26083,6 +26107,17 @@
       "norm_label": "astro",
       "source_file": "package.json",
       "source_location": "L26"
+    },
+    {
+      "id": "ref_aws4fetch",
+      "label": "aws4fetch",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "astro",
+      "file_type": "concept",
+      "norm_label": "aws4fetch",
+      "source_file": "package.json",
+      "source_location": "L27"
     },
     {
       "id": "src_lib_constants_academic",
@@ -26575,7 +26610,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L276",
+      "source_location": "L399",
       "weight": 1.0
     },
     {
@@ -26587,7 +26622,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L29",
+      "source_location": "L31",
       "weight": 1.0
     },
     {
@@ -26599,7 +26634,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L107",
+      "source_location": "L152",
       "weight": 1.0
     },
     {
@@ -26611,7 +26646,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L110",
+      "source_location": "L155",
       "weight": 1.0
     },
     {
@@ -26623,7 +26658,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L180",
+      "source_location": "L273",
       "weight": 1.0
     },
     {
@@ -27859,7 +27894,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L3",
+      "source_location": "L5",
       "weight": 1.0
     },
     {
@@ -27871,7 +27906,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L4",
+      "source_location": "L6",
       "weight": 1.0
     },
     {
@@ -27883,7 +27918,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L4",
+      "source_location": "L6",
       "weight": 1.0
     },
     {
@@ -29493,7 +29528,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L1",
+      "source_location": "L3",
       "type_only": true,
       "weight": 1.0
     },
@@ -29506,7 +29541,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L2",
+      "source_location": "L4",
       "weight": 1.0
     },
     {
@@ -29518,7 +29553,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L3",
+      "source_location": "L5",
       "weight": 1.0
     },
     {
@@ -29530,7 +29565,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L4",
+      "source_location": "L6",
       "weight": 1.0
     },
     {
@@ -33461,13 +33496,13 @@
     },
     {
       "source": "src_pages_api_admin_documents",
-      "target": "src_pages_api_admin_documents_put",
+      "target": "src_pages_api_admin_documents_prerender",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L159",
+      "source_location": "L1",
       "weight": 1.0
     },
     {
@@ -33478,7 +33513,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L17",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "src_pages_api_admin_documents",
+      "target": "src_pages_api_admin_documents_put",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/pages/api/admin/documents.ts",
+      "source_location": "L232",
       "weight": 1.0
     },
     {
@@ -33489,7 +33535,29 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L253",
+      "source_location": "L366",
+      "weight": 1.0
+    },
+    {
+      "source": "src_pages_api_admin_documents",
+      "target": "src_pages_api_admin_documents_options",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/pages/api/admin/documents.ts",
+      "source_location": "L436",
+      "weight": 1.0
+    },
+    {
+      "source": "src_pages_api_admin_documents",
+      "target": "src_pages_api_admin_documents_all",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/pages/api/admin/documents.ts",
+      "source_location": "L448",
       "weight": 1.0
     },
     {
@@ -33500,7 +33568,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L6",
+      "source_location": "L8",
       "weight": 1.0
     },
     {
@@ -33511,7 +33579,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/api/admin/documents.ts",
-      "source_location": "L63",
+      "source_location": "L95",
       "weight": 1.0
     },
     {
@@ -54131,5 +54199,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "fa3e630463ad0dee97cba2b8d015a4584828a1d9"
+  "built_at_commit": "70fd0c9d7edf5d1230d87a42392ecb5e38536f2e"
 }

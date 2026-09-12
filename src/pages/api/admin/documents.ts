@@ -1,3 +1,5 @@
+export const prerender = false;
+
 import type { APIRoute } from 'astro';
 import { eq, asc } from 'drizzle-orm';
 import { createDb } from '../../../db';
@@ -16,7 +18,7 @@ function generateSlug(label: string): string {
 // 1. GET: Ambil seluruh daftar jenis dokumen
 export const GET: APIRoute = async ({ locals }) => {
   try {
-    const user = locals.user;
+    const user = (locals as any)?.user;
     const isAdmin = user?.role === 'admin' || user?.isAdmin === true || String(user?.role).toLowerCase() === 'admin';
 
     if (!user || !isAdmin) {
@@ -26,34 +28,64 @@ export const GET: APIRoute = async ({ locals }) => {
       );
     }
 
-    const db = createDb();
-    const list = await db
-      .select({
-        id: documentTypes.id,
-        slug: documentTypes.slug,
-        label: documentTypes.label,
-        group: documentTypes.group,
-        peminatanId: documentTypes.peminatanId,
-        peminatanNama: peminatan.nama,
-        maxFiles: documentTypes.maxFiles,
-        inputType: documentTypes.inputType,
-        acceptMime: documentTypes.acceptMime,
-        maxSizeBytes: documentTypes.maxSizeBytes,
-        isActive: documentTypes.isActive,
-        createdAt: documentTypes.createdAt,
-      })
-      .from(documentTypes)
-      .leftJoin(peminatan, eq(documentTypes.peminatanId, peminatan.id))
-      .orderBy(asc(documentTypes.id));
+    const db = createDb((locals as any)?.runtime?.env);
+    let list: any[] = [];
+
+    try {
+      list = await db
+        .select({
+          id: documentTypes.id,
+          slug: documentTypes.slug,
+          label: documentTypes.label,
+          group: documentTypes.group,
+          peminatanId: documentTypes.peminatanId,
+          peminatanNama: peminatan.nama,
+          maxFiles: documentTypes.maxFiles,
+          inputType: documentTypes.inputType,
+          acceptMime: documentTypes.acceptMime,
+          maxSizeBytes: documentTypes.maxSizeBytes,
+          isActive: documentTypes.isActive,
+          createdAt: documentTypes.createdAt,
+        })
+        .from(documentTypes)
+        .leftJoin(peminatan, eq(documentTypes.peminatanId, peminatan.id))
+        .orderBy(asc(documentTypes.id));
+    } catch (queryErr: any) {
+      // Graceful fallback jika schema turso production belum memiliki kolom input_type
+      if (String(queryErr?.message || '').toLowerCase().includes('input_type')) {
+        console.warn('[API /api/admin/documents GET] Kolom input_type belum ada di DB, menggunakan fallback query');
+        const fallbackList = await db
+          .select({
+            id: documentTypes.id,
+            slug: documentTypes.slug,
+            label: documentTypes.label,
+            group: documentTypes.group,
+            peminatanId: documentTypes.peminatanId,
+            peminatanNama: peminatan.nama,
+            maxFiles: documentTypes.maxFiles,
+            acceptMime: documentTypes.acceptMime,
+            maxSizeBytes: documentTypes.maxSizeBytes,
+            isActive: documentTypes.isActive,
+            createdAt: documentTypes.createdAt,
+          })
+          .from(documentTypes)
+          .leftJoin(peminatan, eq(documentTypes.peminatanId, peminatan.id))
+          .orderBy(asc(documentTypes.id));
+
+        list = fallbackList.map((item: any) => ({ ...item, inputType: 'file' }));
+      } else {
+        throw queryErr;
+      }
+    }
 
     return new Response(
       JSON.stringify({ success: true, documents: list }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
-  } catch (error) {
-    console.error('Error fetching document types:', error);
+  } catch (error: any) {
+    console.error('[API /api/admin/documents GET Error]:', error);
     return new Response(
-      JSON.stringify({ success: false, message: 'Gagal memuat daftar jenis dokumen.' }),
+      JSON.stringify({ success: false, message: String(error?.message || error || 'Gagal memuat daftar jenis dokumen.') }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
@@ -62,7 +94,7 @@ export const GET: APIRoute = async ({ locals }) => {
 // 2. POST: Tambah jenis dokumen baru
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
-    const user = locals.user;
+    const user = (locals as any)?.user;
     const isAdmin = user?.role === 'admin' || user?.isAdmin === true || String(user?.role).toLowerCase() === 'admin';
 
     if (!user || !isAdmin) {
@@ -72,10 +104,23 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
 
-    const body = (await request.json().catch(() => null)) as Record<string, any> | null;
-    if (!body) {
+    // Wrap body parsing strictly in try/catch
+    let body: Record<string, any> | null = null;
+    try {
+      body = (await request.json()) as Record<string, any>;
+    } catch (parseError: any) {
       return new Response(
-        JSON.stringify({ success: false, message: 'Payload JSON tidak valid.' }),
+        JSON.stringify({
+          success: false,
+          message: 'Payload JSON tidak valid atau body kosong: ' + String(parseError?.message || parseError),
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!body || typeof body !== 'object') {
+      return new Response(
+        JSON.stringify({ success: false, message: 'Payload JSON tidak valid atau kosong.' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
@@ -104,15 +149,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
 
-    const db = createDb();
+    const db = createDb((locals as any)?.runtime?.env);
 
-    // Buat slug unik
+    // Buat slug unik dengan loop terbatas (maks 10 iterasi) untuk menghindari timeout hang
     let baseSlug = body.slug ? generateSlug(String(body.slug)) : generateSlug(label);
     if (!baseSlug) baseSlug = 'dokumen_' + Date.now();
     let finalSlug = baseSlug;
-    let counter = 1;
 
-    while (true) {
+    for (let counter = 1; counter <= 10; counter++) {
       const [existing] = await db
         .select({ id: documentTypes.id })
         .from(documentTypes)
@@ -120,36 +164,65 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .limit(1);
 
       if (!existing) break;
-      finalSlug = `${baseSlug}_${counter++}`;
+      finalSlug = `${baseSlug}_${counter}`;
+      if (counter === 10) {
+        finalSlug = `${baseSlug}_${Date.now()}`;
+      }
     }
 
-    const [inserted] = await db
-      .insert(documentTypes)
-      .values({
-        slug: finalSlug,
-        label,
-        group,
-        peminatanId,
-        maxFiles,
-        inputType,
-        acceptMime,
-        maxSizeBytes,
-        isActive,
-      })
-      .returning();
+    let inserted: any = null;
+
+    try {
+      const result = await db
+        .insert(documentTypes)
+        .values({
+          slug: finalSlug,
+          label,
+          group,
+          peminatanId,
+          maxFiles,
+          inputType,
+          acceptMime,
+          maxSizeBytes,
+          isActive,
+        })
+        .returning();
+
+      inserted = result[0] || null;
+    } catch (insertError: any) {
+      // Fallback jika database production belum memuat kolom input_type
+      if (String(insertError?.message || '').toLowerCase().includes('input_type')) {
+        console.warn('[API /api/admin/documents POST] Kolom input_type belum ada di DB, fallback insert');
+        const fallbackValues: any = {
+          slug: finalSlug,
+          label,
+          group,
+          peminatanId,
+          maxFiles,
+          acceptMime,
+          maxSizeBytes,
+          isActive,
+        };
+        const result = await db.insert(documentTypes).values(fallbackValues).returning();
+        inserted = result[0] || null;
+        if (inserted) inserted.inputType = 'file';
+      } else {
+        throw insertError;
+      }
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Jenis dokumen persyaratan berhasil ditambahkan.',
-        document: inserted,
+        document: inserted || { slug: finalSlug, label, group, inputType },
       }),
       { status: 201, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('Error creating document type:', error);
+    console.error('[API /api/admin/documents POST Error]:', error);
     return new Response(
-      JSON.stringify({ success: false, message: error.message || 'Gagal menambahkan jenis dokumen.' }),
+      JSON.stringify({ success: false, message: String(error?.message || error || 'Gagal menambahkan jenis dokumen.') }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
@@ -158,7 +231,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 // 3. PUT: Perbarui konfigurasi jenis dokumen
 export const PUT: APIRoute = async ({ request, locals }) => {
   try {
-    const user = locals.user;
+    const user = (locals as any)?.user;
     const isAdmin = user?.role === 'admin' || user?.isAdmin === true || String(user?.role).toLowerCase() === 'admin';
 
     if (!user || !isAdmin) {
@@ -168,7 +241,20 @@ export const PUT: APIRoute = async ({ request, locals }) => {
       );
     }
 
-    const body = (await request.json().catch(() => null)) as Record<string, any> | null;
+    // Wrap body parsing strictly in try/catch
+    let body: Record<string, any> | null = null;
+    try {
+      body = (await request.json()) as Record<string, any>;
+    } catch (parseError: any) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: 'Payload JSON tidak valid atau body kosong: ' + String(parseError?.message || parseError),
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (!body || !body.id) {
       return new Response(
         JSON.stringify({ success: false, message: 'ID Dokumen wajib disertakan.' }),
@@ -177,7 +263,14 @@ export const PUT: APIRoute = async ({ request, locals }) => {
     }
 
     const id = Number(body.id);
-    const db = createDb();
+    if (!id || isNaN(id)) {
+      return new Response(
+        JSON.stringify({ success: false, message: 'ID Dokumen harus berupa angka yang valid.' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const db = createDb((locals as any)?.runtime?.env);
 
     const [existing] = await db
       .select()
@@ -226,24 +319,44 @@ export const PUT: APIRoute = async ({ request, locals }) => {
       updateData.isActive = Boolean(body.isActive);
     }
 
-    const [updated] = await db
-      .update(documentTypes)
-      .set(updateData)
-      .where(eq(documentTypes.id, id))
-      .returning();
+    let updated: any = null;
+
+    try {
+      const result = await db
+        .update(documentTypes)
+        .set(updateData)
+        .where(eq(documentTypes.id, id))
+        .returning();
+
+      updated = result[0] || null;
+    } catch (updateErr: any) {
+      // Fallback jika kolom input_type belum ada di DB
+      if (String(updateErr?.message || '').toLowerCase().includes('input_type') && updateData.inputType) {
+        console.warn('[API /api/admin/documents PUT] Kolom input_type belum ada di DB, fallback update');
+        delete updateData.inputType;
+        const result = await db
+          .update(documentTypes)
+          .set(updateData)
+          .where(eq(documentTypes.id, id))
+          .returning();
+        updated = result[0] || null;
+      } else {
+        throw updateErr;
+      }
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Pengaturan jenis dokumen berhasil diperbarui.',
-        document: updated,
+        document: updated || { id, ...updateData },
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('Error updating document type:', error);
+    console.error('[API /api/admin/documents PUT Error]:', error);
     return new Response(
-      JSON.stringify({ success: false, message: error.message || 'Gagal memperbarui jenis dokumen.' }),
+      JSON.stringify({ success: false, message: String(error?.message || error || 'Gagal memperbarui jenis dokumen.') }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
@@ -252,7 +365,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
 // 4. DELETE: Soft delete (set is_active = false)
 export const DELETE: APIRoute = async ({ request, url, locals }) => {
   try {
-    const user = locals.user;
+    const user = (locals as any)?.user;
     const isAdmin = user?.role === 'admin' || user?.isAdmin === true || String(user?.role).toLowerCase() === 'admin';
 
     if (!user || !isAdmin) {
@@ -262,18 +375,28 @@ export const DELETE: APIRoute = async ({ request, url, locals }) => {
       );
     }
 
-    const body = (await request.json().catch(() => null)) as Record<string, any> | null;
+    // Safely parse body if sent, otherwise fallback to url param
+    let body: Record<string, any> | null = null;
+    try {
+      const text = await request.text();
+      if (text && text.trim().length > 0) {
+        body = JSON.parse(text) as Record<string, any>;
+      }
+    } catch {
+      body = null;
+    }
+
     const idParam = url.searchParams.get('id');
     const id = Number(body?.id || idParam);
 
     if (!id || isNaN(id)) {
       return new Response(
-        JSON.stringify({ success: false, message: 'ID Dokumen wajib disertakan.' }),
+        JSON.stringify({ success: false, message: 'ID Dokumen wajib disertakan dan berupa angka.' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    const db = createDb();
+    const db = createDb((locals as any)?.runtime?.env);
     const [existing] = await db
       .select()
       .from(documentTypes)
@@ -301,10 +424,30 @@ export const DELETE: APIRoute = async ({ request, url, locals }) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('Error deactivating document type:', error);
+    console.error('[API /api/admin/documents DELETE Error]:', error);
     return new Response(
-      JSON.stringify({ success: false, message: error.message || 'Gagal menonaktifkan dokumen.' }),
+      JSON.stringify({ success: false, message: String(error?.message || error || 'Gagal menonaktifkan dokumen.') }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
+};
+
+// 5. OPTIONS: Preflight response untuk Cloudflare Workers
+export const OPTIONS: APIRoute = async () => {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      Allow: 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+};
+
+// 6. ALL Fallback untuk method HTTP yang tidak didukung
+export const ALL: APIRoute = async () => {
+  return new Response(
+    JSON.stringify({ success: false, message: 'Metode HTTP tidak diizinkan.' }),
+    { status: 405, headers: { 'Content-Type': 'application/json', Allow: 'GET, POST, PUT, DELETE, OPTIONS' } }
+  );
 };

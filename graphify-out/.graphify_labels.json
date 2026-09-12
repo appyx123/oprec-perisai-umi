@@ -180,6 +180,5 @@
   "178": "seed.mjs",
   "179": "seed-documents.mjs",
   "180": "admin/berkas.astro",
-  "181": "form-daftar.astro",
-  "182": "aws4fetch"
+  "181": "form-daftar.astro"
 }

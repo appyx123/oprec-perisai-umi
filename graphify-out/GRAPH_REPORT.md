@@ -1,16 +1,16 @@
 # Graph Report - orec-perisai-umi  (2026-09-13)
 
 ## Corpus Check
-- 72 files · ~386,397 words
+- 72 files · ~386,964 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2118 nodes · 2491 edges · 183 communities (28 shown, 153 thin omitted)
+- 2121 nodes · 2494 edges · 182 communities (28 shown, 152 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 5 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `fa3e6304`
+- Built from commit: `70fd0c9d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -195,7 +195,6 @@
 - seed.mjs
 - seed-documents.mjs
 - admin/berkas.astro
-- aws4fetch
 
 ## God Nodes (most connected - your core abstractions)
 1. `createDb()` - 56 edges
@@ -210,21 +209,21 @@
 10. `Container` - 15 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `DELETE()` --calls--> `createDb()`  [EXTRACTED]
-  src/pages/api/admin/documents.ts → src/db/index.ts
-- `GET()` --calls--> `createDb()`  [EXTRACTED]
-  src/pages/api/admin/documents.ts → src/db/index.ts
-- `PUT()` --calls--> `createDb()`  [EXTRACTED]
-  src/pages/api/admin/documents.ts → src/db/index.ts
 - `GET()` --calls--> `createDb()`  [EXTRACTED]
   src/pages/api/admin/peminatan.ts → src/db/index.ts
 - `GET()` --calls--> `createDb()`  [EXTRACTED]
   src/pages/api/user/profile.ts → src/db/index.ts
+- `PUT()` --calls--> `createDb()`  [EXTRACTED]
+  src/pages/api/user/profile.ts → src/db/index.ts
+- `DELETE()` --calls--> `createDb()`  [EXTRACTED]
+  src/pages/api/admin/documents.ts → src/db/index.ts
+- `GET()` --calls--> `createDb()`  [EXTRACTED]
+  src/pages/api/admin/documents.ts → src/db/index.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (183 total, 153 thin omitted)
+## Communities (182 total, 152 thin omitted)
 
 ### Community 0 - "worker-configuration.d.ts"
 Cohesion: 0.00
@@ -251,12 +250,12 @@ Cohesion: 0.10
 Nodes (28): bcryptjs, resolveDbCredentials(), admins, AUTH_COOKIE_NAME, clearAuthCookie(), generateNomorRegistrasi(), getAuthToken(), getJwtSecretKey() (+20 more)
 
 ### Community 6 - "createDb"
-Cohesion: 0.20
-Nodes (14): createDb(), PublicQna, DELETE(), GET(), PATCH(), GET(), GET(), POST() (+6 more)
+Cohesion: 0.13
+Nodes (20): createDb(), PublicQna, DELETE(), generateSlug(), GET(), POST(), prerender, PUT() (+12 more)
 
 ### Community 7 - "astro"
-Cohesion: 0.18
-Nodes (19): astro, cagenDocuments, createPresignedGetUrl(), createPresignedPutUrl(), deleteS3Object(), extractS3Key(), getAwsClient(), getS3Config() (+11 more)
+Cohesion: 0.14
+Nodes (21): astro, aws4fetch, cagenDocuments, documentTypes, createPresignedGetUrl(), createPresignedPutUrl(), deleteS3Object(), extractS3Key() (+13 more)
 
 ### Community 8 - "dashboard/settings.astro"
 Cohesion: 0.09
@@ -335,25 +334,25 @@ Cohesion: 0.40
 Nodes (3): @libsql/client, client, defaultCriteria
 
 ### Community 180 - "admin/berkas.astro"
-Cohesion: 0.17
-Nodes (11): documentTypes, Peminatan, closeModal(), openAddModal(), openEditModal(), toggleInputTypeFields(), DELETE(), generateSlug() (+3 more)
+Cohesion: 0.28
+Nodes (5): Peminatan, closeModal(), openAddModal(), openEditModal(), toggleInputTypeFields()
 
 ## Knowledge Gaps
-- **1040 isolated node(s):** `name`, `type`, `version`, `node`, `dev` (+1035 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1749 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **153 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **1041 isolated node(s):** `name`, `type`, `version`, `node`, `dev` (+1036 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1752 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **152 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Console` connect `Console` to `worker-configuration.d.ts`?**
-  _High betweenness centrality (0.068) - this node is a cross-community bridge._
+- **Why does `Console` connect `Console` to `worker-configuration.d.ts`, `admin/berkas.astro`?**
+  _High betweenness centrality (0.070) - this node is a cross-community bridge._
 - **Why does `ErrorEvent` connect `Event` to `worker-configuration.d.ts`?**
-  _High betweenness centrality (0.054) - this node is a cross-community bridge._
+  _High betweenness centrality (0.058) - this node is a cross-community bridge._
 - **Why does `WorkerEntrypoint` connect `WorkerEntrypoint` to `worker-configuration.d.ts`?**
-  _High betweenness centrality (0.052) - this node is a cross-community bridge._
+  _High betweenness centrality (0.055) - this node is a cross-community bridge._
 - **What connects `name`, `type`, `version` to the rest of the system?**
-  _1040 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1041 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `worker-configuration.d.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.0022471910112359553 - nodes in this community are weakly interconnected._
 - **Should `ServiceWorkerGlobalScope` be split into smaller, more focused modules?**
