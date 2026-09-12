@@ -29,6 +29,13 @@
       "when": 1789230121551,
       "tag": "0003_futuristic_praxagora",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1789235273558,
+      "tag": "0004_classy_weapon_omega",
+      "breakpoints": true
     }
   ]
 }

@@ -3,7 +3,7 @@
   "1": "ServiceWorkerGlobalScope",
   "2": "Event",
   "3": "schema.ts",
-  "4": "index.ts",
+  "4": "drizzle-orm",
   "5": "auth.ts",
   "6": "createDb",
   "7": "astro",
@@ -63,7 +63,7 @@
   "61": "TextDecoder",
   "62": "devDependencies",
   "63": "tsconfig.json",
-  "64": "index.astro",
+  "64": "index.ts",
   "65": "env.d.ts",
   "66": "AiGateway",
   "67": "Comment",
@@ -179,6 +179,5 @@
   "177": "workflows/graphify.md",
   "178": "seed.mjs",
   "179": "seed-documents.mjs",
-  "180": "admin/berkas.astro",
   "181": "form-daftar.astro"
 }

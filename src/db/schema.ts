@@ -327,6 +327,33 @@ export const cagenDocuments = sqliteTable('cagen_documents', {
 });
 
 // ============================================================
+// TABLE: password_resets (Token Reset Kata Sandi Pengguna)
+// ============================================================
+export const passwordResets = sqliteTable('password_resets', {
+  id: integer('id', { mode: 'number' })
+    .primaryKey({ autoIncrement: true }),
+
+  userId: integer('user_id', { mode: 'number' })
+    .notNull()
+    .references(() => cagens.id, { onDelete: 'cascade' }),
+
+  token: text('token')
+    .notNull()
+    .unique(),
+
+  expiresAt: integer('expires_at', { mode: 'timestamp' })
+    .notNull(),
+
+  used: integer('used', { mode: 'boolean' })
+    .notNull()
+    .default(false),
+
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// ============================================================
 // RELATIONS — Untuk Drizzle relational query API
 // ============================================================
 
@@ -336,6 +363,7 @@ export const cagensRelations = relations(cagens, ({ one, many }) => ({
     references: [berkasCagens.cagenId],
   }),
   documents: many(cagenDocuments),
+  passwordResets: many(passwordResets),
 }));
 
 export const berkasCagensRelations = relations(berkasCagens, ({ one }) => ({
@@ -368,6 +396,13 @@ export const cagenDocumentsRelations = relations(cagenDocuments, ({ one }) => ({
   }),
 }));
 
+export const passwordResetsRelations = relations(passwordResets, ({ one }) => ({
+  cagen: one(cagens, {
+    fields: [passwordResets.userId],
+    references: [cagens.id],
+  }),
+}));
+
 // ============================================================
 // TYPE EXPORTS — Inferred TypeScript types dari schema
 // ============================================================
@@ -382,6 +417,7 @@ export type PublicQna = typeof publicQna.$inferSelect;
 export type PeminatanItem = typeof peminatan.$inferSelect;
 export type DocumentType = typeof documentTypes.$inferSelect;
 export type CagenDocument = typeof cagenDocuments.$inferSelect;
+export type PasswordReset = typeof passwordResets.$inferSelect;
 
 // Types untuk INSERT (menulis data ke DB)
 export type NewAdmin = typeof admins.$inferInsert;
@@ -393,6 +429,7 @@ export type NewPublicQna = typeof publicQna.$inferInsert;
 export type NewPeminatanItem = typeof peminatan.$inferInsert;
 export type NewDocumentType = typeof documentTypes.$inferInsert;
 export type NewCagenDocument = typeof cagenDocuments.$inferInsert;
+export type NewPasswordReset = typeof passwordResets.$inferInsert;
 
 
 

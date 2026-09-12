@@ -30,9 +30,9 @@
     "semantic_hash": "918a658971a114376f8d5753c59a29a3"
   },
   "drizzle/meta/_journal.json": {
-    "mtime": 1789230121.5479474,
-    "seen": 1789231008.8710513,
-    "ast_hash": "7b6efac5f75db8a8bedc4d5659dd2b9f",
+    "mtime": 1789235273.5600061,
+    "seen": 1789235535.0300975,
+    "ast_hash": "04b02f59d824613456d212843579e446",
     "semantic_hash": ""
   },
   "package.json": {
@@ -72,9 +72,9 @@
     "semantic_hash": "b5b66328d9cdc473065c318fdd43a07b"
   },
   "src/db/schema.ts": {
-    "mtime": 1789232836.4836679,
-    "seen": 1789233282.7613125,
-    "ast_hash": "75ae1c07c204919964c9fe1d967be9a2",
+    "mtime": 1789235260.7559786,
+    "seen": 1789235535.0300975,
+    "ast_hash": "8bdaa51477b2697972b34b3a396a9cd3",
     "semantic_hash": ""
   },
   "src/env.d.ts": {
@@ -216,10 +216,10 @@
     "semantic_hash": "ef63434d96ee3286289b0359b61efdba"
   },
   "src/pages/api/auth/reset-password.ts": {
-    "mtime": 1789108717.1956658,
-    "seen": 1789215834.591717,
-    "ast_hash": "6af58abfa42233beb1a03b19c13ddade",
-    "semantic_hash": "6af58abfa42233beb1a03b19c13ddade"
+    "mtime": 1789235326.9271245,
+    "seen": 1789235535.0300975,
+    "ast_hash": "94faf1aadb69adcc385177527bc2f7e9",
+    "semantic_hash": ""
   },
   "src/pages/api/file/view.ts": {
     "mtime": 1788924107.2882211,
@@ -258,10 +258,10 @@
     "semantic_hash": "7a160a03349c48c82dddcd0cb0daf6a7"
   },
   "src/pages/auth/login.astro": {
-    "mtime": 1789112425.7079434,
-    "seen": 1789215834.591717,
-    "ast_hash": "169799d9fd798bbfd70ff7aead5016c0",
-    "semantic_hash": "169799d9fd798bbfd70ff7aead5016c0"
+    "mtime": 1789235338.878817,
+    "seen": 1789235535.0300975,
+    "ast_hash": "fd78602fa357cd3a7c6b654cb79d0100",
+    "semantic_hash": ""
   },
   "src/pages/auth/register.astro": {
     "mtime": 1789219772.392793,
@@ -471,6 +471,24 @@
     "mtime": 1789230121.5479474,
     "seen": 1789231008.8710513,
     "ast_hash": "785dd945f6a1c48ba95089cc8ee6271d",
+    "semantic_hash": ""
+  },
+  "drizzle/meta/0004_snapshot.json": {
+    "mtime": 1789235273.5593839,
+    "seen": 1789235535.0300975,
+    "ast_hash": "2efe05e489764de0b37130d63bdc1f31",
+    "semantic_hash": ""
+  },
+  "src/pages/api/auth/forgot-password.ts": {
+    "mtime": 1789235513.5614922,
+    "seen": 1789235535.0300975,
+    "ast_hash": "2373fcb2cf2a796c14913418981eedde",
+    "semantic_hash": ""
+  },
+  "src/pages/auth/lupa-password.astro": {
+    "mtime": 1789235364.2637832,
+    "seen": 1789235535.0300975,
+    "ast_hash": "41d0f9112b2403c755a1aaecd303354b",
     "semantic_hash": ""
   }
 }
