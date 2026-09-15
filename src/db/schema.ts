@@ -101,6 +101,7 @@ export const cagens = sqliteTable('cagens', {
   index('idx_cagens_status').on(table.statusPendaftaran),
   index('idx_cagens_peminatan').on(table.peminatan),
   index('idx_cagens_created_at').on(table.createdAt),
+  index('idx_cagens_verification_token').on(table.verificationToken),
 ]);
 
 // ============================================================

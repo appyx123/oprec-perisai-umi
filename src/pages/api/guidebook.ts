@@ -10,14 +10,25 @@ import { getAwsClient, extractS3Key } from '../../lib/s3';
  * Menyajikan berkas Guidebook PDF publik dengan proteksi Cloudflare Edge Caching (caches.default).
  * Mencegah pemborosan kuota transaksi Class B harian Backblaze B2 (limit 2.500/hari).
  */
-export const GET: APIRoute = async ({ request, url, redirect }) => {
+export const GET: APIRoute = async ({ url, redirect }) => {
   try {
-    // 1. Cek Cloudflare Edge Cache terlebih dahulu
-    // Menggunakan caches.default native Cloudflare Workers
+    // Ekstrak parameter query utama
+    const idParam = url.searchParams.get('id');
+    const trackParam = url.searchParams.get('peminatan') || url.searchParams.get('track');
+    const keyParam = url.searchParams.get('key');
+
+    // 1. Normalisasi Canonical Cache Identifier
+    // Menghindarkan Cache Miss berulang akibat variasi headers atau query parameter pelacak (seperti ?utm_source)
+    const canonicalIdentifier = idParam && !isNaN(Number(idParam))
+      ? `id_${idParam}`
+      : (trackParam
+          ? `track_${trackParam.trim().toLowerCase().replace(/[^a-z0-9]/g, '')}`
+          : (keyParam ? `key_${keyParam.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '')}` : 'default'));
+
+    // 2. Cek Cloudflare Edge Cache menggunakan Canonical Cache Key
     const cache = (caches as any).default;
-    const cacheKey = new Request(url.toString(), {
+    const cacheKey = new Request(`https://internal-cache.perisai.site/guidebook/${canonicalIdentifier}.pdf`, {
       method: 'GET',
-      headers: request.headers,
     });
 
     try {
@@ -35,11 +46,7 @@ export const GET: APIRoute = async ({ request, url, redirect }) => {
       // Abaikan jika cache API tidak aktif di environment lokal dev
     }
 
-    // 2. Cache Miss: Ambil metadata dari Turso Database
-    const idParam = url.searchParams.get('id');
-    const trackParam = url.searchParams.get('peminatan') || url.searchParams.get('track');
-    const keyParam = url.searchParams.get('key');
-
+    // 3. Cache Miss: Ambil metadata dari Turso Database
     const db = createDb();
     let record: any = null;
 

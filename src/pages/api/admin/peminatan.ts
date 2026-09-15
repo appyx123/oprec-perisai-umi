@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { eq, asc } from 'drizzle-orm';
 import { createDb } from '../../../db';
 import { peminatan } from '../../../db/schema';
-import { uploadS3Object, deleteS3Object } from '../../../lib/s3';
+import { deleteS3Object } from '../../../lib/s3';
 
 export const GET: APIRoute = async ({ locals }) => {
   try {
@@ -100,77 +100,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
         );
       }
 
-      // Upload file PDF
-      const file = formData.get('guidebook') as File | null;
-      if (!file || !(file instanceof File) || file.size === 0) {
-        return new Response(
-          JSON.stringify({ success: false, message: 'Silakan pilih berkas file PDF Guidebook untuk diunggah.' }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Validasi tipe berkas (harus PDF)
-      const fileNameLower = file.name.toLowerCase();
-      if (file.type !== 'application/pdf' && !fileNameLower.endsWith('.pdf')) {
-        return new Response(
-          JSON.stringify({ success: false, message: 'Hanya berkas format PDF (.pdf) yang diperbolehkan untuk Guidebook.' }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Validasi ukuran berkas (maksimal 25MB)
-      const MAX_FILE_SIZE = 25 * 1024 * 1024;
-      if (file.size > MAX_FILE_SIZE) {
-        return new Response(
-          JSON.stringify({ success: false, message: 'Ukuran berkas PDF melebihi batas maksimal 25MB.' }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Generate nama file yang rapi dan URL-friendly: guidebook-[nama-peminatan]-[timestamp].pdf
-      const sanitizedNama = existing.nama
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-      const timestamp = Math.floor(Date.now() / 1000);
-      const objectKey = `guidebooks/guidebook-${sanitizedNama}-${timestamp}.pdf`;
-
-      // Unggah berkas langsung ke S3 / Backblaze B2
-      const arrayBuffer = await file.arrayBuffer();
-      const uploadResult = await uploadS3Object(objectKey, arrayBuffer, 'application/pdf');
-
-      if (!uploadResult.success || !uploadResult.url) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            message: uploadResult.error || 'Gagal mengunggah berkas Guidebook ke penyimpanan cloud B2.',
-          }),
-          { status: 500, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const newPublicUrl = uploadResult.url;
-      const oldUrl = existing.guidebookUrl;
-
-      // Update kolom guidebook_url di tabel peminatan Turso
-      const [updatedRecord] = await db
-        .update(peminatan)
-        .set({ guidebookUrl: newPublicUrl })
-        .where(eq(peminatan.id, id))
-        .returning();
-
-      // Hapus file lama di S3/B2 jika ada
-      if (oldUrl && oldUrl !== newPublicUrl) {
-        await deleteS3Object(oldUrl);
-      }
-
+      // Deprekasi upload fisik di memori Worker (mencegah OOM 128MB)
       return new Response(
         JSON.stringify({
-          success: true,
-          message: 'Guidebook PDF berhasil diunggah dan disimpan.',
-          data: updatedRecord,
+          success: false,
+          message: 'Fitur ini telah dideprekasi demi stabilitas server. Silakan gunakan endpoint Presigned URL (/api/admin/guidebook/presign) untuk mengunggah berkas secara langsung.',
         }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 

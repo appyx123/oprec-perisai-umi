@@ -42,9 +42,9 @@ if (!user) {
 try {
   const db = createDb();
 
-  // 2. Paralelisasi Query Database (Promise.all)
-  // Menjalankan ke-4 query secara serentak dalam satu gelombang HTTP untuk memangkas latensi TTFB
-  const [settingsRes, timelineRes, qnaRes, peminatanRes] = await Promise.all([
+  // 2. Batching Database Query (db.batch)
+  // Menjalankan ke-4 query dalam 1 payload HTTP POST tunggal ke Turso untuk memangkas latensi TTFB
+  const [settingsRes, timelineRes, qnaRes, peminatanRes] = (await db.batch([
     db
       .select()
       .from(systemSettings)
@@ -64,7 +64,12 @@ try {
       .from(peminatan)
       .where(eq(peminatan.isActive, true))
       .orderBy(asc(peminatan.id)),
-  ]);
+  ])) as unknown as [
+    (typeof systemSettings.$inferSelect)[],
+    (typeof timelineEvents.$inferSelect)[],
+    (typeof publicQna.$inferSelect)[],
+    (typeof peminatan.$inferSelect)[]
+  ];
 
   const settings = settingsRes[0] || null;
   timelineList = timelineRes;
