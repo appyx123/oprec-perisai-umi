@@ -296,30 +296,62 @@ const unconfiguredCount = peminatanList.length - configuredCount;
       btnText.textContent = 'Mengunggah ke B2...';
 
       try {
-        const formData = new FormData();
-        formData.append('id', String(peminatanId));
-        formData.append('guidebook', file);
+        btnText.textContent = 'Menyiapkan izin unggah...';
 
-        const res = await fetch('/api/admin/peminatan', {
+        // Langkah 1: Minta Presigned PUT URL dari Backend
+        const presignRes = await fetch('/api/admin/guidebook/presign', {
           method: 'POST',
-          body: formData,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: Number(peminatanId),
+            fileName: file.name,
+            contentType: 'application/pdf',
+          }),
         });
 
-        const data = (await res.json()) as any;
-        if (!res.ok || !data.success) {
-          showToast(data.message || 'Gagal mengunggah guidebook.', true);
-          submitBtn.disabled = false;
-          uploadIcon?.classList.remove('hidden');
-          spinner?.classList.add('hidden');
-          btnText.textContent = 'Unggah PDF';
-        } else {
-          showToast('Guidebook PDF berhasil diunggah ke B2!');
-          setTimeout(() => {
-            window.location.reload();
-          }, 900);
+        const presignData = (await presignRes.json()) as any;
+        if (!presignRes.ok || !presignData.success || !presignData.presignedUrl) {
+          throw new Error(presignData.message || 'Gagal membuat URL unggah presigned.');
         }
-      } catch (err) {
-        showToast('Terjadi kendala jaringan saat mengunggah.', true);
+
+        btnText.textContent = 'Mengunggah langsung ke B2...';
+
+        // Langkah 2: Unggah berkas langsung dari browser ke Backblaze B2 (0 bytes RAM di Cloudflare Worker!)
+        const b2Res = await fetch(presignData.presignedUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/pdf',
+          },
+          body: file,
+        });
+
+        if (!b2Res.ok) {
+          throw new Error(`Gagal mengunggah berkas ke penyimpanan Backblaze B2 (HTTP ${b2Res.status}).`);
+        }
+
+        btnText.textContent = 'Menyimpan konfigurasi...';
+
+        // Langkah 3: Konfirmasi URL berkas ke database via backend (hanya metadata JSON kecil)
+        const confirmRes = await fetch('/api/admin/peminatan', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: Number(peminatanId),
+            guidebookUrl: presignData.publicUrl,
+          }),
+        });
+
+        const confirmData = (await confirmRes.json()) as any;
+        if (!confirmRes.ok || !confirmData.success) {
+          throw new Error(confirmData.message || 'Gagal menyimpan tautan Guidebook ke database.');
+        }
+
+        showToast('Guidebook PDF berhasil diunggah langsung ke B2!');
+        setTimeout(() => {
+          window.location.reload();
+        }, 900);
+      } catch (err: any) {
+        showToast(err?.message || 'Terjadi kendala saat mengunggah.', true);
         submitBtn.disabled = false;
         uploadIcon?.classList.remove('hidden');
         spinner?.classList.add('hidden');

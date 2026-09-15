@@ -37,12 +37,13 @@ export function generateNomorRegistrasi(length = 7): string {
 
 export type JwtSecretOrEnv = string | { JWT_SECRET?: string; [key: string]: any };
 
-// Default secret key untuk local development
+// Default secret key untuk local development HANYA
 const DEFAULT_DEV_SECRET = 'oprec_perisai_umi_super_secret_jwt_key_edge_compatible_2026_default';
 
 /**
  * Resolves the JWT secret string from a direct string, an override object,
  * Cloudflare Workers runtime env, import.meta.env, process.env, or development fallback.
+ * Di lingkungan production, WAJIB mengonfigurasi JWT_SECRET; jika tidak ada, sistem akan melempar fatal error.
  */
 export function resolveJwtSecret(secretOrEnv?: JwtSecretOrEnv): string {
   if (typeof secretOrEnv === 'string' && secretOrEnv.trim() !== '') {
@@ -64,6 +65,20 @@ export function resolveJwtSecret(secretOrEnv?: JwtSecretOrEnv): string {
     return resolved;
   }
 
+  // Deteksi lingkungan production
+  const isProd =
+    (typeof import.meta !== 'undefined' && Boolean(import.meta.env?.PROD)) ||
+    (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production');
+
+  if (isProd) {
+    throw new Error(
+      'FATAL SECURITY ERROR: JWT_SECRET belum dikonfigurasi pada Cloudflare Environment Variables / Secrets. Server menolak menandatangani atau memverifikasi token demi mencegah pemalsuan identitas.'
+    );
+  }
+
+  console.warn(
+    '⚠️ [SECURITY WARNING] Menggunakan DEFAULT_DEV_SECRET untuk development lokal. JANGAN PERNAH gunakan di production!'
+  );
   return DEFAULT_DEV_SECRET;
 }
 

@@ -1,4 +1,4 @@
-import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, integer, text, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { sql, relations } from 'drizzle-orm';
 
 // ============================================================
@@ -97,7 +97,11 @@ export const cagens = sqliteTable('cagens', {
   createdAt: integer('created_at', { mode: 'timestamp' })
     .notNull()
     .default(sql`(unixepoch())`),
-});
+}, (table) => [
+  index('idx_cagens_status').on(table.statusPendaftaran),
+  index('idx_cagens_peminatan').on(table.peminatan),
+  index('idx_cagens_created_at').on(table.createdAt),
+]);
 
 // ============================================================
 // TABLE: berkas_cagens (Berkas/Dokumen yang Diupload Peserta)
@@ -327,7 +331,11 @@ export const cagenDocuments = sqliteTable('cagen_documents', {
   uploadedAt: integer('uploaded_at', { mode: 'timestamp' })
     .notNull()
     .default(sql`(unixepoch())`),
-});
+}, (table) => [
+  index('idx_cagen_docs_cagen_id').on(table.cagenId),
+  index('idx_cagen_docs_doc_type').on(table.documentTypeId),
+  uniqueIndex('idx_cagen_docs_unique_doc').on(table.cagenId, table.documentTypeId),
+]);
 
 // ============================================================
 // TABLE: password_resets (Token Reset Kata Sandi Pengguna)

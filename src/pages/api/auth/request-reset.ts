@@ -1,9 +1,10 @@
 import type { APIRoute } from 'astro';
 import { createDb } from '../../../db';
-import { cagens } from '../../../db/schema';
+import { cagens, passwordResets } from '../../../db/schema';
 import { eq } from 'drizzle-orm';
 import { signPasswordResetJwt, type AuthUser } from '../../../lib/auth';
 import { getEnvVar } from '../../../lib/env';
+import { verifyTurnstile } from '../../../lib/turnstile';
 
 export const prerender = false;
 
@@ -23,14 +24,33 @@ export const POST: APIRoute = async ({ request, locals }) => {
       targetId = loggedUser.id;
     }
 
+    let body: any = null;
     // Periksa apakah ada email yang dikirim dalam request body
     try {
-      const body: any = await request.json();
+      body = await request.json();
       if (body?.email && typeof body.email === 'string') {
         targetEmail = body.email.trim().toLowerCase();
       }
     } catch {
       // Body kosong atau bukan JSON (misalnya dipanggil tanpa payload oleh user terautentikasi)
+    }
+
+    // Validasi Keamanan Anti-Bot (Cloudflare Turnstile)
+    const turnstileToken = String(
+      body?.['cf-turnstile-response'] || body?.turnstileToken || body?.turnstile || ''
+    ).trim();
+    if (!loggedUser || turnstileToken) {
+      const clientIp = request.headers.get('CF-Connecting-IP');
+      const isTurnstileValid = await verifyTurnstile(turnstileToken, clientIp);
+      if (!isTurnstileValid) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: 'Validasi keamanan gagal. Silakan muat ulang halaman dan pastikan Anda bukan robot.',
+          }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     const db = createDb();
@@ -73,6 +93,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // 1. Generate token reset JWT berlaku 1 jam
     const resetToken = await signPasswordResetJwt(cagenRecord.id, cagenRecord.email);
+
+    // 1b. Catat token ke tabel password_resets untuk memvalidasi pemakaian & memblokir Replay Attack
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 jam
+    await db.insert(passwordResets).values({
+      userId: cagenRecord.id,
+      token: resetToken,
+      expiresAt,
+      used: false,
+    });
 
     // 2. Siapkan URL reset password
     const appBaseUrl =

@@ -26,13 +26,50 @@ let kriteriaList: Array<{
   tag?: string;
 }> = [];
 
+// 1. Optimasi Edge Caching pada Level SSR Response
+// Menginstruksikan Cloudflare CDN untuk menyimpan cache halaman selama 10 menit (s-maxage=600),
+// dan melayani konten basi hingga 2 menit selagi background revalidation berjalan (stale-while-revalidate=120).
+if (!user) {
+  Astro.response.headers.set(
+    'Cache-Control',
+    'public, max-age=60, s-maxage=600, stale-while-revalidate=120'
+  );
+} else {
+  // Pengguna dengan sesi login aktif dilayani tanpa cache publik agar tidak mencampuri state pengguna
+  Astro.response.headers.set('Cache-Control', 'private, no-cache');
+}
+
 try {
   const db = createDb();
-  const [settings] = await db
-    .select()
-    .from(systemSettings)
-    .where(eq(systemSettings.id, 1))
-    .limit(1);
+
+  // 2. Paralelisasi Query Database (Promise.all)
+  // Menjalankan ke-4 query secara serentak dalam satu gelombang HTTP untuk memangkas latensi TTFB
+  const [settingsRes, timelineRes, qnaRes, peminatanRes] = await Promise.all([
+    db
+      .select()
+      .from(systemSettings)
+      .where(eq(systemSettings.id, 1))
+      .limit(1),
+    db
+      .select()
+      .from(timelineEvents)
+      .orderBy(asc(timelineEvents.sequenceOrder), asc(timelineEvents.startDate)),
+    db
+      .select()
+      .from(publicQna)
+      .where(eq(publicQna.isPublished, true))
+      .orderBy(asc(publicQna.id)),
+    db
+      .select()
+      .from(peminatan)
+      .where(eq(peminatan.isActive, true))
+      .orderBy(asc(peminatan.id)),
+  ]);
+
+  const settings = settingsRes[0] || null;
+  timelineList = timelineRes;
+  qnaPublishedList = qnaRes;
+  peminatanList = peminatanRes;
 
   if (settings) {
     registrationConfig = {
@@ -77,23 +114,6 @@ try {
       }
     }
   }
-
-  timelineList = await db
-    .select()
-    .from(timelineEvents)
-    .orderBy(asc(timelineEvents.sequenceOrder), asc(timelineEvents.startDate));
-
-  qnaPublishedList = await db
-    .select()
-    .from(publicQna)
-    .where(eq(publicQna.isPublished, true))
-    .orderBy(asc(publicQna.id));
-
-  peminatanList = await db
-    .select()
-    .from(peminatan)
-    .where(eq(peminatan.isActive, true))
-    .orderBy(asc(peminatan.id));
 } catch (err) {
   console.error('Error loading settings, timeline, QnA, or peminatan on homepage:', err);
 }

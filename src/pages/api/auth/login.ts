@@ -1,14 +1,16 @@
 import type { APIRoute } from 'astro';
-import bcrypt from 'bcryptjs';
 import { eq, or } from 'drizzle-orm';
 import { createDb } from '../../../db';
 import { admins, cagens } from '../../../db/schema';
 import { signJwt, setAuthCookie, type AuthUser } from '../../../lib/auth';
+import { verifyPassword } from '../../../lib/password';
+import { verifyTurnstile } from '../../../lib/turnstile';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     let identifier = '';
     let password = '';
+    let turnstileToken = '';
 
     const contentType = request.headers.get('content-type') || '';
     if (contentType.includes('application/json')) {
@@ -16,6 +18,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         const body = (await request.json()) as Record<string, any>;
         identifier = String(body.identifier || body.email || body.username || '').trim();
         password = String(body.password || '').trim();
+        turnstileToken = String(
+          body['cf-turnstile-response'] || body['turnstileToken'] || body['turnstile'] || ''
+        ).trim();
       } catch {
         return new Response(
           JSON.stringify({ success: false, message: 'Format request JSON tidak valid.' }),
@@ -27,12 +32,28 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         const formData = await request.formData();
         identifier = String(formData.get('identifier') || formData.get('email') || formData.get('username') || '').trim();
         password = String(formData.get('password') || '').trim();
+        turnstileToken = String(
+          formData.get('cf-turnstile-response') || formData.get('turnstileToken') || formData.get('turnstile') || ''
+        ).trim();
       } catch {
         return new Response(
           JSON.stringify({ success: false, message: 'Format formulir tidak valid.' }),
           { status: 400, headers: { 'Content-Type': 'application/json' } }
         );
       }
+    }
+
+    // Validasi Keamanan Anti-Bot (Cloudflare Turnstile)
+    const clientIp = request.headers.get('CF-Connecting-IP');
+    const isTurnstileValid = await verifyTurnstile(turnstileToken, clientIp);
+    if (!isTurnstileValid) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: 'Validasi keamanan gagal. Silakan muat ulang halaman dan pastikan Anda bukan robot.',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
     if (!identifier || !password) {
@@ -66,7 +87,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       .limit(1);
 
     if (admin) {
-      const isMatch = await bcrypt.compare(password, admin.password);
+      const isMatch = await verifyPassword(password, admin.password);
       if (isMatch) {
         const authUser: AuthUser = {
           id: admin.id,
@@ -99,7 +120,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       .limit(1);
 
     if (cagen) {
-      const isMatch = await bcrypt.compare(password, cagen.password);
+      const isMatch = await verifyPassword(password, cagen.password);
       if (isMatch) {
         // Cek verifikasi email calon anggota
         if (!cagen.isVerified) {

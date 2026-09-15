@@ -1,11 +1,41 @@
 import type { APIRoute } from 'astro';
-import { eq, like } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
+import { safeLike } from '../../lib/db-utils';
 import { createDb } from '../../db';
 import { peminatan } from '../../db/schema';
-import { getAwsClient, createPresignedGetUrl, extractS3Key } from '../../lib/s3';
+import { getAwsClient, extractS3Key } from '../../lib/s3';
 
-export const GET: APIRoute = async ({ url, redirect }) => {
+/**
+ * GET /api/guidebook
+ * Menyajikan berkas Guidebook PDF publik dengan proteksi Cloudflare Edge Caching (caches.default).
+ * Mencegah pemborosan kuota transaksi Class B harian Backblaze B2 (limit 2.500/hari).
+ */
+export const GET: APIRoute = async ({ request, url, redirect }) => {
   try {
+    // 1. Cek Cloudflare Edge Cache terlebih dahulu
+    // Menggunakan caches.default native Cloudflare Workers
+    const cache = (caches as any).default;
+    const cacheKey = new Request(url.toString(), {
+      method: 'GET',
+      headers: request.headers,
+    });
+
+    try {
+      const cachedResponse = await cache.match(cacheKey);
+      if (cachedResponse) {
+        // Cache Hit: Mengembalikan dokumen dari CDN Edge tanpa menyentuh Turso DB maupun B2 API!
+        const hitHeaders = new Headers(cachedResponse.headers);
+        hitHeaders.set('X-Edge-Cache', 'HIT');
+        return new Response(cachedResponse.body, {
+          status: cachedResponse.status,
+          headers: hitHeaders,
+        });
+      }
+    } catch {
+      // Abaikan jika cache API tidak aktif di environment lokal dev
+    }
+
+    // 2. Cache Miss: Ambil metadata dari Turso Database
     const idParam = url.searchParams.get('id');
     const trackParam = url.searchParams.get('peminatan') || url.searchParams.get('track');
     const keyParam = url.searchParams.get('key');
@@ -34,7 +64,7 @@ export const GET: APIRoute = async ({ url, redirect }) => {
       const [row] = await db
         .select()
         .from(peminatan)
-        .where(like(peminatan.guidebookUrl, `%${keyParam.trim()}%`))
+        .where(safeLike(peminatan.guidebookUrl, keyParam))
         .limit(1);
       record = row;
     }
@@ -72,12 +102,12 @@ export const GET: APIRoute = async ({ url, redirect }) => {
 
     const rawUrl = String(record.guidebookUrl).trim();
 
-    // Jika bukan URL Backblaze B2 (misalnya link Google Drive, Docs eksternal, dll.)
+    // Jika berupa link eksternal (misal Google Drive), alihkan dengan 302
     if (!rawUrl.includes('backblazeb2.com') && !rawUrl.includes('guidebooks/')) {
       return redirect(rawUrl, 302);
     }
 
-    // Ekstrak S3 Key dari URL Backblaze B2
+    // 3. Ekstrak S3 Key & Ambil berkas dari Backblaze B2 via signed request
     const { client, config } = getAwsClient();
     const cleanKey = extractS3Key(rawUrl, config.bucketName);
 
@@ -85,7 +115,6 @@ export const GET: APIRoute = async ({ url, redirect }) => {
       return redirect(rawUrl, 302);
     }
 
-    // Ambil file dari Backblaze B2 menggunakan signed request aws4fetch
     const targetUrl = `${config.endpoint}/${config.bucketName}/${cleanKey.replace(/^\/+/, '')}`;
     const s3Response = await client.fetch(targetUrl, {
       method: 'GET',
@@ -93,19 +122,36 @@ export const GET: APIRoute = async ({ url, redirect }) => {
 
     if (s3Response.ok && s3Response.body) {
       const safeFilename = `Guidebook-${record.nama.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
-      return new Response(s3Response.body, {
+      
+      const edgeResponse = new Response(s3Response.body, {
         status: 200,
         headers: {
           'Content-Type': 'application/pdf',
           'Content-Disposition': `inline; filename="${safeFilename}"`,
-          'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+          // s-maxage=604800 (Cache di Cloudflare CDN selama 7 hari), max-age=7200 (Cache di browser 2 jam)
+          'Cache-Control': 'public, max-age=7200, s-maxage=604800',
+          'X-Edge-Cache': 'MISS',
         },
       });
+
+      // 4. Simpan hasil fetch ke Cloudflare Edge Cache agar pemanggilan berikutnya tidak ke B2
+      try {
+        await cache.put(cacheKey, edgeResponse.clone());
+      } catch (cacheErr) {
+        console.warn('Gagal menyimpan ke Edge Cache:', cacheErr);
+      }
+
+      return edgeResponse;
     }
 
-    // Fallback: Jika streaming langsung tidak didukung atau terkendala, alihkan ke presigned GET URL bertanda tangan
-    const signedUrl = await createPresignedGetUrl(cleanKey, 3600);
-    return redirect(signedUrl, 302);
+    // Jika B2 gagal memuat file
+    return new Response(
+      JSON.stringify({
+        success: false,
+        message: `Berkas Guidebook tidak dapat ditemukan di penyimpanan cloud (HTTP ${s3Response.status}).`,
+      }),
+      { status: 404, headers: { 'Content-Type': 'application/json' } }
+    );
   } catch (error: any) {
     console.error('Error serving guidebook PDF:', error);
     return new Response(

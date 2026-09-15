@@ -1,11 +1,11 @@
 export const prerender = false;
 
 import type { APIRoute } from 'astro';
-import bcrypt from 'bcryptjs';
 import { createDb } from '../../../db';
 import { cagens, passwordResets } from '../../../db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { verifyPasswordResetJwt } from '../../../lib/auth';
+import { hashPassword } from '../../../lib/password';
 
 /**
  * POST /api/auth/reset-password
@@ -66,51 +66,64 @@ export const POST: APIRoute = async ({ request }) => {
 
   try {
     const db = createDb();
-    let targetUserId: number | null = null;
-    let resetRecordId: number | null = null;
 
-    // 2. Cari token di tabel password_resets
+    // 2. Validasi token ke tabel password_resets (Wajib ada, belum used, dan belum expired)
     const [dbTokenRecord] = await db
       .select()
       .from(passwordResets)
-      .where(and(eq(passwordResets.token, token), eq(passwordResets.used, false)))
+      .where(eq(passwordResets.token, token))
       .limit(1);
 
-    if (dbTokenRecord) {
-      const now = new Date();
-      const expiresAt = new Date(dbTokenRecord.expiresAt);
-
-      if (now > expiresAt) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: 'Token Expired',
-            message: 'Tautan pengaturan ulang kata sandi telah kedaluwarsa. Silakan ajukan permohonan baru.',
-          }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-
-      targetUserId = dbTokenRecord.userId;
-      resetRecordId = dbTokenRecord.id;
-    } else {
-      // Fallback: periksa token JWT lama jika ada
-      const jwtPayload = await verifyPasswordResetJwt(token);
-      if (jwtPayload && jwtPayload.userId) {
-        targetUserId = Number(jwtPayload.userId);
-      }
-    }
-
-    if (!targetUserId) {
+    if (!dbTokenRecord) {
       return new Response(
         JSON.stringify({
           success: false,
           error: 'Invalid Token',
-          message: 'Tautan pengaturan ulang kata sandi tidak valid atau sudah pernah digunakan.',
+          message: 'Tautan pengaturan ulang kata sandi tidak valid atau tidak ditemukan.',
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
+
+    if (dbTokenRecord.used) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Token Already Used',
+          message: 'Tautan pengaturan ulang kata sandi ini sudah pernah digunakan. Silakan ajukan permohonan baru.',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const now = new Date();
+    const expiresAt = new Date(dbTokenRecord.expiresAt);
+    if (now > expiresAt) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Token Expired',
+          message: 'Tautan pengaturan ulang kata sandi telah kedaluwarsa. Silakan ajukan permohonan baru.',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verifikasi integritas kriptografis token JWT
+    const jwtPayload = await verifyPasswordResetJwt(token);
+    if (!jwtPayload || Number(jwtPayload.userId) !== dbTokenRecord.userId) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Invalid Token',
+          message: 'Tautan pengaturan ulang kata sandi tidak valid atau telah dimodifikasi.',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const targetUserId = dbTokenRecord.userId;
+    const resetRecordId = dbTokenRecord.id;
 
     // 3. Pastikan user dengan ID terkait masih ada di DB
     const [cagenUser] = await db
@@ -130,8 +143,8 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // 4. Hash kata sandi baru menggunakan bcryptjs
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    // 4. Hash kata sandi baru menggunakan Web Crypto API (PBKDF2)
+    const hashedPassword = await hashPassword(newPassword);
 
     // 5. Perbarui kata sandi peserta di tabel cagens
     await db
@@ -141,15 +154,13 @@ export const POST: APIRoute = async ({ request }) => {
       })
       .where(eq(cagens.id, cagenUser.id));
 
-    // 6. Tandai token sebagai telah digunakan (used = true)
-    if (resetRecordId) {
-      await db
-        .update(passwordResets)
-        .set({
-          used: true,
-        })
-        .where(eq(passwordResets.id, resetRecordId));
-    }
+    // 6. Tandai token sebagai telah digunakan (used = true) untuk memblokir Replay Attack
+    await db
+      .update(passwordResets)
+      .set({
+        used: true,
+      })
+      .where(eq(passwordResets.id, resetRecordId));
 
     return new Response(
       JSON.stringify({

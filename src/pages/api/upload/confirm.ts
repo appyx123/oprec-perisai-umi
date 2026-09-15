@@ -123,38 +123,49 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const cleanRaw = rawCategory.trim().toLowerCase().replace(/[\s_-]+/g, '');
     const matchedSlug = SLUG_ALIASES[rawCategory] || SLUG_ALIASES[cleanRaw] || rawCategory.toLowerCase();
 
-    // 4. Validasi kepemilikan file (hanya untuk path lokal S3/B2, bukan URL eksternal)
-    const isExternalUrl = finalFileName.startsWith('http://') || finalFileName.startsWith('https://');
-    if (!isExternalUrl) {
-      const isLegacyMatch = finalFileName.startsWith(`user_${user.id}_`);
-      const isNewNimMatch = Boolean(user.nim && finalFileName.startsWith(`cagen/${user.nim}/`));
-      const isNewIdMatch = finalFileName.startsWith(`cagen/${user.id}/`);
-      const isCagenFolder = finalFileName.startsWith('cagen/');
-
-      if (!isLegacyMatch && !isNewNimMatch && !isNewIdMatch && !isCagenFolder) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            message: 'Nama file tidak sesuai dengan identitas akun Anda.',
-          }),
-          { status: 403, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-    }
-
-    // 5. Inisialisasi Database
+    // 4. Inisialisasi Database & Ambil Master Tipe Dokumen
     const db = createDb();
-
-    // 6. Cari record document_types
     const [docType] = await db
       .select()
       .from(documentTypes)
       .where(eq(documentTypes.slug, matchedSlug))
       .limit(1);
 
+    // 5. Validasi Keabsahan Tipe Berkas vs Tautan Eksternal
+    const isExternalUrl = finalFileName.startsWith('http://') || finalFileName.startsWith('https://');
+
+    if (isExternalUrl) {
+      // Blokir bypass: Jika user mengirim URL eksternal, pastikan master data dokumen bertipe 'link'
+      if (!docType || docType.inputType !== 'link') {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: `Persyaratan "${docType?.label || rawCategory}" mewajibkan unggahan berkas fisik, bukan tautan eksternal.`,
+          }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    } else {
+      // Validasi kepemilikan berkas fisik S3/B2
+      const isLegacyMatch = finalFileName.startsWith(`user_${user.id}_`);
+      const isNewNimMatch = Boolean(user.nim && finalFileName.startsWith(`cagen/${user.nim}/`));
+      const isNewIdMatch = finalFileName.startsWith(`cagen/${user.id}/`);
+
+      // Hanya izinkan konfirmasi jika path berkas secara eksplisit memuat NIM atau ID milik user yang sedang terotentikasi
+      if (!isLegacyMatch && !isNewNimMatch && !isNewIdMatch) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: 'Akses ditolak: Berkas yang dikonfirmasi tidak sesuai dengan identitas akun Anda.',
+          }),
+          { status: 403, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     const deletedFiles: string[] = [];
 
-    // 7. STEP 1: RELATIONAL INSERT/UPDATE (cagen_documents)
+    // 6. STEP 1: RELATIONAL INSERT/UPDATE (cagen_documents)
     if (docType) {
       const [existingDoc] = await db
         .select()

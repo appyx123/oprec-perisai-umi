@@ -45,17 +45,34 @@ export const POST: APIRoute = async ({ request, locals }) => {
     );
   }
 
-  // STEP 1: EXTRACT DATA
-  const rawNim = String(body.nim || user.nim || '').trim();
+  // WHITELIST MIME TYPE & EKSTENSI BERKAS
+  const ALLOWED_MIME_TYPES: Record<string, string[]> = {
+    'application/pdf': ['.pdf'],
+    'image/jpeg': ['.jpg', '.jpeg'],
+    'image/png': ['.png'],
+    'image/webp': ['.webp'],
+    'application/zip': ['.zip'],
+    'application/x-zip-compressed': ['.zip'],
+    'application/octet-stream': ['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.zip'],
+  };
+
+  const ALLOWED_EXTENSIONS = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.zip']);
+
+  // STEP 1: EXTRACT & VALIDATE IDENTITY (ELIMINASI IDOR SEC-02)
+  // Pengguna dengan role 'user' HANYA boleh menggunakan user.nim dari sesi mereka sendiri.
+  const targetNim = user.role === 'user'
+    ? (user.nim || '')
+    : String(body.nim || user.nim || '').trim();
+
   const rawJenisBerkas = String(body.jenisBerkas || body.category || '').trim();
   const rawFileName = String(body.fileName || body.filename || '').trim();
-  const rawContentType = String(body.contentType || 'application/octet-stream').trim();
+  const rawContentType = String(body.contentType || 'application/octet-stream').toLowerCase().trim();
 
-  if (!rawNim) {
+  if (!targetNim) {
     return new Response(
       JSON.stringify({
         success: false,
-        message: 'Parameter nim wajib disertakan.',
+        message: 'NIM tidak valid atau tidak terdaftar pada sesi pengguna aktif.',
       }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
@@ -81,11 +98,34 @@ export const POST: APIRoute = async ({ request, locals }) => {
     );
   }
 
-  // STEP 2: SANITIZE & FORMAT
-  // 1. Ekstrak ekstensi berkas asli
+  // STEP 2: VALIDASI WHITELIST EKSTENSI & MIME TYPE
   const rawExt = rawFileName.includes('.')
     ? rawFileName.substring(rawFileName.lastIndexOf('.')).toLowerCase()
     : '';
+
+  if (!ALLOWED_EXTENSIONS.has(rawExt)) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        message: `Format berkas "${rawExt}" tidak diizinkan. Hanya berkas .pdf, .jpg, .jpeg, .png, .webp, dan .zip yang diperbolehkan demi keamanan sistem.`,
+      }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const validExtsForMime = ALLOWED_MIME_TYPES[rawContentType];
+  if (!validExtsForMime || !validExtsForMime.includes(rawExt)) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        message: `Tipe konten MIME "${rawContentType}" tidak selaras dengan ekstensi berkas "${rawExt}".`,
+      }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // STEP 3: SANITIZE & CONSTRUCT SECURE OBJECT KEY
+  // 1. Sanitasi ekstensi
   const safeExt = rawExt.replace(/[^a-z0-9.]/g, '');
 
   // 2. Sanitasi jenisBerkas: huruf kecil, spasi menjadi tanda hubung (-), hapus karakter khusus
@@ -95,15 +135,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
     .replace(/[^a-z0-9_-]/g, '')
     .replace(/-+/g, '-');
 
-  // 3. Sanitasi NIM: hanya alfanumerik
-  const sanitizedNim = rawNim.replace(/[^a-zA-Z0-9_-]/g, '');
+  // 3. Sanitasi NIM: hanya alfanumerik (huruf dan angka), bersihkan karakter berbahaya
+  const sanitizedNim = targetNim.replace(/[^a-zA-Z0-9_-]/g, '');
 
-  // 4. Generate Unix timestamp (dalam detik)
+  // 4. Generate Unix timestamp (dalam detik) dan random salt 8-karakter acak
   const timestamp = Math.floor(Date.now() / 1000);
+  const randomSalt = crypto.randomUUID().slice(0, 8);
 
-  // STEP 3: CONSTRUCT THE OBJECT KEY
-  // Template: cagen/[nim]/[sanitized-jenisBerkas]-[timestamp][extension]
-  const fileKey = `cagen/${sanitizedNim}/${sanitizedJenisBerkas}-${timestamp}${safeExt}`;
+  // Template: cagen/[nim]/[sanitized-jenisBerkas]-[timestamp]-[randomSalt][extension]
+  const fileKey = `cagen/${sanitizedNim}/${sanitizedJenisBerkas}-${timestamp}-${randomSalt}${safeExt}`;
 
   // STEP 4: GENERATE PRESIGNED URL USING aws4fetch & import { env } from 'cloudflare:workers'
   try {

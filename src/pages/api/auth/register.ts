@@ -1,10 +1,11 @@
 import type { APIRoute } from 'astro';
-import bcrypt from 'bcryptjs';
 import { eq, or } from 'drizzle-orm';
 import { createDb } from '../../../db';
 import { cagens, systemSettings } from '../../../db/schema';
 import { generateNomorRegistrasi } from '../../../lib/auth';
+import { hashPassword } from '../../../lib/password';
 import { getEnvVar } from '../../../lib/env';
+import { verifyTurnstile } from '../../../lib/turnstile';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -20,6 +21,22 @@ export const POST: APIRoute = async ({ request }) => {
           payload[key] = typeof value === 'string' ? value.trim() : value;
         }
       }
+    }
+
+    // 0. Validasi Keamanan Anti-Bot (Cloudflare Turnstile)
+    const turnstileToken = String(
+      payload['cf-turnstile-response'] || payload['turnstileToken'] || payload['turnstile'] || ''
+    ).trim();
+    const clientIp = request.headers.get('CF-Connecting-IP');
+    const isTurnstileValid = await verifyTurnstile(turnstileToken, clientIp);
+    if (!isTurnstileValid) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: 'Validasi keamanan gagal. Silakan muat ulang halaman dan pastikan Anda bukan robot.',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
     const namaLengkap = String(payload.namaLengkap || '').trim();
@@ -133,7 +150,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // 5. Enkripsi Password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await hashPassword(password);
 
     // 6. Generate Nomor Registrasi Unik 7 Digit Angka Acak
     let nomorRegistrasi = generateNomorRegistrasi(7);

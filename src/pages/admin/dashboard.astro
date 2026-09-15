@@ -3,7 +3,8 @@ import MainLayout from '../../layouts/MainLayout.astro';
 import type { AuthUser } from '../../lib/auth';
 import { createDb } from '../../db';
 import { cagens, berkasCagens, STATUS_PENDAFTARAN } from '../../db/schema';
-import { count, eq, desc, and, or, like } from 'drizzle-orm';
+import { count, eq, desc, and, or, sql, type SQL } from 'drizzle-orm';
+import { safeLike } from '../../lib/db-utils';
 
 const user = Astro.locals.user as AuthUser | null | undefined;
 const isAdmin = user?.role === 'admin' || user?.isAdmin === true || String(user?.role).toLowerCase() === 'admin';
@@ -24,53 +25,59 @@ let stats = {
   lulusFinal: 0,
 };
 
-let applicantList: Array<{
+interface ApplicantItem {
   id: number;
-  nomorRegistrasi?: string | null;
+  nomorRegistrasi: string | null;
   namaLengkap: string;
   nim: string;
   fakultas: string;
   jurusan: string;
   statusPendaftaran: string;
   peminatan: string | null;
-}> = [];
+}
+
+let applicantList: ApplicantItem[] = [];
 
 let dbError: string | null = null;
 
 try {
   const db = createDb();
 
-  // 1. Hitung metrik pendaftar secara langsung dari database Turso
-  const [totalResult] = await db.select({ value: count() }).from(cagens);
-  const [reviewResult] = await db.select({ value: count() }).from(cagens).where(eq(cagens.statusPendaftaran, 'Review Berkas'));
-  const [diterimaResult] = await db.select({ value: count() }).from(cagens).where(eq(cagens.statusPendaftaran, 'Berkas Diterima'));
-  const [lulusResult] = await db.select({ value: count() }).from(cagens).where(eq(cagens.statusPendaftaran, 'Lulus'));
+  // 1. Hitung metrik pendaftar via single conditional aggregation query (1 HTTP roundtrip)
+  const [aggregatedStats] = await db
+    .select({
+      total: count(),
+      review: sql<number>`count(case when ${cagens.statusPendaftaran} = 'Review Berkas' then 1 end)`,
+      diterima: sql<number>`count(case when ${cagens.statusPendaftaran} = 'Berkas Diterima' then 1 end)`,
+      lulus: sql<number>`count(case when ${cagens.statusPendaftaran} = 'Lulus' then 1 end)`,
+    })
+    .from(cagens);
 
-  stats.totalPendaftar = totalResult?.value ?? 0;
-  stats.reviewBerkas = reviewResult?.value ?? 0;
-  stats.berkasDiterima = diterimaResult?.value ?? 0;
-  stats.lulusFinal = lulusResult?.value ?? 0;
+  stats.totalPendaftar = Number(aggregatedStats?.total ?? 0);
+  stats.reviewBerkas = Number(aggregatedStats?.review ?? 0);
+  stats.berkasDiterima = Number(aggregatedStats?.diterima ?? 0);
+  stats.lulusFinal = Number(aggregatedStats?.lulus ?? 0);
 
   // 2. Susun kondisi query filter & search
-  const whereConditions = [];
+  const whereConditions: SQL[] = [];
   if (statusFilter && statusFilter !== 'SEMUA') {
     whereConditions.push(eq(cagens.statusPendaftaran, statusFilter as any));
   }
   if (search) {
     whereConditions.push(
       or(
-        like(cagens.namaLengkap, `%${search}%`),
-        like(cagens.nim, `%${search}%`),
-        like(cagens.email, `%${search}%`),
-        like(cagens.nomorRegistrasi, `%${search}%`),
-        like(cagens.jurusan, `%${search}%`),
-        like(cagens.fakultas, `%${search}%`)
-      )
+        safeLike(cagens.namaLengkap, search),
+        safeLike(cagens.nim, search),
+        safeLike(cagens.email, search),
+        safeLike(cagens.nomorRegistrasi, search),
+        safeLike(cagens.jurusan, search),
+        safeLike(cagens.fakultas, search)
+      )!
     );
   }
 
   // 3. Ambil data pendaftar (limit 50)
-  let query = db
+  const rows = await db
     .select({
       id: cagens.id,
       nomorRegistrasi: cagens.nomorRegistrasi,
@@ -83,16 +90,11 @@ try {
     })
     .from(cagens)
     .leftJoin(berkasCagens, eq(cagens.id, berkasCagens.cagenId))
+    .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
     .orderBy(desc(cagens.createdAt))
     .limit(50);
 
-  if (whereConditions.length > 0) {
-    query = query.where(and(...whereConditions)) as any;
-  }
-
-  const rows = await query;
-
-  applicantList = rows.map((r) => ({
+  applicantList = rows.map((r: any): ApplicantItem => ({
     id: r.id,
     nomorRegistrasi: r.nomorRegistrasi,
     namaLengkap: r.namaLengkap,

@@ -1,11 +1,13 @@
 import type { APIRoute } from 'astro';
 import { createDb } from '../../../db';
 import { publicQna } from '../../../db/schema';
+import { verifyTurnstile } from '../../../lib/turnstile';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
     let askerName = '';
     let question = '';
+    let turnstileToken = '';
 
     const contentType = request.headers.get('content-type') || '';
     if (contentType.includes('application/json')) {
@@ -13,13 +15,32 @@ export const POST: APIRoute = async ({ request }) => {
       if (body) {
         askerName = String(body.askerName || body.name || '').trim();
         question = String(body.question || '').trim();
+        turnstileToken = String(
+          body['cf-turnstile-response'] || body['turnstileToken'] || body['turnstile'] || ''
+        ).trim();
       }
     } else {
       const formData = await request.formData().catch(() => null);
       if (formData) {
         askerName = String(formData.get('askerName') || formData.get('name') || '').trim();
         question = String(formData.get('question') || '').trim();
+        turnstileToken = String(
+          formData.get('cf-turnstile-response') || formData.get('turnstileToken') || formData.get('turnstile') || ''
+        ).trim();
       }
+    }
+
+    // Validasi Keamanan Anti-Bot (Cloudflare Turnstile)
+    const clientIp = request.headers.get('CF-Connecting-IP');
+    const isTurnstileValid = await verifyTurnstile(turnstileToken, clientIp);
+    if (!isTurnstileValid) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: 'Validasi keamanan gagal. Silakan muat ulang halaman dan pastikan Anda bukan robot.',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
     if (!question) {

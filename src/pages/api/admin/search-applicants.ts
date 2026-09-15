@@ -1,7 +1,8 @@
 import type { APIRoute } from 'astro';
 import { createDb } from '../../../db';
 import { cagens, berkasCagens } from '../../../db/schema';
-import { eq, desc, and, or, like } from 'drizzle-orm';
+import { eq, desc, and, or, type SQL } from 'drizzle-orm';
+import { safeLike } from '../../../lib/db-utils';
 
 export const GET: APIRoute = async ({ request, locals }) => {
   try {
@@ -25,26 +26,26 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const status = (url.searchParams.get('status') ?? '').trim();
 
     const db = createDb();
-    const whereConditions = [];
+    const whereConditions: SQL[] = [];
 
     // Filter status jika spesifik
     if (status && status !== 'SEMUA') {
       whereConditions.push(eq(cagens.statusPendaftaran, status as any));
     }
 
-    // Optimasi pencarian LIKE across nama, nim, dan nomor_registrasi
+    // Optimasi pencarian LIKE aman (escaped wildcards) across nama, nim, dan nomor_registrasi
     if (q) {
       whereConditions.push(
         or(
-          like(cagens.namaLengkap, `%${q}%`),
-          like(cagens.nim, `%${q}%`),
-          like(cagens.nomorRegistrasi, `%${q}%`)
-        )
+          safeLike(cagens.namaLengkap, q),
+          safeLike(cagens.nim, q),
+          safeLike(cagens.nomorRegistrasi, q)
+        )!
       );
     }
 
     // 3. Query dengan LIMIT 20 strictly untuk menjaga payload mikroskopis & respon kilat
-    let query = db
+    const rows = await db
       .select({
         id: cagens.id,
         nomorRegistrasi: cagens.nomorRegistrasi,
@@ -57,14 +58,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
       })
       .from(cagens)
       .leftJoin(berkasCagens, eq(cagens.id, berkasCagens.cagenId))
+      .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
       .orderBy(desc(cagens.createdAt))
       .limit(20);
-
-    if (whereConditions.length > 0) {
-      query = query.where(and(...whereConditions)) as any;
-    }
-
-    const rows = await query;
 
     const data = rows.map((r) => ({
       id: r.id,

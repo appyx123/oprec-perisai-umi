@@ -19,6 +19,28 @@ if (!applicantId || isNaN(applicantId)) {
   return Astro.redirect('/admin/dashboard');
 }
 
+interface DocTypeItem {
+  id: number;
+  slug: string;
+  label: string;
+  group: string;
+  peminatanId: number | null;
+  inputType: string;
+  acceptMime: string;
+  maxSizeBytes: number;
+}
+
+interface UserDocItem {
+  id: number;
+  documentTypeId: number;
+  s3Key: string;
+  originalFilename: string;
+  contentType: string;
+  uploadedAt: Date | null;
+}
+
+type PeminatanItem = typeof peminatanTable.$inferSelect;
+
 let cagen: any = null;
 let chosenPeminatan: any = null;
 let uploadedDocs: any[] = [];
@@ -29,28 +51,25 @@ let dbError: string | null = null;
 try {
   const db = createDb();
 
-  // 1. Ambil data peserta
-  const [foundCagen] = await db
-    .select()
-    .from(cagens)
-    .where(eq(cagens.id, applicantId))
-    .limit(1);
+  // Konsolidasi seluruh query terkait peserta dalam 1 HTTP batch payload (db.batch)
+  // Menghilangkan Waterfall Latency & overhead koneksi (6 HTTP roundtrips -> 1 batch roundtrip)
+  const [
+    cagenRows,
+    allDocTypes,
+    userDocs,
+    allPeminatan,
+    prevRows,
+    nextRows,
+  ] = (await db.batch([
+    // 1. Data profil peserta
+    db
+      .select()
+      .from(cagens)
+      .where(eq(cagens.id, applicantId))
+      .limit(1),
 
-  if (foundCagen) {
-    cagen = foundCagen;
-
-    // 2. Ambil informasi peminatan terpilih jika ada
-    if (cagen.peminatan) {
-      const [foundPeminatan] = await db
-        .select()
-        .from(peminatanTable)
-        .where(eq(peminatanTable.nama, cagen.peminatan))
-        .limit(1);
-      chosenPeminatan = foundPeminatan ?? null;
-    }
-
-    // 3. Query seluruh dokumen persyaratan dan join dokumen unggahan peserta
-    const allDocTypes = await db
+    // 2. Master jenis dokumen persyaratan aktif
+    db
       .select({
         id: documentTypes.id,
         slug: documentTypes.slug,
@@ -63,9 +82,10 @@ try {
       })
       .from(documentTypes)
       .where(eq(documentTypes.isActive, true))
-      .orderBy(asc(documentTypes.id));
+      .orderBy(asc(documentTypes.id)),
 
-    const userDocs = await db
+    // 3. Dokumen yang telah diunggah oleh peserta
+    db
       .select({
         id: cagenDocuments.id,
         documentTypeId: cagenDocuments.documentTypeId,
@@ -75,13 +95,52 @@ try {
         uploadedAt: cagenDocuments.uploadedAt,
       })
       .from(cagenDocuments)
-      .where(eq(cagenDocuments.cagenId, applicantId));
+      .where(eq(cagenDocuments.cagenId, applicantId)),
 
-    const userDocsMap = new Map(userDocs.map(d => [d.documentTypeId, d]));
+    // 4. Master data peminatan
+    db.select().from(peminatanTable),
+
+    // 5. ID peserta sebelumnya (Prev navigation)
+    db
+      .select({ id: cagens.id })
+      .from(cagens)
+      .where(lt(cagens.id, applicantId))
+      .orderBy(desc(cagens.id))
+      .limit(1),
+
+    // 6. ID peserta selanjutnya (Next navigation)
+    db
+      .select({ id: cagens.id })
+      .from(cagens)
+      .where(gt(cagens.id, applicantId))
+      .orderBy(asc(cagens.id))
+      .limit(1),
+  ])) as unknown as [
+    (typeof cagens.$inferSelect)[],
+    DocTypeItem[],
+    UserDocItem[],
+    PeminatanItem[],
+    { id: number }[],
+    { id: number }[],
+  ];
+
+  const foundCagen = cagenRows[0] || null;
+
+  if (foundCagen) {
+    cagen = foundCagen;
+
+    // Ambil peminatan terpilih dari hasil parallel query
+    if (cagen.peminatan) {
+      chosenPeminatan = allPeminatan.find((p: PeminatanItem) => p.nama === cagen.peminatan) ?? null;
+    }
+
+    const userDocsMap = new Map<number, UserDocItem>(
+      userDocs.map((d: UserDocItem) => [d.documentTypeId, d])
+    );
 
     uploadedDocs = allDocTypes
-      .filter(dt => dt.peminatanId === null || (chosenPeminatan && dt.peminatanId === chosenPeminatan.id))
-      .map(dt => {
+      .filter((dt: DocTypeItem) => dt.peminatanId === null || (chosenPeminatan && dt.peminatanId === chosenPeminatan.id))
+      .map((dt: DocTypeItem) => {
         const userDoc = userDocsMap.get(dt.id);
         const s3Key = userDoc?.s3Key || '';
         const isUploaded = Boolean(s3Key && s3Key.trim() !== '');
@@ -102,23 +161,9 @@ try {
         };
       });
 
-    // 4. Navigasi Peserta Sebelumnya (Prev) dan Selanjutnya (Next)
-    const [prevRow] = await db
-      .select({ id: cagens.id })
-      .from(cagens)
-      .where(lt(cagens.id, applicantId))
-      .orderBy(desc(cagens.id))
-      .limit(1);
-
-    const [nextRow] = await db
-      .select({ id: cagens.id })
-      .from(cagens)
-      .where(gt(cagens.id, applicantId))
-      .orderBy(asc(cagens.id))
-      .limit(1);
-
-    prevApplicantId = prevRow?.id ?? null;
-    nextApplicantId = nextRow?.id ?? null;
+    // Navigasi Prev/Next
+    prevApplicantId = prevRows[0]?.id ?? null;
+    nextApplicantId = nextRows[0]?.id ?? null;
   }
 } catch (err) {
   console.error(`Error loading applicant #${applicantId}:`, err);
@@ -259,7 +304,7 @@ const firstAvailableDoc = uploadedDocs.find(d => d.isUploaded) || uploadedDocs[0
 
               <!-- Horizontal Scrollable Tabs -->
               <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10">
-                {uploadedDocs.map((doc, idx) => {
+                {uploadedDocs.map((doc) => {
                   const isActive = firstAvailableDoc && firstAvailableDoc.slug === doc.slug;
                   return (
                     <button
