@@ -197,12 +197,6 @@ const firstAvailableDoc = uploadedDocs.find(d => d.isUploaded) || uploadedDocs[0
           </svg>
           Kembali ke Daftar
         </a>
-
-        <div class="h-4 w-px bg-white/10 hidden sm:block"></div>
-
-        <span class="text-xs text-gray-400 font-mono">
-          ID Pendaftar: <strong class="text-white">#{applicantId}</strong>
-        </span>
       </div>
 
       <!-- Quick Prev / Next Navigator -->
@@ -259,7 +253,7 @@ const firstAvailableDoc = uploadedDocs.find(d => d.isUploaded) || uploadedDocs[0
         </div>
         <h2 class="text-2xl font-bold text-white mb-2">Calon Anggota Tidak Ditemukan</h2>
         <p class="text-sm text-gray-400 max-w-md mx-auto mb-6">
-          Data pendaftar dengan nomor identitas #{applicantId} tidak ditemukan dalam sistem pendaftaran.
+          Data calon anggota tidak ditemukan dalam sistem pendaftaran.
         </p>
         <a
           href="/admin/dashboard"
