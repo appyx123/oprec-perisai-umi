@@ -12,15 +12,29 @@ import { hashPassword } from '../../../lib/password';
  * Menyetel kata sandi baru berdasarkan token valid dari tabel password_resets (atau fallback token JWT).
  */
 export const POST: APIRoute = async ({ request }) => {
-  let body: any;
+  let body: Record<string, any> = {};
+  const contentType = request.headers.get('content-type') || '';
+
   try {
-    body = await request.json();
+    if (contentType.includes('application/json')) {
+      body = (await request.json()) as Record<string, any>;
+    } else if (contentType.includes('form') || contentType.includes('multipart')) {
+      const formData = await request.formData();
+      body = Object.fromEntries(formData.entries());
+    } else {
+      try {
+        body = (await request.json()) as Record<string, any>;
+      } catch {
+        const formData = await request.formData();
+        body = Object.fromEntries(formData.entries());
+      }
+    }
   } catch {
     return new Response(
       JSON.stringify({
         success: false,
-        error: 'Bad Request',
-        message: 'Format payload JSON tidak valid.',
+        error: 'Format payload tidak valid. Harap kirimkan JSON atau Form Data yang valid.',
+        message: 'Format payload tidak valid. Harap kirimkan JSON atau Form Data yang valid.',
       }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
@@ -28,14 +42,17 @@ export const POST: APIRoute = async ({ request }) => {
 
   const token = String(body?.token || '').trim();
   const newPassword = String(body?.newPassword || body?.password || '').trim();
-  const confirmPassword = body?.confirmPassword !== undefined ? String(body.confirmPassword).trim() : undefined;
+  const confirmPassword =
+    (body?.confirmPassword ?? body?.password_confirmation) !== undefined
+      ? String(body?.confirmPassword ?? body?.password_confirmation).trim()
+      : undefined;
 
   // 1. Validasi token & input kata sandi
   if (!token) {
     return new Response(
       JSON.stringify({
         success: false,
-        error: 'Validation Error',
+        error: 'Token reset kata sandi wajib disertakan.',
         message: 'Token reset kata sandi wajib disertakan.',
       }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -46,7 +63,7 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: 'Validation Error',
+        error: 'Kata sandi baru minimal harus terdiri dari 6 karakter.',
         message: 'Kata sandi baru minimal harus terdiri dari 6 karakter.',
       }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -57,7 +74,7 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: 'Validation Error',
+        error: 'Konfirmasi kata sandi tidak cocok.',
         message: 'Konfirmasi kata sandi tidak cocok.',
       }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -78,7 +95,7 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Invalid Token',
+          error: 'Tautan pengaturan ulang kata sandi tidak valid atau tidak ditemukan.',
           message: 'Tautan pengaturan ulang kata sandi tidak valid atau tidak ditemukan.',
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -89,7 +106,7 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Token Already Used',
+          error: 'Tautan pengaturan ulang kata sandi ini sudah pernah digunakan. Silakan ajukan permohonan baru.',
           message: 'Tautan pengaturan ulang kata sandi ini sudah pernah digunakan. Silakan ajukan permohonan baru.',
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -102,24 +119,26 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Token Expired',
+          error: 'Tautan pengaturan ulang kata sandi telah kedaluwarsa. Silakan ajukan permohonan baru.',
           message: 'Tautan pengaturan ulang kata sandi telah kedaluwarsa. Silakan ajukan permohonan baru.',
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    // Verifikasi integritas kriptografis token JWT
-    const jwtPayload = await verifyPasswordResetJwt(token);
-    if (!jwtPayload || Number(jwtPayload.userId) !== dbTokenRecord.userId) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Invalid Token',
-          message: 'Tautan pengaturan ulang kata sandi tidak valid atau telah dimodifikasi.',
-        }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+    // Verifikasi integritas kriptografis token jika berupa JWT
+    if (token.includes('.')) {
+      const jwtPayload = await verifyPasswordResetJwt(token);
+      if (!jwtPayload || Number(jwtPayload.userId) !== dbTokenRecord.userId) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Tautan pengaturan ulang kata sandi tidak valid atau telah dimodifikasi.',
+            message: 'Tautan pengaturan ulang kata sandi tidak valid atau telah dimodifikasi.',
+          }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     const targetUserId = dbTokenRecord.userId;
