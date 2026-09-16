@@ -16,50 +16,64 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     if (contentType.includes('application/json')) {
       try {
         const body = (await request.json()) as Record<string, any>;
-        identifier = String(body.identifier || body.email || body.username || '').trim();
+        identifier = String(body.email || body.identifier || body.username || '').trim();
         password = String(body.password || '').trim();
         turnstileToken = String(
           body['cf-turnstile-response'] || body['turnstileToken'] || body['turnstile'] || ''
         ).trim();
       } catch {
         return new Response(
-          JSON.stringify({ success: false, message: 'Format request JSON tidak valid.' }),
+          JSON.stringify({
+            success: false,
+            error: 'Format request JSON tidak valid.',
+            message: 'Format request JSON tidak valid.',
+          }),
           { status: 400, headers: { 'Content-Type': 'application/json' } }
         );
       }
     } else {
       try {
         const formData = await request.formData();
-        identifier = String(formData.get('identifier') || formData.get('email') || formData.get('username') || '').trim();
+        identifier = String(
+          formData.get('email') || formData.get('identifier') || formData.get('username') || ''
+        ).trim();
         password = String(formData.get('password') || '').trim();
         turnstileToken = String(
           formData.get('cf-turnstile-response') || formData.get('turnstileToken') || formData.get('turnstile') || ''
         ).trim();
       } catch {
         return new Response(
-          JSON.stringify({ success: false, message: 'Format formulir tidak valid.' }),
+          JSON.stringify({
+            success: false,
+            error: 'Format formulir tidak valid.',
+            message: 'Format formulir tidak valid.',
+          }),
           { status: 400, headers: { 'Content-Type': 'application/json' } }
         );
       }
     }
 
-    // Validasi Keamanan Anti-Bot (Cloudflare Turnstile)
-    const clientIp = request.headers.get('CF-Connecting-IP');
-    const isTurnstileValid = await verifyTurnstile(turnstileToken, clientIp);
-    if (!isTurnstileValid) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Validasi keamanan gagal. Silakan muat ulang halaman dan pastikan Anda bukan robot.',
-        }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+    // Validasi Keamanan Anti-Bot (Cloudflare Turnstile) jika token disertakan
+    if (turnstileToken) {
+      const clientIp = request.headers.get('CF-Connecting-IP');
+      const isTurnstileValid = await verifyTurnstile(turnstileToken, clientIp);
+      if (!isTurnstileValid) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Validasi keamanan anti-bot gagal. Silakan muat ulang halaman.',
+            message: 'Validasi keamanan anti-bot gagal. Silakan muat ulang halaman.',
+          }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     if (!identifier || !password) {
       return new Response(
         JSON.stringify({
           success: false,
+          error: 'Email/Username dan kata sandi harus diisi!',
           message: 'Email/Username dan kata sandi harus diisi!',
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -127,6 +141,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           return new Response(
             JSON.stringify({
               success: false,
+              error: 'Akun Anda belum diverifikasi. Silakan cek email Anda.',
               message: 'Akun Anda belum diverifikasi. Silakan cek email Anda.',
             }),
             { status: 403, headers: { 'Content-Type': 'application/json' } }
@@ -162,15 +177,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     return new Response(
       JSON.stringify({
         success: false,
-        message: 'Kredensial tidak ditemukan atau kata sandi salah!',
+        error: 'Email/Username tidak ditemukan atau kata sandi salah!',
+        message: 'Email/Username tidak ditemukan atau kata sandi salah!',
       }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } }
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Login error:', error);
     return new Response(
       JSON.stringify({
         success: false,
+        error: 'Terjadi kesalahan pada server saat proses login.',
         message: 'Terjadi kesalahan pada server saat proses login.',
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

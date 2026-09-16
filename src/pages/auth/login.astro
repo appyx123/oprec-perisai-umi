@@ -158,21 +158,31 @@ if (user) {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
             },
-            body: JSON.stringify({ identifier, password }),
+            body: JSON.stringify({
+              email: identifier,
+              identifier,
+              password,
+            }),
           });
 
-          const data = (await res.json()) as any;
+          let data: any = {};
+          try {
+            data = await res.json();
+          } catch {
+            // Non-JSON response fallback
+          }
 
           if (res.ok && data.success) {
             // Redirect sesuai peran (admin atau user)
             window.location.href = data.redirectUrl || '/';
           } else {
-            showError(data.message || 'Kredensial tidak valid atau kata sandi salah!');
+            const displayError = data.error || data.message || `Kredensial tidak valid (Status ${res.status}).`;
+            showError(displayError);
             setLoading(false);
           }
-        } catch (err) {
+        } catch (err: any) {
           console.error('Fetch error:', err);
-          showError('Terjadi kendala jaringan saat menghubungi server.');
+          showError(err?.message || 'Terjadi kendala jaringan saat menghubungi server.');
           setLoading(false);
         }
       });
